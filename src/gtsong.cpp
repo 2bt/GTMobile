@@ -1,15 +1,24 @@
 #include <cstdio>
 #include <cstring>
+#include <fstream>
 #include "gtsong.hpp"
 
 namespace gt {
 namespace {
 
-uint8_t fread8(FILE *file) {
+template <class T>
+bool read(std::istream& stream, T& v) {
+    stream.read((char*) &v, sizeof(T));
+    return stream.good();
+}
+
+uint8_t read8(std::istream& stream) {
     uint8_t b;
-    fread(&b, 1, 1, file);
+    read(stream, b);
     return b;
 }
+
+
 void fwrite8(FILE *file, uint8_t b) {
     fwrite(&b, 1, 1, file);
 }
@@ -95,57 +104,56 @@ void Song::clear() {
 
 
 bool Song::load(char const* filename) {
-    FILE* file = fopen(filename, "rb");
-    if (!file) return false;
+    std::ifstream stream(filename, std::ios::binary);
+    if (!stream.is_open()) return false;
+    return load(stream);
+}
+bool Song::load(std::istream& stream) {
     char ident[4];
-    fread(ident, 4, 1, file);
-    if (memcmp(ident, "GTS5", 4)) {
-        fclose(file);
-        return false;
-    }
+    stream.read(ident, 4);
+    if (memcmp(ident, "GTS5", 4) != 0) return false;
 
     clear();
 
     // read infotexts
-    fread(songname, 1, sizeof(songname), file);
-    fread(authorname, 1, sizeof(authorname), file);
-    fread(copyrightname, 1, sizeof(copyrightname), file);
+    read(stream, songname);
+    read(stream, authorname);
+    read(stream, copyrightname);
 
     // read songorderlists
-    int amount = fread8(file);
+    int amount = read8(stream);
     for (int d = 0; d < amount; d++) {
         for (int c = 0; c < MAX_CHN; c++) {
-            int loadsize = fread8(file) + 1;
-            fread(songorder[d][c], loadsize, 1, file);
+            int loadsize = read8(stream) + 1;
+            stream.read((char*) songorder[d][c], loadsize);
         }
     }
     // read instruments
-    amount = fread8(file);
+    amount = read8(stream);
     for (int c = 1; c <= amount; c++) {
-        instr[c].ad        = fread8(file);
-        instr[c].sr        = fread8(file);
-        instr[c].ptr[WTBL] = fread8(file);
-        instr[c].ptr[PTBL] = fread8(file);
-        instr[c].ptr[FTBL] = fread8(file);
-        instr[c].ptr[STBL] = fread8(file);
-        instr[c].vibdelay  = fread8(file);
-        instr[c].gatetimer = fread8(file);
-        instr[c].firstwave = fread8(file);
-        fread(&instr[c].name, MAX_INSTRNAMELEN, 1, file);
+        instr[c].ad        = read8(stream);
+        instr[c].sr        = read8(stream);
+        instr[c].ptr[WTBL] = read8(stream);
+        instr[c].ptr[PTBL] = read8(stream);
+        instr[c].ptr[FTBL] = read8(stream);
+        instr[c].ptr[STBL] = read8(stream);
+        instr[c].vibdelay  = read8(stream);
+        instr[c].gatetimer = read8(stream);
+        instr[c].firstwave = read8(stream);
+        read(stream, instr[c].name);
     }
     // read tables
     for (int c = 0; c < MAX_TABLES; c++) {
-        int loadsize = fread8(file);
-        fread(ltable[c], loadsize, 1, file);
-        fread(rtable[c], loadsize, 1, file);
+        int loadsize = read8(stream);
+        stream.read((char*) ltable[c], loadsize);
+        stream.read((char*) rtable[c], loadsize);
     }
     // read patterns
-    amount = fread8(file);
+    amount = read8(stream);
     for (int c = 0; c < amount; c++) {
-        int length = fread8(file) * 4;
-        fread(pattern[c], length, 1, file);
+        int length = read8(stream) * 4;
+        stream.read((char*) pattern[c], length);
     }
-    fclose(file);
 
     count_pattern_lengths();
 

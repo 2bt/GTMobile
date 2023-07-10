@@ -11,7 +11,6 @@ add_library(
     src/sidengine.cpp
 )
 
-
 target_include_directories(
     native
     PUBLIC
@@ -22,6 +21,15 @@ target_compile_options(
     native
     PRIVATE
     -O2
+    -Wall
+)
+
+# disable -Wall for resid code
+set_source_files_properties(
+    src/sidengine.cpp
+    PROPERTIES
+    COMPILE_OPTIONS
+    -Wno-all
 )
 
 find_package (
@@ -32,6 +40,7 @@ find_package (
 
 target_link_libraries(
     native
-    log
     oboe::oboe
+    log
+    android
 )

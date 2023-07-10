@@ -13,6 +13,6 @@ public class MainActivity extends Activity {
         setContentView(mView);
 
 
-        Native.init();
+        Native.init(getAssets());
     }
 }

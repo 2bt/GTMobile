@@ -1,5 +1,6 @@
 #pragma once
 #include <cstdint>
+#include <istream>
 
 
 namespace gt {
@@ -92,6 +93,7 @@ struct Song {
 
     void count_pattern_lengths();
     bool load(char const* filename);
+    bool load(std::istream& stream);
     bool save(char const* filename);
 
     void clear();
