@@ -7,21 +7,35 @@
 #include "log.hpp"
 
 
+namespace {
+
+SDL_AudioDeviceID g_audio_device = 0;
+
+} // namespace
+
 namespace platform {
 
 bool start_audio() {
+    LOGD("start_audio");
+    if (g_audio_device != 0) return true;
+//    int n = SDL_GetNumAudioDevices(0);
+//    for (int i = 0; i < n; ++i) {
+//        LOGI("start_audio: device %d: %s", i, SDL_GetAudioDeviceName(i, 0));
+//    }
     SDL_AudioSpec spec = {
-        app::MIXRATE, AUDIO_S16, 1, 0, 3000, 0, 0, [](void*, Uint8* stream, int len) {
+        app::MIXRATE, AUDIO_S16, 1, 0, 1024 * 3, 0, 0, [](void*, Uint8* stream, int len) {
             app::audio_callback((short*) stream, len / 2);
         },
     };
-    SDL_OpenAudio(&spec, nullptr);
-    SDL_PauseAudio(0);
+    g_audio_device = SDL_OpenAudioDevice(nullptr, 0, &spec, nullptr, 0);
+    SDL_PauseAudioDevice(g_audio_device, 0);
     return true;
 }
 
 void stop_audio() {
-    SDL_CloseAudio();
+    LOGD("stop_audio");
+    SDL_CloseAudioDevice(g_audio_device);
+    g_audio_device = 0;
 }
 
 
@@ -42,7 +56,7 @@ bool load_asset(std::string const& name, std::vector<uint8_t>& buf) {
 
 int main(int argc, char** argv) {
 
-    SDL_Init(SDL_INIT_VIDEO);
+    SDL_Init(SDL_INIT_VIDEO | SDL_INIT_AUDIO);
     SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1);
     SDL_GL_SetAttribute(SDL_GL_DEPTH_SIZE, 0);
 
@@ -84,42 +98,42 @@ int main(int argc, char** argv) {
                     running = false;
                     break;
                 case SDL_SCANCODE_RETURN:
-//                    app::key(KEYCODE_ENTER, 0);
+                    app::key(app::KEYCODE_ENTER, 0);
                     break;
                 case SDL_SCANCODE_BACKSPACE:
-//                    app::key(KEYCODE_DEL, 0);
+                    app::key(app::KEYCODE_DEL, 0);
                     break;
                 default: break;
                 }
                 break;
             case SDL_TEXTINPUT:
-//                app::key(0, e.text.text[0]);
+                app::key(0, e.text.text[0]);
                 break;
 
             case SDL_WINDOWEVENT:
                 if (e.window.event == SDL_WINDOWEVENT_SIZE_CHANGED) {
-//                    app::resize(e.window.data1, e.window.data2);
+                    app::resize(e.window.data1, e.window.data2);
                 }
                 break;
 
             case SDL_MOUSEBUTTONDOWN:
                 if (e.button.button != SDL_BUTTON_LEFT) break;
-//                app::touch(e.motion.x, e.motion.y, true);
+                app::touch(e.motion.x, e.motion.y, true);
                 break;
             case SDL_MOUSEBUTTONUP:
                 if (e.button.button != SDL_BUTTON_LEFT) break;
-//                app::touch(e.motion.x, e.motion.y, false);
+                app::touch(e.motion.x, e.motion.y, false);
                 break;
             case SDL_MOUSEMOTION:
                 if (!(e.motion.state & SDL_BUTTON_LMASK)) break;
-//                app::touch(e.motion.x, e.motion.y, true);
+                app::touch(e.motion.x, e.motion.y, true);
                 break;
 
             default: break;
             }
         }
 
-//        app::draw();
+        app::draw();
         SDL_GL_SwapWindow(window);
     }
 

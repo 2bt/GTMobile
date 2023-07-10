@@ -32,9 +32,57 @@ public class View extends GLSurfaceView {
         });
     }
 
+
+    int     mTouchId;
+    boolean mTouchPressed;
+
     @Override
     public boolean onTouchEvent(MotionEvent e) {
-        Log.i(TAG, "onTouchEvent" + e);
-        return false;
+        int index  = e.getActionIndex();
+        int id     = e.getPointerId(index);
+        int action = -1;
+
+        switch (e.getActionMasked()) {
+        case MotionEvent.ACTION_DOWN:
+        case MotionEvent.ACTION_POINTER_DOWN:
+            mTouchId = id;
+            if (mTouchPressed) action = MotionEvent.ACTION_MOVE;
+            else {
+                action = MotionEvent.ACTION_DOWN;
+                mTouchPressed = true;
+            }
+            break;
+        case MotionEvent.ACTION_UP:
+        case MotionEvent.ACTION_POINTER_UP:
+            if (mTouchPressed && id == mTouchId) {
+                action = MotionEvent.ACTION_UP;
+                mTouchPressed = false;
+            }
+            break;
+        case MotionEvent.ACTION_MOVE:
+            if (!mTouchPressed) break;
+            int count = e.getPointerCount();
+            for (int p = 0; p < count; ++p) {
+                if (e.getPointerId(p) == mTouchId) {
+                    index = p;
+                    action = MotionEvent.ACTION_MOVE;
+                    break;
+                }
+            }
+            break;
+        }
+        if (action == -1) return false;
+
+        final int a = action;
+        final int x = (int) e.getX(index);
+        final int y = (int) e.getY(index);
+        queueEvent(new Runnable() {
+            public void run() {
+                Native.touch(x, y, a);
+            }
+        });
+        return true;
     }
+
+
 }
