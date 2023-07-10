@@ -2,6 +2,7 @@
 #include "platform.hpp"
 #include "gtplayer.hpp"
 #include "sidengine.hpp"
+#include "log.hpp"
 
 
 namespace app {
@@ -35,6 +36,7 @@ void audio_callback(int16_t* buffer, int length) {
 }
 
 void init() {
+    LOGD("init");
 
     // load song
     std::vector<uint8_t> buffer;
@@ -54,8 +56,22 @@ void init() {
 }
 
 void free() {
+    LOGD("free");
+}
 
+void resize(int width, int height) {
+    LOGD("resize %d %d", width, height);
+}
 
+void touch(int x, int y, bool pressed) {
+    LOGD("touch %d %d %d", x, y, pressed);
+}
+
+void key(int key, int unicode) {
+    LOGD("key %d %d", key, unicode);
+}
+
+void draw() {
 }
 
 

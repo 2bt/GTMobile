@@ -5,14 +5,25 @@ import android.os.Bundle;
 
 
 public class MainActivity extends Activity {
+    View mView;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-
-        View mView = new View(getApplication());
+        mView = new View(getApplication());
         setContentView(mView);
-
-
-        Native.init(getAssets());
     }
+    @Override
+    protected void onResume() {
+        super.onResume();
+        mView.onResume();
+        Native.startAudio();
+    }
+    @Override
+    protected void onPause() {
+        super.onPause();
+        mView.onPause();
+        Native.stopAudio();
+    }
+
 }

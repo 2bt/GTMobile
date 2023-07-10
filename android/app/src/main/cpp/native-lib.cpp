@@ -14,11 +14,8 @@ namespace {
 
 
 struct Callback : oboe::AudioStreamCallback {
-    oboe::DataCallbackResult onAudioReady(oboe::AudioStream* oboeStream,
-                                          void*              audioData,
-                                          int32_t            numFrames) override {
+    oboe::DataCallbackResult onAudioReady(oboe::AudioStream* oboeStream, void* audioData, int32_t numFrames) override {
         app::audio_callback((int16_t*) audioData, numFrames);
-
         return oboe::DataCallbackResult::Continue;
     }
 }                  g_callback;
@@ -48,18 +45,9 @@ bool load_asset(std::string const& name, std::vector<uint8_t>& buf) {
     return true;
 }
 
-void stop_audio() {
-    LOGI("stop_audio");
-    if (!g_stream) return;
-    g_stream->stop();
-    g_stream->close();
-    delete g_stream;
-    g_stream = nullptr;
-}
-
 bool start_audio() {
     LOGI("start_audio");
-    if (g_stream) stop_audio();
+    if (g_stream) return true;
 
     oboe::AudioStreamBuilder builder;
     builder.setDirection(oboe::Direction::Output);
@@ -92,6 +80,15 @@ bool start_audio() {
     return true;
 }
 
+void stop_audio() {
+    LOGI("stop_audio");
+    if (!g_stream) return;
+    g_stream->stop();
+    g_stream->close();
+    delete g_stream;
+    g_stream = nullptr;
+}
+
 
 } // namespace platform
 
@@ -104,5 +101,22 @@ extern "C" {
     JNIEXPORT void JNICALL Java_com_twobit_gtmobile_Native_free(JNIEnv* env, jobject thiz) {
         app::free();
     }
-
+    JNIEXPORT void JNICALL Java_com_twobit_gtmobile_Native_resize(JNIEnv* env, jobject obj, jint width, jint height) {
+        app::resize(width, height);
+    }
+    JNIEXPORT void JNICALL Java_com_twobit_gtmobile_Native_draw(JNIEnv* env, jobject obj) {
+        app::draw();
+    }
+    JNIEXPORT void JNICALL Java_com_twobit_gtmobile_Native_touch(JNIEnv* env, jobject obj, jint x, jint y, jint action) {
+        app::touch(x, y, action == 0 || action == 2);
+    }
+    JNIEXPORT void JNICALL Java_com_twobit_gtmobile_Native_key(JNIEnv* env, jobject obj, jint key, jint unicode) {
+        app::key(key, unicode);
+    }
+    JNIEXPORT void JNICALL Java_com_twobit_gtmobile_Native_startAudio(JNIEnv * env, jobject obj) {
+        platform::start_audio();
+    }
+    JNIEXPORT void JNICALL Java_com_twobit_gtmobile_Native_stopAudio(JNIEnv * env, jobject obj) {
+        platform::stop_audio();
+    }
 }

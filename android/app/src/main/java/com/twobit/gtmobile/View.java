@@ -19,15 +19,15 @@ public class View extends GLSurfaceView {
         setRenderer(new GLSurfaceView.Renderer() {
             @Override
             public void onSurfaceCreated(GL10 gl, EGLConfig config) {
-    //            Native.init(getResources().getAssets());
+                Native.init(getResources().getAssets());
             }
             @Override
             public void onSurfaceChanged(GL10 gl, int width, int height) {
-    //            Native.resize(width, height);
+                Native.resize(width, height);
             }
             @Override
             public void onDrawFrame(GL10 gl) {
-    //            Native.draw();
+                Native.draw();
             }
         });
     }
