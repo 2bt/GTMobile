@@ -1,58 +1,35 @@
-#include "gtplayer.hpp"
 #include "log.hpp"
-#include "sidengine.hpp"
+#include "app.hpp"
+
+#include <vector>
 
 #include <android/asset_manager.h>
 #include <android/asset_manager_jni.h>
 #include <jni.h>
 #include <oboe/Oboe.h>
-#include <vector>
 
-
-enum {
-    SAMPLES_PER_FRAME = MIXRATE / 50,
-};
 
 
 namespace {
 
-gt::Song   g_song;
-gt::Player g_player(g_song);
-SidEngine  g_sid_engine;
 
-
-class Callback : public oboe::AudioStreamCallback {
-public:
+struct Callback : oboe::AudioStreamCallback {
     oboe::DataCallbackResult onAudioReady(oboe::AudioStream* oboeStream,
                                           void*              audioData,
                                           int32_t            numFrames) override {
-        int16_t* buffer = (int16_t*) audioData;
-        int      length = numFrames;
-
-        while (length > 0) {
-            if (m_sample == 0) {
-                g_player.play_routine();
-                for (int i = 0; i < 25; ++i) g_sid_engine.write(i, g_player.regs[i]);
-            }
-            int l = std::min(SAMPLES_PER_FRAME - m_sample, length);
-            m_sample += l;
-            if (m_sample == SAMPLES_PER_FRAME) m_sample = 0;
-            length -= l;
-            g_sid_engine.mix(buffer, l);
-            buffer += l;
-        }
+        app::audio_callback((int16_t*) audioData, numFrames);
 
         return oboe::DataCallbackResult::Continue;
     }
-private:
-    int m_sample = 0;
 }                  g_callback;
-oboe::AudioStream* g_stream = nullptr;
-
-AAssetManager* g_asset_manager;
+oboe::AudioStream* g_stream;
+AAssetManager*     g_asset_manager;
 
 
 } // namespace
+
+
+namespace platform {
 
 
 bool load_asset(std::string const& name, std::vector<uint8_t>& buf) {
@@ -88,7 +65,7 @@ bool start_audio() {
     builder.setDirection(oboe::Direction::Output);
     builder.setPerformanceMode(oboe::PerformanceMode::LowLatency);
     builder.setSharingMode(oboe::SharingMode::Exclusive);
-    builder.setSampleRate(MIXRATE);
+    builder.setSampleRate(app::MIXRATE);
     builder.setFormat(oboe::AudioFormat::I16);
     builder.setChannelCount(oboe::ChannelCount::Mono);
     builder.setCallback(&g_callback);
@@ -103,8 +80,8 @@ bool start_audio() {
     LOGI("start_audio: stream format is %s", oboe::convertToText(format));
 
     auto rate = g_stream->getSampleRate();
-    if (rate != MIXRATE) {
-        LOGW("start_audio: mixrate is %d but should be %d", rate, MIXRATE);
+    if (rate != app::MIXRATE) {
+        LOGW("start_audio: mixrate is %d but should be %d", rate, app::MIXRATE);
     }
 
     result = g_stream->requestStart();
@@ -116,24 +93,16 @@ bool start_audio() {
 }
 
 
-extern "C" JNIEXPORT void JNICALL Java_com_twobit_gtmobile_Native_init(JNIEnv* env,
-                                                                       jobject thiz,
-                                                                       jobject asset_manager) {
-    g_asset_manager = AAssetManager_fromJava(env, asset_manager);
-
-    // load song
-    std::vector<uint8_t> buffer;
-    load_asset("Remembrance.sng", buffer);
-    struct MemBuf : std::streambuf {
-        MemBuf(uint8_t const* data, size_t size) {
-            char* p = (char*)data;
-            this->setg(p, p, p + size);
-        }
-    } membuf(buffer.data(), buffer.size());
-    std::istream stream(&membuf);
-    g_song.load(stream);
-    g_player.init_song(0, gt::Player::PLAY_BEGINNING);
+} // namespace platform
 
 
-    start_audio();
+extern "C" {
+    JNIEXPORT void JNICALL Java_com_twobit_gtmobile_Native_init(JNIEnv* env, jobject thiz, jobject asset_manager) {
+        g_asset_manager = AAssetManager_fromJava(env, asset_manager);
+        app::init();
+    }
+    JNIEXPORT void JNICALL Java_com_twobit_gtmobile_Native_free(JNIEnv* env, jobject thiz) {
+        app::free();
+    }
+
 }

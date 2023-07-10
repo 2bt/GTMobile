@@ -21,11 +21,10 @@ enum {
     PALCLOCKRATE = 985248,
 };
 
-SidEngine::SidEngine() {
+SidEngine::SidEngine(int mixrate) {
     m_sid = std::make_unique<SID>();
-    m_sid->reset();
     m_sid->set_chip_model(MOS8580);
-    m_sid->set_sampling_parameters(PALCLOCKRATE, SAMPLE_RESAMPLE_INTERPOLATE, MIXRATE);
+    m_sid->set_sampling_parameters(PALCLOCKRATE, SAMPLE_RESAMPLE_INTERPOLATE, mixrate);
 }
 
 SidEngine::~SidEngine() {}

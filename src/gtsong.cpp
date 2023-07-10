@@ -18,9 +18,10 @@ uint8_t read8(std::istream& stream) {
     return b;
 }
 
-
-void fwrite8(FILE *file, uint8_t b) {
-    fwrite(&b, 1, 1, file);
+template <class T>
+bool write(std::ostream& stream, T const& v) {
+    stream.write((char const*) &v, sizeof(T));
+    return stream.good();
 }
 
 } // namespace
@@ -162,11 +163,14 @@ bool Song::load(std::istream& stream) {
 
 
 bool Song::save(char const* filename) {
+    std::ofstream stream(filename, std::ios::binary);
+    if (!stream.is_open()) return false;
+    return save(stream);
+}
+bool Song::save(std::ostream& stream) {
     count_pattern_lengths();
 
-    FILE* file = fopen(filename, "wb");
-    if (!file) return false;
-    fwrite("GTS5", 1, 4, file);
+    stream.write("GTS5", 4);
 
     //for (int c = 1; c < MAX_INSTR; c++) {
     //    if (instr[c].ad || instr[c].sr || instr[c].ptr[0] || instr[c].ptr[1] ||
@@ -177,9 +181,9 @@ bool Song::save(char const* filename) {
     //}
 
     // infotexts
-    fwrite(songname, 1, sizeof(songname), file);
-    fwrite(authorname, 1, sizeof(authorname), file);
-    fwrite(copyrightname, 1, sizeof(copyrightname), file);
+    write(stream, songname);
+    write(stream, authorname);
+    write(stream, copyrightname);
 
     // songorderlists
     int c = MAX_SONGS - 1;
@@ -189,45 +193,44 @@ bool Song::save(char const* filename) {
         --c;
     }
     int amount = c + 1;
-    fwrite8(file, amount);
+    write<uint8_t>(stream, amount);
     for (int d = 0; d < amount; d++) {
         for (int c = 0; c < MAX_CHN; c++) {
             int length = songlen[d][c] + 1;
-            fwrite8(file, length);
+            write<uint8_t>(stream, length);
             int writebytes = length + 1;
-            fwrite(songorder[d][c], 1, writebytes, file);
+            stream.write((char const*) songorder[d][c], writebytes);
         }
     }
     // instruments
-    fwrite8(file, highestusedinstr);
+    write<uint8_t>(stream, highestusedinstr);
     for (int c = 1; c <= highestusedinstr; c++) {
-        fwrite8(file, instr[c].ad);
-        fwrite8(file, instr[c].sr);
-        fwrite8(file, instr[c].ptr[WTBL]);
-        fwrite8(file, instr[c].ptr[PTBL]);
-        fwrite8(file, instr[c].ptr[FTBL]);
-        fwrite8(file, instr[c].ptr[STBL]);
-        fwrite8(file, instr[c].vibdelay);
-        fwrite8(file, instr[c].gatetimer);
-        fwrite8(file, instr[c].firstwave);
-        fwrite(&instr[c].name, 1, MAX_INSTRNAMELEN, file);
+        write(stream, instr[c].ad);
+        write(stream, instr[c].sr);
+        write(stream, instr[c].ptr[WTBL]);
+        write(stream, instr[c].ptr[PTBL]);
+        write(stream, instr[c].ptr[FTBL]);
+        write(stream, instr[c].ptr[STBL]);
+        write(stream, instr[c].vibdelay);
+        write(stream, instr[c].gatetimer);
+        write(stream, instr[c].firstwave);
+        write(stream, instr[c].name);
     }
     // Write tables
     for (int c = 0; c < MAX_TABLES; c++) {
         int writebytes = gettablelen(c);
-        fwrite8(file, writebytes);
-        fwrite(ltable[c], 1, writebytes, file);
-        fwrite(rtable[c], 1, writebytes, file);
+        write<uint8_t>(stream, writebytes);
+        stream.write((char const*) ltable[c], writebytes);
+        stream.write((char const*) rtable[c], writebytes);
     }
     // Write patterns
     amount = highestusedpattern + 1;
-    fwrite8(file, amount);
+    write<uint8_t>(stream, amount);
     for (int c = 0; c < amount; c++) {
         int length = pattlen[c] + 1;
-        fwrite8(file, length);
-        fwrite(pattern[c], 1, length * 4, file);
+        write<uint8_t>(stream, length);
+        stream.write((char const*) pattern[c], length * 4);
     }
-    fclose(file);
 
     return true;
 }

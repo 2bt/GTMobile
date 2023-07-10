@@ -7,4 +7,5 @@ class Native {
         System.loadLibrary("native");
     }
     public static native void init(AssetManager assetManager);
+    public static native void free();
 }

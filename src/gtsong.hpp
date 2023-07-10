@@ -95,6 +95,7 @@ struct Song {
     bool load(char const* filename);
     bool load(std::istream& stream);
     bool save(char const* filename);
+    bool save(std::ostream& stream);
 
     void clear();
     void clear_pattern(int p);

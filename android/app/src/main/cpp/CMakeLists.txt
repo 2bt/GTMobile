@@ -6,6 +6,7 @@ add_library(
     native
     SHARED
     native-lib.cpp
+    src/app.cpp
     src/gtplayer.cpp
     src/gtsong.cpp
     src/sidengine.cpp
