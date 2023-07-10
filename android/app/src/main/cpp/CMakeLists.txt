@@ -14,7 +14,7 @@ add_library(
 
 target_include_directories(
     native
-    PUBLIC
+    PRIVATE
     src
 )
 

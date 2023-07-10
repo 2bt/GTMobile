@@ -5,7 +5,10 @@
 namespace app {
 
     enum {
-        MIXRATE = 44100,
+        MIXRATE    = 44100,
+
+        WIDTH      = 360,
+        MIN_HEIGHT = 590,
     };
 
     void init();
