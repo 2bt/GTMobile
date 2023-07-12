@@ -7,6 +7,7 @@ add_library(
     SHARED
     native-lib.cpp
     src/app.cpp
+    src/gfx.cpp
     src/gtplayer.cpp
     src/gtsong.cpp
     src/sidengine.cpp
@@ -21,7 +22,8 @@ target_include_directories(
 target_compile_options(
     native
     PRIVATE
-    -O2
+    -std=c++17
+    -O3
     -Wall
 )
 
@@ -41,7 +43,9 @@ find_package (
 
 target_link_libraries(
     native
-    oboe::oboe
     log
+    EGL
+    GLESv2
+    oboe::oboe
     android
 )

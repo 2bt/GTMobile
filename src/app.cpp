@@ -3,6 +3,8 @@
 #include "gtplayer.hpp"
 #include "sidengine.hpp"
 #include "log.hpp"
+#include "gfx.hpp"
+
 
 
 namespace app {
@@ -38,6 +40,10 @@ void audio_callback(int16_t* buffer, int length) {
 void init() {
     LOGD("init");
 
+
+    gfx::init();
+
+
     // load song
     std::vector<uint8_t> buffer;
     platform::load_asset("Remembrance.sng", buffer);
@@ -57,10 +63,12 @@ void init() {
 
 void free() {
     LOGD("free");
+    gfx::free();
 }
 
 void resize(int width, int height) {
     LOGD("resize %d %d", width, height);
+    gfx::set_viewport(width, height);
 }
 
 void touch(int x, int y, bool pressed) {
@@ -72,6 +80,16 @@ void key(int key, int unicode) {
 }
 
 void draw() {
+
+
+    gfx::clear();
+
+
+    gfx::DrawContext dc;
+    dc.rect({10, 10}, {100, 100}, {255, 0, 0, 255});
+
+    gfx::draw(dc);
+
 }
 
 

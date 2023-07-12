@@ -80,7 +80,7 @@ int main(int argc, char** argv) {
     glewExperimental = true;
     glewInit();
 
-    platform::start_audio();
+//    platform::start_audio();
     app::init();
 
     bool running = true;

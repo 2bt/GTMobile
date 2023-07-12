@@ -6,6 +6,7 @@ add_executable(
     gtmobile
     src/platform.cpp
     src/app.cpp
+    src/gfx.cpp
     src/gtplayer.cpp
     src/gtsong.cpp
     src/sidengine.cpp
@@ -14,7 +15,7 @@ add_executable(
 target_compile_options(
     gtmobile
     PRIVATE
-    -O2
+    -O3
     -Wall
 )
 
