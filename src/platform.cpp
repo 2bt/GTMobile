@@ -82,6 +82,7 @@ int main(int argc, char** argv) {
 
 //    platform::start_audio();
     app::init();
+    app::resize(app::WIDTH, app::MIN_HEIGHT);
 
     bool running = true;
     while (running) {
