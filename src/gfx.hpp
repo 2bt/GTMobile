@@ -6,14 +6,11 @@
 namespace gfx {
 
 
-using Vec = TVec2<int16_t>;
-using Col = TVec4<uint8_t>;
-
 
 struct Vertex {
-    Vec pos;
-    Vec uv;
-    Col col;
+    i16vec2 pos;
+    i16vec2 uv;
+    u8vec4  col;
 };
 
 
@@ -35,18 +32,18 @@ public:
         m_indices.clear();
     }
 
-    void rect(Vec pos, Vec size, Vec uv, Col col) {
+    void rect(ivec2 pos, ivec2 size, ivec2 uv, u8vec4 col = {255}) {
         uint16_t i0 = add_vertex({ pos, uv, col });
-        uint16_t i1 = add_vertex({ pos + Vec(size.x, 0), uv + Vec(size.x, 0), col });
+        uint16_t i1 = add_vertex({ pos + ivec2(size.x, 0), uv + ivec2(size.x, 0), col });
         uint16_t i2 = add_vertex({ pos + size, uv + size, col });
-        uint16_t i3 = add_vertex({ pos + Vec(0, size.y), uv + Vec(0, size.y), col });
+        uint16_t i3 = add_vertex({ pos + ivec2(0, size.y), uv + ivec2(0, size.y), col });
         m_indices.insert(m_indices.end(), { i0, i1, i2, i0, i2, i3 });
     }
 
     std::vector<Vertex> const& vertices() const { return m_vertices; }
     std::vector<uint16_t> const& indices() const { return m_indices; }
 
-private:
+protected:
     std::vector<Vertex>   m_vertices;
     std::vector<uint16_t> m_indices;
 };
@@ -55,14 +52,12 @@ private:
 class Texture {
 friend void draw(DrawContext const& dc, Texture const& tex);
 public:
-    int width() const { return m_width; }
-    int height() const { return m_height; }
+    ivec2 size() const { return m_size; }
     void free();
 protected:
     Texture() {}
-    void init(int w, int h, uint8_t const* pixels);
-    uint32_t m_width;
-    uint32_t m_height;
+    void init(ivec2 size, uint8_t const* pixels);
+    ivec2    m_size;
     uint32_t m_gl_texture = 0;
 };
 
@@ -70,7 +65,7 @@ protected:
 class Canvas : public Texture {
 friend void set_canvas(Canvas const& canvas);
 public:
-    void init(int w, int h);
+    void init(ivec2 size);
     void free();
 protected:
     uint32_t m_gl_framebuffer;
@@ -86,9 +81,8 @@ public:
 bool init();
 void free();
 
-void resize(int width, int height);
-int  screen_width();
-int  screen_height();
+void set_screen_size(ivec2 size);
+ivec2 screen_size();
 
 void set_blend(bool enabled);
 void set_canvas();

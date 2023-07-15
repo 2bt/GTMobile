@@ -14,9 +14,9 @@
 #define STBI_ONLY_PNG
 #include "stb_image.h"
 
-#include "gfx.hpp"
 #include "log.hpp"
 #include "platform.hpp"
+#include "gfx.hpp"
 
 #include <cassert>
 
@@ -32,22 +32,21 @@ void Texture::free() {
         m_gl_texture = 0;
     }
 }
-void Texture::init(int w, int h, uint8_t const* pixels) {
+void Texture::init(ivec2 size, uint8_t const* pixels) {
     free();
-    m_width = w;
-    m_height = h;
+    m_size = size;
     glGenTextures(1, &m_gl_texture);
     glBindTexture(GL_TEXTURE_2D, m_gl_texture);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, m_width, m_height, 0, GL_RGBA, GL_UNSIGNED_BYTE, pixels);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, size.x, size.y, 0, GL_RGBA, GL_UNSIGNED_BYTE, pixels);
 }
 
-void Canvas::init(int w, int h) {
+void Canvas::init(ivec2 size) {
     free();
-    Texture::init(w, h, nullptr);
+    Texture::init(size, nullptr);
     glGenFramebuffers(1, &m_gl_framebuffer);
     glBindFramebuffer(GL_FRAMEBUFFER, m_gl_framebuffer);
     glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, m_gl_texture, 0);
@@ -72,15 +71,14 @@ bool Image::init(char const* name) {
     int w, h, c;
     uint8_t* p = stbi_load_from_memory(buf.data(), buf.size(), &w, &h, &c, 0);
     assert(c == 4);
-    Texture::init(w, h, p);
+    Texture::init({w, h}, p);
     stbi_image_free(p);
     return true;
 }
 
 namespace {
 
-    int    g_screen_width;
-    int    g_screen_height;
+    ivec2  g_screen_size;
 
     GLuint g_program;
     GLint  g_pos_scale_loc;
@@ -98,14 +96,14 @@ namespace {
 void set_canvas() {
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
     glUseProgram(g_program);
-    glUniform2f(g_pos_scale_loc, 2.0f / g_screen_width, 2.0f / g_screen_height);
-    glViewport(0, 0, g_screen_width, g_screen_height);
+    glUniform2f(g_pos_scale_loc, 2.0f / g_screen_size.x, 2.0f / g_screen_size.y);
+    glViewport(0, 0, g_screen_size.x, g_screen_size.y);
 }
 void set_canvas(Canvas const& canvas) {
     glBindFramebuffer(GL_FRAMEBUFFER, canvas.m_gl_framebuffer);
     glUseProgram(g_program);
-    glUniform2f(g_pos_scale_loc, 2.0f / canvas.width(), 2.0f / canvas.height());
-    glViewport(0, 0, canvas.width(), canvas.height());
+    glUniform2f(g_pos_scale_loc, 2.0f / canvas.size().x, 2.0f / canvas.size().y);
+    glViewport(0, 0, canvas.size().x, canvas.size().y);
 }
 
 
@@ -204,13 +202,9 @@ void free() {
 }
 
 
-void resize(int width, int height) {
-    g_screen_width = width;
-    g_screen_height = height;
-}
+void set_screen_size(ivec2 size) { g_screen_size = size; }
+ivec2 screen_size() { return g_screen_size; }
 
-int  screen_width() { return g_screen_width; }
-int  screen_height() { return g_screen_height; }
 
 void clear(float r, float g, float b) {
     glClearColor(r, g, b, 1.0f);
@@ -241,12 +235,12 @@ void draw(DrawContext const& dc, Texture const& tex) {
                  dc.indices().data(),
                  GL_STREAM_DRAW);
 
-    glUniform2f(g_uv_scale_loc, 1.0f / tex.m_width, 1.0f / tex.m_height);
+    glUniform2f(g_uv_scale_loc, 1.0f / tex.m_size.x, 1.0f / tex.m_size.y);
     glBindTexture(GL_TEXTURE_2D, tex.m_gl_texture);
     glUniform1i(g_tex_loc, 0);
 
     glBindVertexArray(g_vao);
-    glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_SHORT, 0);
+    glDrawElements(GL_TRIANGLES, dc.indices().size(), GL_UNSIGNED_SHORT, 0);
 }
 
 

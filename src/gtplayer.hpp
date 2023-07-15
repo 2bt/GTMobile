@@ -26,6 +26,14 @@ public:
     void play_routine();
 
 
+    void get_chan_info(int chnnum, uint8_t& songptr, uint8_t& pattnum, uint32_t& pattptr) const {
+        Channel const& c = m_channels[chnnum];
+        songptr = c.songptr;
+        pattnum = c.pattnum;
+        pattptr = c.pattptr;
+    }
+
+
     // TODO: test
     void release_note(int chnnum);
     void play_test_note(int note, int ins, int chnnum);
