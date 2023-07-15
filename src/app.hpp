@@ -16,6 +16,7 @@ namespace app {
 
     void init();
     void free();
+    void set_refresh_rate(float refresh_rate);
     void resize(int w, int h);
     void touch(int x, int y, bool pressed);
     void key(int key, int unicode);

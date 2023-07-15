@@ -6,7 +6,7 @@ class Native {
     static {
         System.loadLibrary("native");
     }
-    public static native void init(AssetManager assetManager);
+    public static native void init(AssetManager assetManager, float refreshRate);
     public static native void free();
     public static native void resize(int width, int height);
     public static native void draw();

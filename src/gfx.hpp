@@ -52,8 +52,10 @@ protected:
 class Texture {
 friend void draw(DrawContext const& dc, Texture const& tex);
 public:
+    enum FilterMode { NEAREST, LINEAR };
     ivec2 size() const { return m_size; }
     void free();
+    void set_filter(FilterMode filter);
 protected:
     Texture() {}
     void init(ivec2 size, uint8_t const* pixels);

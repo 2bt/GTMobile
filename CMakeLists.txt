@@ -7,6 +7,7 @@ add_executable(
     src/platform.cpp
     src/app.cpp
     src/gfx.cpp
+    src/gui.cpp
     src/gtplayer.cpp
     src/gtsong.cpp
     src/sidengine.cpp

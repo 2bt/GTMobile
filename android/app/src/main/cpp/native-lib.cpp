@@ -1,5 +1,6 @@
 #include "log.hpp"
 #include "app.hpp"
+#include "gui.hpp"
 
 #include <vector>
 
@@ -94,9 +95,10 @@ void stop_audio() {
 
 
 extern "C" {
-    JNIEXPORT void JNICALL Java_com_twobit_gtmobile_Native_init(JNIEnv* env, jobject thiz, jobject asset_manager) {
+    JNIEXPORT void JNICALL Java_com_twobit_gtmobile_Native_init(JNIEnv* env, jobject thiz, jobject asset_manager, jfloat refresh_rate) {
         g_asset_manager = AAssetManager_fromJava(env, asset_manager);
         app::init();
+        gui::set_refresh_rate(refresh_rate);
     }
     JNIEXPORT void JNICALL Java_com_twobit_gtmobile_Native_free(JNIEnv* env, jobject thiz) {
         app::free();

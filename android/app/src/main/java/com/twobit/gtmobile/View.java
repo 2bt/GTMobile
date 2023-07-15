@@ -1,7 +1,10 @@
 package com.twobit.gtmobile;
 
 import android.content.Context;
+import android.hardware.display.DisplayManager;
 import android.opengl.GLSurfaceView;
+import android.os.Build;
+import android.view.Display;
 import android.view.MotionEvent;
 import android.util.Log;
 import javax.microedition.khronos.egl.EGLConfig;
@@ -11,15 +14,24 @@ import javax.microedition.khronos.opengles.GL10;
 public class View extends GLSurfaceView {
     static final String TAG = "View";
 
+    float mRefreshRate = 60.0f;
+
     public View(Context context) {
         super(context);
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O_MR1) {
+            DisplayManager displayManager = (DisplayManager) context.getSystemService(Context.DISPLAY_SERVICE);
+            Display display = displayManager.getDisplay(Display.DEFAULT_DISPLAY);
+            mRefreshRate = display.getRefreshRate();
+        }
+
         setPreserveEGLContextOnPause(true);
         setEGLContextClientVersion(2);
         setEGLConfigChooser(8, 8, 8, 0, 0, 0);
         setRenderer(new GLSurfaceView.Renderer() {
             @Override
             public void onSurfaceCreated(GL10 gl, EGLConfig config) {
-                Native.init(getResources().getAssets());
+                Native.init(getResources().getAssets(), mRefreshRate);
             }
             @Override
             public void onSurfaceChanged(GL10 gl, int width, int height) {

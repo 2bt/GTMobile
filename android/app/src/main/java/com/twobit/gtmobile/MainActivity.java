@@ -5,6 +5,7 @@ import android.os.Bundle;
 
 
 public class MainActivity extends Activity {
+    static final String TAG = "Main";
     View mView;
 
     @Override
@@ -13,17 +14,18 @@ public class MainActivity extends Activity {
         mView = new View(getApplication());
         setContentView(mView);
     }
+
     @Override
     protected void onResume() {
         super.onResume();
         mView.onResume();
         Native.startAudio();
     }
+
     @Override
     protected void onPause() {
         super.onPause();
         mView.onPause();
         Native.stopAudio();
     }
-
 }

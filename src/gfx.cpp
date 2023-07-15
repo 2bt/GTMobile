@@ -36,12 +36,17 @@ void Texture::init(ivec2 size, uint8_t const* pixels) {
     free();
     m_size = size;
     glGenTextures(1, &m_gl_texture);
-    glBindTexture(GL_TEXTURE_2D, m_gl_texture);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    //glBindTexture(GL_TEXTURE_2D, m_gl_texture);
+    set_filter(NEAREST);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
     glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, size.x, size.y, 0, GL_RGBA, GL_UNSIGNED_BYTE, pixels);
+}
+void Texture::set_filter(FilterMode filter) {
+    GLint f = filter == LINEAR ? GL_LINEAR : GL_NEAREST;
+    glBindTexture(GL_TEXTURE_2D, m_gl_texture);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, f);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, f);
 }
 
 void Canvas::init(ivec2 size) {
