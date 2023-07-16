@@ -5,12 +5,13 @@ project(gtmobile)
 add_executable(
     gtmobile
     src/platform.cpp
-    src/app.cpp
-    src/gfx.cpp
-    src/gui.cpp
     src/gtplayer.cpp
     src/gtsong.cpp
     src/sidengine.cpp
+    src/gfx.cpp
+    src/gui.cpp
+    src/app.cpp
+    src/songview.cpp
 )
 
 target_compile_options(

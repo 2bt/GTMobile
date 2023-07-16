@@ -1,8 +1,13 @@
 #pragma once
 #include <cstdint>
+#include "gtplayer.hpp"
+#include "gtsong.hpp"
 
 
 namespace app {
+
+    gt::Song&   song();
+    gt::Player& player();
 
     enum {
         MIXRATE       = 44100,
