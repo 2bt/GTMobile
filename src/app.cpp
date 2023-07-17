@@ -12,9 +12,9 @@
 namespace app {
 namespace {
 
-gt::Song   g_song;
-gt::Player g_player(g_song);
-SidEngine  g_sid_engine(MIXRATE);
+gt::Song    g_song;
+gt::Player  g_player(g_song);
+SidEngine   g_sid_engine(MIXRATE);
 
 gfx::Canvas g_canvas;
 float       g_canvas_scale;
@@ -69,7 +69,7 @@ void init() {
     g_player.init_song(0, gt::Player::PLAY_BEGINNING);
 
 
-//    platform::start_audio();
+    platform::start_audio();
 }
 
 void free() {
