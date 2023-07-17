@@ -82,7 +82,7 @@ void Song::clear() {
     for (int c = 0; c < MAX_CHN; c++) {
         for (int d = 0; d < MAX_SONGS; d++) {
             memset(&songorder[d][c][0], 0, MAX_SONGLEN + 2);
-            if (!d) {
+            if (d == 0) {
                 songorder[d][c][0] = c;
                 songorder[d][c][1] = LOOPSONG;
             }

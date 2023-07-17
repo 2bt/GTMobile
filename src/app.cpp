@@ -2,7 +2,7 @@
 #include "gtsong.hpp"
 #include "platform.hpp"
 #include "gtplayer.hpp"
-#include "sidengine.hpp"
+#include "sid.hpp"
 #include "log.hpp"
 #include "gui.hpp"
 #include "songview.hpp"
@@ -14,7 +14,6 @@ namespace {
 
 gt::Song    g_song;
 gt::Player  g_player(g_song);
-SidEngine   g_sid_engine(MIXRATE);
 
 gfx::Canvas g_canvas;
 float       g_canvas_scale;
@@ -37,13 +36,13 @@ void audio_callback(int16_t* buffer, int length) {
     while (length > 0) {
         if (sample == 0) {
             g_player.play_routine();
-            for (int i = 0; i < 25; ++i) g_sid_engine.write(i, g_player.regs[i]);
+            for (int i = 0; i < 25; ++i) sid::write(i, g_player.regs[i]);
         }
         int l = std::min(SAMPLES_PER_FRAME - sample, length);
         sample += l;
         if (sample == SAMPLES_PER_FRAME) sample = 0;
         length -= l;
-        g_sid_engine.mix(buffer, l);
+        sid::mix(buffer, l);
         buffer += l;
     }
 }
@@ -51,6 +50,7 @@ void audio_callback(int16_t* buffer, int length) {
 void init() {
     LOGD("init");
 
+    sid::init(MIXRATE);
     gfx::init();
     gui::init();
 
@@ -121,6 +121,8 @@ void key(int key, int unicode) {
 
 
 void draw() {
+    sid::update_state();
+
     gfx::set_canvas(g_canvas);
     gfx::set_blend(true);
     gfx::clear(0, 0, 0);

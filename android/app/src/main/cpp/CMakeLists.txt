@@ -8,7 +8,7 @@ add_library(
     native-lib.cpp
     src/gtplayer.cpp
     src/gtsong.cpp
-    src/sidengine.cpp
+    src/sid.cpp
     src/gfx.cpp
     src/gui.cpp
     src/app.cpp
@@ -31,7 +31,7 @@ target_compile_options(
 
 # disable -Wall for resid code
 set_source_files_properties(
-    src/sidengine.cpp
+    src/sid.cpp
     PROPERTIES
     COMPILE_OPTIONS
     -Wno-all

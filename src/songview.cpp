@@ -1,6 +1,7 @@
 #include "songview.hpp"
 #include "gui.hpp"
 #include "app.hpp"
+#include "sid.hpp"
 #include <array>
 
 
@@ -126,22 +127,26 @@ void draw() {
         }
     }
 
-    dc.box({{0, cursor.y + 3}, {8 * 37, 2}});
+    {
+        // pattern bar
+        dc.box({{0, cursor.y + 3}, {8 * 37, 2}});
+        cursor.y += ROW_HEIGHT;
+        cursor.x = 40;
+        for (int c = 0; c < 3; ++c) {
+            sprintf(line, "%02X        ", g_pattern_nums[c]);
+            dc.text(cursor, line);
 
-    cursor.y += ROW_HEIGHT;
+            dc.box({cursor + ivec2(24, 0), {std::min<int>(sid::chan_level(c) * 64, 48),  8}});
 
-    cursor.x = 40;
-    for (int c = 0; c < 3; ++c) {
-        sprintf(line, "%02X        ", g_pattern_nums[c]);
+            cursor.x += 11 * 8;
+        }
+        cursor.y += ROW_HEIGHT;
+        dc.box({{0, cursor.y + 3}, {8 * 37, 2}});
 
-        dc.text(cursor, line);
-        cursor.x += 11 * 8;
+        cursor.x = 0;
+        cursor.y += ROW_HEIGHT;
     }
-    cursor.y += ROW_HEIGHT;
-    dc.box({{0, cursor.y + 3}, {8 * 37, 2}});
 
-    cursor.x = 0;
-    cursor.y += ROW_HEIGHT;
 
 
     int pattern_len = song.pattlen[g_pattern_nums[0]];
