@@ -38,7 +38,8 @@ public:
     void release_note(int chnnum);
     void play_test_note(int note, int ins, int chnnum);
 
-    void mute_channel(int chnnum) { m_channels[chnnum].mute ^= 1; }
+    void set_channel_active(int chnnum, bool active) { m_channels[chnnum].mute = !active; }
+    bool is_channel_active(int chnnum) const { return !m_channels[chnnum].mute; }
     int  is_playing() const { return m_songinit != PLAY_STOPPED; }
 
     std::array<uint8_t, 25> regs;

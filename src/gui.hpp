@@ -37,6 +37,15 @@ struct Box {
 };
 
 
+enum class BoxStyle {
+    Normal,
+    Round,
+    Tab,
+    Frame,
+    Round2,
+};
+
+
 class DrawContext : public gfx::DrawContext {
 public:
 
@@ -54,7 +63,7 @@ public:
     }
 
     void fill(Box const& box);
-    void box(Box const& box, int style = -1);
+    void box(Box const& box, BoxStyle style);
 
 private:
     int    m_font_offset  = 192; // 0;
@@ -62,34 +71,33 @@ private:
 };
 
 
-
-
 enum class Icon {
-    LOOP = 48,
-    STOP,
-    PLAY,
-    FAST_BACKWARD,
-    FAST_FORWARD,
-    FOLLOW,
+    None = 55,
+    Loop = 48,
+    Stop,
+    Play,
+    FastBackward,
+    FastForward,
+    Follow,
 
-    COPY = 56,
-    PASTE,
+    Copy = 56,
+    Paste,
 
-    LOWPASS = 64,
-    BANDPASS,
-    HIGHPASS,
+    Lowpass = 64,
+    Bandpass,
+    Highpass,
 
-    NOISE = 72,
-    PULSE,
-    SAW,
-    TRI,
-    RING,
-    SYNC,
-    GATE,
+    Noise = 72,
+    Pulse,
+    Saw,
+    Tri,
+    Ring,
+    Sync,
+    Gate,
 
-    ADD_ROW_ABOVE = 80,
-    ADD_ROW_BELOW,
-    DELETE_ROW,
+    AddRowAbove = 80,
+    AddRowBelow,
+    DeleteRow,
 };
 
 
@@ -99,8 +107,13 @@ void set_refresh_rate(float refresh_rate);
 void touch(int x, int y, bool pressed);
 void begin_frame();
 void end_frame();
-void same_line(bool same_line = true);
+
+void cursor(ivec2 pos);
 void item_size(ivec2 size);
+void item_padding(ivec2 padding);
+void same_line(bool same_line = true);
+
+void button_style(BoxStyle style);
 
 bool button(Icon icon, bool active = false);
 

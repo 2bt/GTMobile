@@ -18,43 +18,46 @@ enum {
 constexpr u8vec4 COLOR_CMDS[16] = {
     gui::rgb(0x000000),
 
-    gui::rgb(0xFF77A8), // 1 portamento up
-    gui::rgb(0xFF77A8), // 2 portamento down
-    gui::rgb(0xFF77A8), // 3 tone portamento
-    gui::rgb(0xFF77A8), // 4 vibrato
+    gui::rgb(0xff77a8), // 1 portamento up
+    gui::rgb(0xff77a8), // 2 portamento down
+    gui::rgb(0xff77a8), // 3 tone portamento
+    gui::rgb(0xff77a8), // 4 vibrato
 
-    gui::rgb(0x00E436), // 5 attack/decay
-    gui::rgb(0x00E436), // 6 sustain/release
+    gui::rgb(0x00e436), // 5 attack/decay
+    gui::rgb(0x00e436), // 6 sustain/release
 
-    gui::rgb(0xFFA300), // 7 waveform reg
-    gui::rgb(0xFFA300), // 8 wavetable ptr
-    gui::rgb(0xFFA300), // 9 pulsetable ptr
+    gui::rgb(0xffa300), // 7 waveform reg
+    gui::rgb(0xffa300), // 8 wavetable ptr
+    gui::rgb(0xffa300), // 9 pulsetable ptr
 
-    gui::rgb(0x29ADFF), // A filtertable ptr
-    gui::rgb(0x29ADFF), // B filter control
-    gui::rgb(0x29ADFF), // C filter cutoff
+    gui::rgb(0x29adff), // A filtertable ptr
+    gui::rgb(0x29adff), // B filter control
+    gui::rgb(0x29adff), // C filter cutoff
 
-    gui::rgb(0x00E436), // D master volume
+    gui::rgb(0x00e436), // D master volume
 
-    gui::rgb(0xFFEC27), // E funk tempo
-    gui::rgb(0xFFEC27), // F tempo
+    gui::rgb(0xffec27), // E funk tempo
+    gui::rgb(0xffec27), // F tempo
 };
 
-//constexpr u8vec4 COLOR_SEPARATOR = gui::rgb()
-constexpr u8vec4 COLOR_PLAYER_ROW    = gui::rgb(0x382011);
-constexpr u8vec4 COLOR_HIGHLIGHT_ROW = gui::rgb(0x1a1a1a);
+constexpr u8vec4 COLOR_SEPARATOR     = gui::rgb(0x444433);
+constexpr u8vec4 COLOR_INSTRUMENT    = gui::rgb(0xbbccdd);
+constexpr u8vec4 COLOR_HIGHLIGHT_ROW = gui::rgb(0x1f1f10);
+constexpr u8vec4 COLOR_PLAYER_ROW    = gui::rgb(0x553300);
 
 
-int                g_chan_num;
-int                g_song_row;
 std::array<int, 3> g_pattern_nums;
 
-int                g_pattern_row; // ?
-
-bool               g_follow = true;
 int                g_song_scroll;
 int                g_pattern_scroll;
 int                g_row_highlight_step = 4;
+bool               g_follow = true;
+
+
+int                g_chan_num;
+//int                g_song_row;
+//int                g_pattern_row;
+
 
 
 } // namespace
@@ -69,9 +72,9 @@ void draw() {
 
 
     // buttons
+    gui::item_size({40, 32});
     bool is_playing = app::player().is_playing();
-    gui::item_size({32, 32});
-    if (gui::button(gui::Icon::PLAY, is_playing)) {
+    if (gui::button(gui::Icon::Play, is_playing)) {
         if (is_playing) {
             app::player().stop_song();
         }
@@ -80,7 +83,7 @@ void draw() {
         }
     }
     gui::same_line();
-    if (gui::button(gui::Icon::FOLLOW, g_follow)) {
+    if (gui::button(gui::Icon::Follow, g_follow)) {
         g_follow = !g_follow;
     }
 
@@ -137,7 +140,7 @@ void draw() {
     gui::DrawContext& dc = gui::get_draw_context();
 
     ivec2 cursor = {0, 32};
-    dc.color(gui::DARK_GREY);
+    dc.color(COLOR_SEPARATOR);
     dc.fill({{0, cursor.y}, {8 * 37, 2}});
     cursor.y += 2;
     char line[16];
@@ -146,12 +149,6 @@ void draw() {
     {
         for (int i = 0; i < MAX_SONG_ROWS_ON_SCREEN; ++i) {
             int row = g_song_scroll + i;
-
-//            // highlight background
-//            if (row == g_song_row) {
-//                dc.color(gui::DARK_BLUE);
-//                dc.fill({ cursor, {8 * 37, ROW_HEIGHT} });
-//            }
 
             cursor.x += 8;
             sprintf(line, "%02X", row);
@@ -203,11 +200,19 @@ void draw() {
 
     {
         // pattern bar
-        dc.color(gui::DARK_GREY);
+        dc.color(COLOR_SEPARATOR);
         dc.fill({{0, cursor.y}, {8 * 37, 2}});
         cursor.y += 8;
         cursor.x = 40;
         for (int c = 0; c < 3; ++c) {
+
+            gui::cursor(cursor - ivec2(6, 5));
+            gui::item_size({84, 17});
+            bool active = app::player().is_channel_active(c);
+            if (gui::button(gui::Icon::None, active)) {
+                app::player().set_channel_active(c, !active);
+            }
+
             sprintf(line, "%02X        ", g_pattern_nums[c]);
             dc.color(gui::WHITE);
             dc.text(cursor, line);
@@ -220,7 +225,7 @@ void draw() {
         }
         cursor.y += 7;
         cursor.y += 8;
-        dc.color(gui::DARK_GREY);
+        dc.color(COLOR_SEPARATOR);
         dc.fill({{0, cursor.y - 2}, {8 * 37, 2}});
         cursor.x = 0;
     }
@@ -253,16 +258,12 @@ void draw() {
                 }
 
                 // highlight player position
-                bool highlight = false;
+                if (row % g_row_highlight_step == 0) {
+                    dc.color(COLOR_HIGHLIGHT_ROW);
+                    dc.fill({ cursor - ivec2(3, 0), {78, ROW_HEIGHT} });
+                }
                 if (g_pattern_nums[c] == player_pattern_nums[c] && row == player_pattern_rows[c]) {
                     dc.color(COLOR_PLAYER_ROW);
-                    highlight = true;
-                }
-                else if (row % g_row_highlight_step == 0) {
-                    dc.color(COLOR_HIGHLIGHT_ROW);
-                    highlight = true;
-                }
-                if (highlight) {
                     dc.fill({ cursor - ivec2(3, 0), {78, ROW_HEIGHT} });
                 }
 
@@ -293,6 +294,7 @@ void draw() {
 
                 if (instr > 0) {
                     sprintf(line, "%02X", instr);
+                    dc.color(COLOR_INSTRUMENT);
                     dc.text(cursor + text_offset, line);
                 }
                 cursor.x += 20;
@@ -308,9 +310,9 @@ void draw() {
             cursor.y += ROW_HEIGHT;
         }
     }
-    dc.color(gui::DARK_GREY);
-    dc.fill({{0, cursor.y}, {8 * 37, 2}});
 
+    dc.color(COLOR_SEPARATOR);
+    dc.fill({{0, cursor.y}, {8 * 37, 2}});
     int h = ROW_HEIGHT * (MAX_SONG_ROWS_ON_SCREEN + MAX_PATTERN_ROWS_ON_SCREEN) + 27;
     dc.fill({{31, 32}, {2, h}});
     dc.fill({{31 + 11 * 8, 32}, {2, h}});

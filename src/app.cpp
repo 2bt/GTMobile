@@ -69,13 +69,15 @@ void init() {
 //    platform::load_asset("test.sng", buffer);
     struct MemBuf : std::streambuf {
         MemBuf(uint8_t const* data, size_t size) {
-            char* p = (char*)data;
+            char* p = (char*) data;
             this->setg(p, p, p + size);
         }
     } membuf(buffer.data(), buffer.size());
     std::istream stream(&membuf);
     g_song.load(stream);
-    g_player.init_song(0, gt::Player::PLAY_BEGINNING);
+    g_player.init_song(0, gt::Player::PLAY_STOP);
+
+//    g_player.init_song(0, gt::Player::PLAY_BEGINNING);
 
     g_initialized = true;
 }

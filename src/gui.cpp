@@ -11,7 +11,9 @@ gfx::Image  g_img;
 ivec2       g_cursor_min;
 ivec2       g_cursor_max;
 ivec2       g_item_size;
+ivec2       g_item_padding = 1;
 bool        g_same_line;
+BoxStyle    g_button_style = BoxStyle::Normal;
 
 
 float       g_refresh_rate = 60.0f;
@@ -23,8 +25,6 @@ bool        g_touch_pressed;
 bool        g_touch_prev_pressed;
 void const* g_id;
 void const* g_active_item;
-
-enum class ButtonState { Normal, Hover, Active };
 
 
 bool just_pressed() {
@@ -44,21 +44,19 @@ Box item_box() {
     if (g_same_line) {
         g_same_line = false;
         pos = {g_cursor_max.x, g_cursor_min.y};
-        if (g_cursor_max.y - g_cursor_min.y > size.y) {
-            pos.y += (g_cursor_max.y - g_cursor_min.y - size.y) / 2;
-        }
-        g_cursor_max = max(g_cursor_max, pos + size);
+        g_cursor_max = max(g_cursor_max, pos + size + g_item_padding);
     }
     else {
         pos = {g_cursor_min.x, g_cursor_max.y};
         g_cursor_min.y = g_cursor_max.y;
-        g_cursor_max = pos + size;
+        g_cursor_max = pos + size + g_item_padding;
     }
     return { pos, size };
 }
 
 
 bool button_helper(Box const& box, bool active) {
+    enum class ButtonState { Normal, Hover, Active };
     g_hold = false;
     ButtonState state = active ? ButtonState::Active : ButtonState::Normal;
     bool clicked = false;
@@ -73,7 +71,7 @@ bool button_helper(Box const& box, bool active) {
     g_dc.color(state == ButtonState::Active ? DARK_GREEN :
                state == ButtonState::Hover  ? GREEN :
                                               DARK_GREY);
-    g_dc.box(box, 0);
+    g_dc.box(box, g_button_style);
     return clicked;
 }
 
@@ -126,13 +124,21 @@ void end_frame() {
     g_touch_prev_pos     = g_touch_pos;
     g_touch_prev_pressed = g_touch_pressed;
 }
-
+void cursor(ivec2 pos) {
+    g_cursor_min = pos;
+    g_cursor_max = pos;
+}
+void item_size(ivec2 size) {
+    g_item_size = size;
+}
+void item_padding(ivec2 padding) {
+    g_item_padding = padding;
+}
 void same_line(bool same_line) {
     g_same_line = same_line;
 }
-
-void item_size(ivec2 size) {
-    g_item_size = size;
+void button_style(BoxStyle style) {
+    g_button_style = style;
 }
 
 bool button(Icon icon, bool active) {
@@ -158,31 +164,15 @@ void DrawContext::fill(Box const& box) {
     auto i3 = add_vertex({ box.pos + box.size.oy(), uv, m_color });
     m_indices.insert(m_indices.end(), { i0, i1, i2, i0, i2, i3 });
 }
-void DrawContext::box(Box const& box, int style) {
-    if (style == 0) {
-        fill({box.pos, box.size - 1});
-        return;
-    }
-
-    int s = 8;
-    int o = 64;
-    if (box.size.x < 16 || box.size.y < 16) {
-        s = 4;
-        o += 16;
-    }
-    if (box.size.x < 8 || box.size.y < 8) {
-        s = 1;
-        o += 16;
-    }
-
+void DrawContext::box(Box const& box, BoxStyle style) {
     i16vec2 p0 = box.pos;
-    i16vec2 p1 = box.pos + ivec2(s);
-    i16vec2 p2 = box.pos + box.size - ivec2(s);
+    i16vec2 p1 = box.pos + 8;
+    i16vec2 p2 = box.pos + box.size - 8;
     i16vec2 p3 = box.pos + box.size;
-    i16vec2 t0 = i16vec2(16 * style, o);
-    i16vec2 t1 = t0 + ivec2(s);
+    i16vec2 t0(16 * int(style), 64);
+    i16vec2 t1 = t0 + 8;
     i16vec2 t2 = t1;
-    i16vec2 t3 = t2 + ivec2(s);
+    i16vec2 t3 = t2 + 8;
     auto i0  = add_vertex({ { p0.x, p0.y }, { t0.x, t0.y }, m_color });
     auto i1  = add_vertex({ { p1.x, p0.y }, { t1.x, t0.y }, m_color });
     auto i2  = add_vertex({ { p2.x, p0.y }, { t2.x, t0.y }, m_color });
@@ -199,7 +189,6 @@ void DrawContext::box(Box const& box, int style) {
     auto i13 = add_vertex({ { p1.x, p3.y }, { t1.x, t3.y }, m_color });
     auto i14 = add_vertex({ { p2.x, p3.y }, { t2.x, t3.y }, m_color });
     auto i15 = add_vertex({ { p3.x, p3.y }, { t3.x, t3.y }, m_color });
-
     m_indices.insert(m_indices.end(), {
         i0,  i1,  i5,  i0,  i5,  i4,
         i1,  i2,  i6,  i1,  i6,  i5,
