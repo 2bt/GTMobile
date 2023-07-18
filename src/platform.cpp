@@ -18,10 +18,6 @@ namespace platform {
 bool start_audio() {
     LOGD("start_audio");
     if (g_audio_device != 0) return true;
-//    int n = SDL_GetNumAudioDevices(0);
-//    for (int i = 0; i < n; ++i) {
-//        LOGI("start_audio: device %d: %s", i, SDL_GetAudioDeviceName(i, 0));
-//    }
     SDL_AudioSpec spec = {
         app::MIXRATE, AUDIO_S16, 1, 0, 1024 * 3, 0, 0, [](void*, Uint8* stream, int len) {
             app::audio_callback((short*) stream, len / 2);
@@ -80,7 +76,7 @@ int main(int argc, char** argv) {
     glewExperimental = true;
     glewInit();
 
-//    platform::start_audio();
+    platform::start_audio();
     app::init();
     app::resize(app::WIDTH, app::MIN_HEIGHT);
 

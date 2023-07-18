@@ -17,6 +17,8 @@ struct Vertex {
 class DrawContext {
 public:
 
+    void color(u8vec4 color) { m_color = color; }
+
     uint16_t add_vertex(Vertex v) {
         uint16_t index = m_vertices.size();
         m_vertices.emplace_back(v);
@@ -32,11 +34,11 @@ public:
         m_indices.clear();
     }
 
-    void rect(ivec2 pos, ivec2 size, ivec2 uv, u8vec4 col = {255}) {
-        uint16_t i0 = add_vertex({ pos, uv, col });
-        uint16_t i1 = add_vertex({ pos + ivec2(size.x, 0), uv + ivec2(size.x, 0), col });
-        uint16_t i2 = add_vertex({ pos + size, uv + size, col });
-        uint16_t i3 = add_vertex({ pos + ivec2(0, size.y), uv + ivec2(0, size.y), col });
+    void rect(ivec2 pos, ivec2 size, ivec2 uv) {
+        uint16_t i0 = add_vertex({ pos, uv, m_color });
+        uint16_t i1 = add_vertex({ pos + ivec2(size.x, 0), uv + ivec2(size.x, 0), m_color });
+        uint16_t i2 = add_vertex({ pos + size, uv + size, m_color });
+        uint16_t i3 = add_vertex({ pos + ivec2(0, size.y), uv + ivec2(0, size.y), m_color });
         m_indices.insert(m_indices.end(), { i0, i1, i2, i0, i2, i3 });
     }
 
@@ -44,6 +46,7 @@ public:
     std::vector<uint16_t> const& indices() const { return m_indices; }
 
 protected:
+    u8vec4                m_color = {255};
     std::vector<Vertex>   m_vertices;
     std::vector<uint16_t> m_indices;
 };

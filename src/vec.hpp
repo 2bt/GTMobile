@@ -14,7 +14,8 @@ struct TVec2 {
     bool operator!=(TVec2 v) const { return !(*this == v); }
     TVec2 operator+(TVec2 v) const { return TVec2(x + v.x, y + v.y); }
     TVec2 operator-(TVec2 v) const { return TVec2(x - v.x, y - v.y); }
-    template<class U> TVec2 operator*(U f) const { return TVec2(x * f, y * f); }
+    template<class U> TVec2 operator*(U v) const { return TVec2(x * v, y * v); }
+    template<class U> TVec2 operator/(U v) const { return TVec2(x / v, y / v); }
 };
 
 template<class T>

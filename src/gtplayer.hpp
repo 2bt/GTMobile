@@ -82,9 +82,9 @@ private:
     bool     m_optimizepulse    = false;
     bool     m_optimizerealtime = false;
 
-    int      m_espos[MAX_CHN]; // end song pos
-    int      m_esend[MAX_CHN];
-    int      m_epnum[MAX_CHN];
+    int      m_espos[MAX_CHN]; // PLAY_POS     -> start
+    int      m_esend[MAX_CHN]; // PLAY_POS     -> end
+    int      m_epnum[MAX_CHN]; // PLAY_PATTERN -> pattern number
 
     // state
     Mode                         m_songinit     = PLAY_FOO;

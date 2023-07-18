@@ -70,7 +70,8 @@ void Player::init_song(int num, Mode mode, int pattpos) {
 }
 
 void Player::stop_song() {
-    if (m_songinit != PLAY_STOPPED) m_songinit = PLAY_STOP;
+    //if (m_songinit != PLAY_STOPPED) m_songinit = PLAY_STOP;
+    m_songinit = PLAY_STOP;
 }
 
 //void rewindsong() {
@@ -225,8 +226,7 @@ void Player::play_routine() {
                 sequencer(c);
                 break;
 
-            default:
-                assert(false);
+            default: break;
             }
         }
         if (m_songinit != PLAY_STOP) m_songinit = PLAY_FOO;

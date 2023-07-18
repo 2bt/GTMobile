@@ -65,9 +65,6 @@ bool start_audio() {
         return false;
     }
 
-    oboe::AudioFormat format = g_stream->getFormat();
-    LOGI("start_audio: stream format is %s", oboe::convertToText(format));
-
     auto rate = g_stream->getSampleRate();
     if (rate != app::MIXRATE) {
         LOGW("start_audio: mixrate is %d but should be %d", rate, app::MIXRATE);

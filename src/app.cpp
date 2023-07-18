@@ -6,6 +6,7 @@
 #include "log.hpp"
 #include "gui.hpp"
 #include "songview.hpp"
+#include <cstring>
 
 
 
@@ -18,6 +19,7 @@ gt::Player  g_player(g_song);
 gfx::Canvas g_canvas;
 float       g_canvas_scale;
 int16_t     g_canvas_offset;
+bool        g_initialized = false;
 
 int         W, H;
 
@@ -29,6 +31,11 @@ gt::Player& player() { return g_player; }
 
 
 void audio_callback(int16_t* buffer, int length) {
+    if (!g_initialized) {
+        memset(buffer, 0, sizeof(int16_t) * length);
+        return;
+    }
+
     enum {
         SAMPLES_PER_FRAME = MIXRATE / 50,
     };
@@ -57,7 +64,9 @@ void init() {
 
     // load song
     std::vector<uint8_t> buffer;
-    platform::load_asset("Nordic_Scene_Review.sng", buffer);
+    platform::load_asset("Smoke_and_Mirrors.sng", buffer);
+//    platform::load_asset("Nordic_Scene_Review.sng", buffer);
+//    platform::load_asset("test.sng", buffer);
     struct MemBuf : std::streambuf {
         MemBuf(uint8_t const* data, size_t size) {
             char* p = (char*)data;
@@ -68,15 +77,13 @@ void init() {
     g_song.load(stream);
     g_player.init_song(0, gt::Player::PLAY_BEGINNING);
 
-
-    platform::start_audio();
+    g_initialized = true;
 }
 
 void free() {
     LOGD("free");
     gfx::free();
     gui::free();
-
     g_canvas.free();
 }
 
@@ -97,6 +104,9 @@ void resize(int width, int height) {
         g_canvas_offset = 0;
         g_canvas_scale  = scale_x;
     }
+
+    // XXX
+    //g_canvas_scale = 1;
 
     // reinit canvas with POT dimensions
     int w = 2;
@@ -128,7 +138,9 @@ void draw() {
     gfx::clear(0, 0, 0);
 
 
+    gui::begin_frame();
     songview::draw();
+    gui::end_frame();
 
 
     // draw canvas

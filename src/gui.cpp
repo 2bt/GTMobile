@@ -8,7 +8,13 @@ namespace {
 DrawContext g_dc;
 gfx::Image  g_img;
 
-int         g_hold_time = 60.0f / 4;
+ivec2       g_cursor_min;
+ivec2       g_cursor_max;
+ivec2       g_item_size;
+bool        g_same_line;
+
+
+float       g_refresh_rate = 60.0f;
 int         g_hold_count;
 bool        g_hold;
 ivec2       g_touch_pos;
@@ -18,7 +24,7 @@ bool        g_touch_prev_pressed;
 void const* g_id;
 void const* g_active_item;
 
-enum class ButtonSate { Normal, Hover, Active };
+enum class ButtonState { Normal, Hover, Active };
 
 
 bool just_pressed() {
@@ -32,22 +38,45 @@ bool box_touched(Box const& box) {
 }
 
 
+Box item_box() {
+    ivec2 size = g_item_size;
+    ivec2 pos;
+    if (g_same_line) {
+        g_same_line = false;
+        pos = {g_cursor_max.x, g_cursor_min.y};
+        if (g_cursor_max.y - g_cursor_min.y > size.y) {
+            pos.y += (g_cursor_max.y - g_cursor_min.y - size.y) / 2;
+        }
+        g_cursor_max = max(g_cursor_max, pos + size);
+    }
+    else {
+        pos = {g_cursor_min.x, g_cursor_max.y};
+        g_cursor_min.y = g_cursor_max.y;
+        g_cursor_max = pos + size;
+    }
+    return { pos, size };
+}
+
+
 bool button_helper(Box const& box, bool active) {
     g_hold = false;
-    ButtonSate s = active ? ButtonSate::Active : ButtonSate::Normal;
+    ButtonState state = active ? ButtonState::Active : ButtonState::Normal;
     bool clicked = false;
     if (g_active_item == nullptr && box_touched(box)) {
-        s = ButtonSate::Hover;
+        state = ButtonState::Hover;
         if (box.contains(g_touch_prev_pos)) {
-            if (++g_hold_count > g_hold_time) g_hold = true;
+            if (++g_hold_count > g_refresh_rate * 0.25f) g_hold = true;
         }
         else g_hold_count = 0;
         if (just_released()) clicked = true;
     }
-    (void) s;
-    g_dc.box(box, 1);
+    g_dc.color(state == ButtonState::Active ? DARK_GREEN :
+               state == ButtonState::Hover  ? GREEN :
+                                              DARK_GREY);
+    g_dc.box(box, 0);
     return clicked;
 }
+
 
 } // namespace
 
@@ -62,7 +91,7 @@ void free() {
 }
 
 void set_refresh_rate(float refresh_rate) {
-    g_hold_time = refresh_rate / 4;
+    g_refresh_rate = refresh_rate;
 }
 
 DrawContext& get_draw_context() {
@@ -74,6 +103,22 @@ void touch(int x, int y, bool pressed) {
     g_touch_pressed = pressed;
 }
 
+void begin_frame() {
+//    ++g_input_cursor_blink;
+
+    g_cursor_min = {};
+    g_cursor_max = {};
+    g_same_line = false;
+    if (!(g_touch_pressed | g_touch_prev_pressed)) {
+        g_active_item = nullptr;
+        g_hold_count = 0;
+    }
+//    if (touch_just_pressed() && g_input_text_str) {
+//        g_input_text_str = nullptr;
+//        android::hide_keyboard();
+//    }
+
+}
 void end_frame() {
     gfx::draw(g_dc, g_img);
     g_dc.clear();
@@ -82,13 +127,21 @@ void end_frame() {
     g_touch_prev_pressed = g_touch_pressed;
 }
 
+void same_line(bool same_line) {
+    g_same_line = same_line;
+}
+
+void item_size(ivec2 size) {
+    g_item_size = size;
+}
 
 bool button(Icon icon, bool active) {
-//    Vec s = Vec(16);
-//    Box box = item_box(s);
-//    bool clicked = button_helper(box, active);
-//    m_dc.rect(print_pos(box, s), s, { icon % 8 * 16, icon / 8 * 16 });
-//    return clicked;
+    Box box = item_box();
+    bool clicked = button_helper(box, active);
+    int i = static_cast<int>(icon);
+    g_dc.color(WHITE);
+    g_dc.rect(box.pos + box.size / 2 - 8, 16, { i % 8 * 16, i / 8 * 16 });
+    return clicked;
 }
 
 
@@ -97,14 +150,18 @@ bool button(Icon icon, bool active) {
 /////////////////
 // DrawContext //
 /////////////////
+void DrawContext::fill(Box const& box) {
+    i16vec2 uv(1, 65); // a white pixel
+    auto i0 = add_vertex({ box.pos, uv, m_color });
+    auto i1 = add_vertex({ box.pos + box.size.xo(), uv, m_color });
+    auto i2 = add_vertex({ box.pos + box.size, uv, m_color });
+    auto i3 = add_vertex({ box.pos + box.size.oy(), uv, m_color });
+    m_indices.insert(m_indices.end(), { i0, i1, i2, i0, i2, i3 });
+}
 void DrawContext::box(Box const& box, int style) {
     if (style == 0) {
-        i16vec2 uv(1, 65); // a white pixel
-        auto i0 = add_vertex({ box.pos, uv, m_color });
-        auto i1 = add_vertex({ box.pos + box.size.xo(), uv, m_color });
-        auto i2 = add_vertex({ box.pos + box.size, uv, m_color });
-        auto i3 = add_vertex({ box.pos + box.size.oy(), uv, m_color });
-        m_indices.insert(m_indices.end(), { i0, i1, i2, i0, i2, i3 });
+        fill({box.pos, box.size - 1});
+        return;
     }
 
     int s = 8;
