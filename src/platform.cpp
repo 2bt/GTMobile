@@ -11,10 +11,6 @@ namespace {
 
 SDL_AudioDeviceID g_audio_device = 0;
 
-} // namespace
-
-namespace platform {
-
 bool start_audio() {
     LOGD("start_audio");
     if (g_audio_device != 0) return true;
@@ -34,6 +30,9 @@ void stop_audio() {
     g_audio_device = 0;
 }
 
+} // namespace
+
+namespace platform {
 
 bool load_asset(std::string const& name, std::vector<uint8_t>& buf) {
     std::ifstream f("assets/" + name, std::ios::in | std::ios::binary);
@@ -60,7 +59,7 @@ int main(int argc, char** argv) {
             "GTMobile",
             SDL_WINDOWPOS_UNDEFINED,
             SDL_WINDOWPOS_UNDEFINED,
-            app::WIDTH, app::MIN_HEIGHT,
+            app::CANVAS_WIDTH, app::CANVAS_MIN_HEIGHT,
             SDL_WINDOW_OPENGL | SDL_WINDOW_RESIZABLE);
 
     SDL_GLContext gl_context = SDL_GL_CreateContext(window);
@@ -76,9 +75,9 @@ int main(int argc, char** argv) {
     glewExperimental = true;
     glewInit();
 
-    platform::start_audio();
+    start_audio();
     app::init();
-    app::resize(app::WIDTH, app::MIN_HEIGHT);
+    app::resize(app::CANVAS_WIDTH, app::CANVAS_MIN_HEIGHT);
 
     bool running = true;
     while (running) {
@@ -135,7 +134,7 @@ int main(int argc, char** argv) {
     }
 
     app::free();
-    platform::stop_audio();
+    stop_audio();
 
     SDL_GL_DeleteContext(gl_context);
     SDL_DestroyWindow(window);

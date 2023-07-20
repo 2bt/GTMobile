@@ -16,15 +16,17 @@ namespace {
 gt::Song    g_song;
 gt::Player  g_player(g_song);
 
+int         g_canvas_height;
 gfx::Canvas g_canvas;
 float       g_canvas_scale;
 int16_t     g_canvas_offset;
 bool        g_initialized = false;
 
-int         W, H;
 
 } // namespace
 
+
+int canvas_height() { return g_canvas_height; }
 
 gt::Song& song() { return g_song; }
 gt::Player& player() { return g_player; }
@@ -77,8 +79,6 @@ void init() {
     g_song.load(stream);
     g_player.init_song(0, gt::Player::PLAY_STOP);
 
-//    g_player.init_song(0, gt::Player::PLAY_BEGINNING);
-
     g_initialized = true;
 }
 
@@ -92,14 +92,13 @@ void free() {
 void resize(int width, int height) {
     gfx::set_screen_size({width, height});
 
-    W = WIDTH;
-    H = std::max<int16_t>(WIDTH * height / width, MIN_HEIGHT);
+    g_canvas_height = std::max<int16_t>(CANVAS_WIDTH * height / width, CANVAS_MIN_HEIGHT);
 
     // set canvas offset and scale
-    float scale_x = width  / float(W);
-    float scale_y = height / float(H);
+    float scale_x = width  / float(CANVAS_WIDTH);
+    float scale_y = height / float(g_canvas_height);
     if (scale_y < scale_x) {
-        g_canvas_offset = (width - W * scale_y) * 0.5f;
+        g_canvas_offset = (width - CANVAS_WIDTH * scale_y) * 0.5f;
         g_canvas_scale  = scale_y;
     }
     else {
@@ -113,8 +112,8 @@ void resize(int width, int height) {
     // reinit canvas with POT dimensions
     int w = 2;
     int h = 2;
-    while (w < W) w *= 2;
-    while (h < H) h *= 2;
+    while (w < CANVAS_WIDTH) w *= 2;
+    while (h < g_canvas_height) h *= 2;
     g_canvas.init({ w, h });
     if (g_canvas_scale != (int) g_canvas_scale) {
         g_canvas.set_filter(gfx::Texture::LINEAR);
@@ -151,8 +150,8 @@ void draw() {
     gfx::clear(0.1, 0.1, 0.1);
     u8vec4 white(255);
     ivec2 p(g_canvas_offset, 0);
-    ivec2 s(W * g_canvas_scale, H * g_canvas_scale);
-    ivec2 S(W, H);
+    ivec2 S(CANVAS_WIDTH, g_canvas_height);
+    ivec2 s = S * g_canvas_scale;
     gfx::DrawContext dc;
     dc.add_vertex({p, S.oy(), white});
     dc.add_vertex({ivec2(p.x + s.x, 0), S, white});

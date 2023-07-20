@@ -10,14 +10,15 @@ namespace app {
     gt::Player& player();
 
     enum {
-        MIXRATE       = 44100,
+        MIXRATE           = 44100,
 
-        WIDTH         = 360,
-        MIN_HEIGHT    = 590,
+        CANVAS_WIDTH      = 360,
+        CANVAS_MIN_HEIGHT = 590,
 
-        KEYCODE_ENTER = 66,
-        KEYCODE_DEL   = 67,
+        KEYCODE_ENTER     = 66,
+        KEYCODE_DEL       = 67,
     };
+    int  canvas_height();
 
     void init();
     void free();
@@ -27,4 +28,5 @@ namespace app {
     void key(int key, int unicode);
     void draw();
     void audio_callback(int16_t* buffer, int length);
+    int  canvas_height();
 }

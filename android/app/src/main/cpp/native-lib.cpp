@@ -23,29 +23,6 @@ struct Callback : oboe::AudioStreamCallback {
 oboe::AudioStream* g_stream;
 AAssetManager*     g_asset_manager;
 
-
-} // namespace
-
-
-namespace platform {
-
-
-bool load_asset(std::string const& name, std::vector<uint8_t>& buf) {
-    AAsset* ad = AAssetManager_open(g_asset_manager, name.c_str(), AASSET_MODE_BUFFER);
-    if (!ad) {
-        LOGE("load_asset: could not open %s", name.c_str());
-        return false;
-    }
-    buf.resize(AAsset_getLength(ad));
-    int len = AAsset_read(ad, buf.data(), buf.size());
-    AAsset_close(ad);
-    if (len != buf.size()) {
-        LOGE("load_asset: could not open %s", name.c_str());
-        return false;
-    }
-    return true;
-}
-
 bool start_audio() {
     LOGI("start_audio");
     if (g_stream) return true;
@@ -87,6 +64,27 @@ void stop_audio() {
     g_stream = nullptr;
 }
 
+} // namespace
+
+
+namespace platform {
+
+
+bool load_asset(std::string const& name, std::vector<uint8_t>& buf) {
+    AAsset* ad = AAssetManager_open(g_asset_manager, name.c_str(), AASSET_MODE_BUFFER);
+    if (!ad) {
+        LOGE("load_asset: could not open %s", name.c_str());
+        return false;
+    }
+    buf.resize(AAsset_getLength(ad));
+    int len = AAsset_read(ad, buf.data(), buf.size());
+    AAsset_close(ad);
+    if (len != buf.size()) {
+        LOGE("load_asset: could not open %s", name.c_str());
+        return false;
+    }
+    return true;
+}
 
 } // namespace platform
 
@@ -113,9 +111,9 @@ extern "C" {
         app::key(key, unicode);
     }
     JNIEXPORT void JNICALL Java_com_twobit_gtmobile_Native_startAudio(JNIEnv * env, jobject obj) {
-        platform::start_audio();
+        start_audio();
     }
     JNIEXPORT void JNICALL Java_com_twobit_gtmobile_Native_stopAudio(JNIEnv * env, jobject obj) {
-        platform::stop_audio();
+        stop_audio();
     }
 }

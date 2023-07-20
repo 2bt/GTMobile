@@ -45,16 +45,18 @@ constexpr u8vec4 COLOR_INSTRUMENT    = gui::rgb(0xbbccdd);
 constexpr u8vec4 COLOR_HIGHLIGHT_ROW = gui::rgb(0x1f1f10);
 constexpr u8vec4 COLOR_PLAYER_ROW    = gui::rgb(0x553300);
 
-
-std::array<int, 3> g_pattern_nums;
-
-int                g_song_scroll;
-int                g_pattern_scroll;
+// settings
+int                g_row_height         = 13;
 int                g_row_highlight_step = 4;
-bool               g_follow = true;
 
+std::array<int, 3> g_pattern_nums = { 0, 1, 2 };
+int                g_chan_num = 0;
 
-int                g_chan_num;
+bool               g_follow             = false;
+int                g_song_page_length   = 8;
+int                g_song_scroll        = 0;
+int                g_pattern_scroll     = 0;
+
 //int                g_song_row;
 //int                g_pattern_row;
 
@@ -113,41 +115,52 @@ void draw() {
     max_pattern_len = std::max(max_pattern_len, song.pattlen[g_pattern_nums[2]]);
 
 
-    enum {
-        MAX_SONG_ROWS_ON_SCREEN = 8,
-        MAX_PATTERN_ROWS_ON_SCREEN = 28,
-    };
+    int total_rows = (app::canvas_height() - 100) / g_row_height;
+    g_song_page_length = clamp(g_song_page_length, 0, total_rows);
+    int pattern_page_length = total_rows - g_song_page_length;
 
-    if (g_follow) {
+
+
+    if (is_playing && g_follow) {
+        // auto scroll
         g_pattern_nums = player_pattern_nums;
-
-        int song_row = player_song_rows[g_chan_num];
-        g_song_scroll = clamp(max_song_len - MAX_SONG_ROWS_ON_SCREEN, 0, song_row - MAX_SONG_ROWS_ON_SCREEN / 2);
-
-        int pattern_row  = player_pattern_rows[g_chan_num];
-        g_pattern_scroll = clamp(max_pattern_len - MAX_PATTERN_ROWS_ON_SCREEN, 0, pattern_row - MAX_PATTERN_ROWS_ON_SCREEN / 2);
+        g_song_scroll    = player_song_rows[g_chan_num] - g_song_page_length / 2;
+        g_pattern_scroll = player_pattern_rows[g_chan_num] - pattern_page_length / 2;
     }
+    g_song_scroll    = clamp(g_song_scroll, 0, max_song_len - g_song_page_length);
+    g_pattern_scroll = clamp(g_pattern_scroll, 0, max_pattern_len - pattern_page_length);
 
-
-
-    enum {
-        ROW_HEIGHT = 11 + 2,
-    };
-    // put text in the center of the row
-    ivec2 text_offset = {0, (ROW_HEIGHT - 7) / 2};
 
 
     gui::DrawContext& dc = gui::get_draw_context();
 
-    ivec2 cursor = {0, 32};
-    dc.color(COLOR_SEPARATOR);
-    dc.fill({{0, cursor.y}, {8 * 37, 2}});
-    cursor.y += 2;
+    ivec2 cursor = {0, 34};
+    // dc.color(COLOR_SEPARATOR);
+    // dc.fill({cursor, {8 * 37, 2}});
+    // cursor.y += 2;
+
+    // // table outline
+    // dc.color(COLOR_SEPARATOR);
+    // dc.fill({{0, cursor.y}, {8 * 37, 2}});
+    // int h = g_row_height * (g_song_page_length + pattern_page_length) + 27;
+    // dc.fill({{31, 32}, {2, h}});
+    // dc.fill({{31 + 11 * 8, 32}, {2, h}});
+    // dc.fill({{31 + 22 * 8, 32}, {2, h}});
+    // dc.fill({{31 + 33 * 8, 32}, {2, h}});
+
+
+
+
+
+    // put text in the center of the row
+    ivec2 text_offset = {0, (g_row_height - 7) / 2};
+
+
     char line[16];
 
     // song table
     {
-        for (int i = 0; i < MAX_SONG_ROWS_ON_SCREEN; ++i) {
+        for (int i = 0; i < g_song_page_length; ++i) {
             int row = g_song_scroll + i;
 
             cursor.x += 8;
@@ -164,9 +177,9 @@ void draw() {
                 }
 
                 // highlight player position
-                if (row == player_song_rows[c]) {
+                if (is_playing && row == player_song_rows[c]) {
                     dc.color(COLOR_PLAYER_ROW);
-                    dc.fill({ cursor - ivec2(3, 0), {78, ROW_HEIGHT} });
+                    dc.fill({ cursor - ivec2(3, 0), {78, g_row_height} });
                 }
 
 
@@ -176,16 +189,16 @@ void draw() {
                     sprintf(line, "LOOP %02X", song.songorder[SONG_NR][c][row + 1]);
                 }
                 else if (v >= gt::TRANSUP) {
-                    sprintf(line, "TRANSP +%X ", v & 0xf);
+                    sprintf(line, "TRANSP +%X", v & 0xf);
                 }
                 else if (v >= gt::TRANSDOWN) {
-                    sprintf(line, "TRANSP -%X ", v & 0xf);
+                    sprintf(line, "TRANSP -%X", v & 0xf);
                 }
                 else if (v >= gt::REPEAT) {
-                    sprintf(line, "REPEAT %X  ", v & 0xf);
+                    sprintf(line, "REPEAT %X", v & 0xf);
                 }
                 else {
-                    sprintf(line, "%02X        ", v);
+                    sprintf(line, "%02X", v);
                 }
 
                 dc.color(gui::WHITE);
@@ -193,15 +206,15 @@ void draw() {
                 cursor.x += 11 * 8;
             }
             cursor.x = 0;
-            cursor.y += ROW_HEIGHT;
+            cursor.y += g_row_height;
 
         }
     }
 
     {
         // pattern bar
-        dc.color(COLOR_SEPARATOR);
-        dc.fill({{0, cursor.y}, {8 * 37, 2}});
+        // dc.color(COLOR_SEPARATOR);
+        // dc.fill({{0, cursor.y}, {8 * 37, 2}});
         cursor.y += 8;
         cursor.x = 40;
         for (int c = 0; c < 3; ++c) {
@@ -213,7 +226,7 @@ void draw() {
                 app::player().set_channel_active(c, !active);
             }
 
-            sprintf(line, "%02X        ", g_pattern_nums[c]);
+            sprintf(line, "%02X", g_pattern_nums[c]);
             dc.color(gui::WHITE);
             dc.text(cursor, line);
 
@@ -225,21 +238,21 @@ void draw() {
         }
         cursor.y += 7;
         cursor.y += 8;
-        dc.color(COLOR_SEPARATOR);
-        dc.fill({{0, cursor.y - 2}, {8 * 37, 2}});
+        // dc.color(COLOR_SEPARATOR);
+        // dc.fill({{0, cursor.y - 2}, {8 * 37, 2}});
         cursor.x = 0;
     }
 
 
     {
         // patterns
-        for (int i = 0; i < MAX_PATTERN_ROWS_ON_SCREEN; ++i) {
+        for (int i = 0; i < pattern_page_length; ++i) {
             int row = g_pattern_scroll + i;
 
             // highlight background
             if (row % g_row_highlight_step == 0) {
                 dc.color(COLOR_HIGHLIGHT_ROW);
-                dc.fill({ cursor, {27, ROW_HEIGHT} });
+                dc.fill({ cursor, {27, g_row_height} });
             }
 
             cursor.x += 8;
@@ -260,11 +273,11 @@ void draw() {
                 // highlight player position
                 if (row % g_row_highlight_step == 0) {
                     dc.color(COLOR_HIGHLIGHT_ROW);
-                    dc.fill({ cursor - ivec2(3, 0), {78, ROW_HEIGHT} });
+                    dc.fill({ cursor - ivec2(3, 0), {78, g_row_height} });
                 }
-                if (g_pattern_nums[c] == player_pattern_nums[c] && row == player_pattern_rows[c]) {
+                if (is_playing && g_pattern_nums[c] == player_pattern_nums[c] && row == player_pattern_rows[c]) {
                     dc.color(COLOR_PLAYER_ROW);
-                    dc.fill({ cursor - ivec2(3, 0), {78, ROW_HEIGHT} });
+                    dc.fill({ cursor - ivec2(3, 0), {78, g_row_height} });
                 }
 
                 uint8_t const* p = song.pattern[g_pattern_nums[c]] + row * 4;
@@ -307,17 +320,39 @@ void draw() {
                 cursor.x += 40;
             }
             cursor.x = 0;
-            cursor.y += ROW_HEIGHT;
+            cursor.y += g_row_height;
         }
     }
 
-    dc.color(COLOR_SEPARATOR);
-    dc.fill({{0, cursor.y}, {8 * 37, 2}});
-    int h = ROW_HEIGHT * (MAX_SONG_ROWS_ON_SCREEN + MAX_PATTERN_ROWS_ON_SCREEN) + 27;
-    dc.fill({{31, 32}, {2, h}});
-    dc.fill({{31 + 11 * 8, 32}, {2, h}});
-    dc.fill({{31 + 22 * 8, 32}, {2, h}});
-    dc.fill({{31 + 33 * 8, 32}, {2, h}});
+
+
+    // scroll bars
+    {
+        int page = g_song_page_length;
+        int max_scroll = std::max<int>(0, max_song_len - page);
+        gui::cursor({298, 34});
+        gui::item_size({16, page * g_row_height});
+        if (gui::vertical_drag_bar(g_song_scroll, 0, max_scroll, page)) {
+            if (is_playing) g_follow = false;
+        }
+    }
+    {
+        int page = pattern_page_length;
+        int max_scroll = std::max<int>(0, max_pattern_len - page);
+        gui::cursor({298, 57 + g_song_page_length * g_row_height});
+        gui::item_size({16, page * g_row_height});
+        if (gui::vertical_drag_bar(g_pattern_scroll, 0, max_scroll, page)) {
+            if (is_playing) g_follow = false;
+        }
+    }
+
+    gui::cursor({298, 36 + g_song_page_length * g_row_height});
+    gui::item_size({16, 19});
+    int dy = 0;
+    if (gui::vertical_drag_button(dy)) {
+        g_song_page_length += dy;
+    }
+
 }
 
 

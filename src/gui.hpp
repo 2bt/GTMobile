@@ -79,6 +79,7 @@ enum class Icon {
     FastBackward,
     FastForward,
     Follow,
+    Grab,
 
     Copy = 56,
     Paste,
@@ -108,15 +109,18 @@ void touch(int x, int y, bool pressed);
 void begin_frame();
 void end_frame();
 
+void id(void const* addr);
 void cursor(ivec2 pos);
 void item_size(ivec2 size);
 void item_padding(ivec2 padding);
 void same_line(bool same_line = true);
 
 void button_style(BoxStyle style);
-
 bool button(Icon icon, bool active = false);
 
+bool vertical_drag_bar(int& value, int min, int max, int page);
+
+bool vertical_drag_button(int& value);
 
 DrawContext& get_draw_context();
 
