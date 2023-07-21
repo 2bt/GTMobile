@@ -43,6 +43,7 @@ enum class BoxStyle {
     Tab,
     Frame,
     Round2,
+    PianoKey,
 };
 
 
@@ -63,7 +64,7 @@ public:
     }
 
     void fill(Box const& box);
-    void box(Box const& box, BoxStyle style);
+    void box(Box const& box, BoxStyle style = BoxStyle::Normal);
 
 private:
     int    m_font_offset  = 192; // 0;
@@ -72,14 +73,15 @@ private:
 
 
 enum class Icon {
-    None = 55,
+    None = 63,
     Loop = 48,
     Stop,
     Play,
     FastBackward,
     FastForward,
     Follow,
-    Grab,
+    VGrab,
+    HGrab,
 
     Copy = 56,
     Paste,
@@ -94,7 +96,8 @@ enum class Icon {
     Tri,
     Ring,
     Sync,
-    Gate,
+    VGate,
+    HGate,
 
     AddRowAbove = 80,
     AddRowBelow,
@@ -105,9 +108,19 @@ enum class Icon {
 void init();
 void free();
 void set_refresh_rate(float refresh_rate);
-void touch(int x, int y, bool pressed);
 void begin_frame();
 void end_frame();
+
+
+namespace touch {
+    void event(int x, int y, bool pressed);
+    bool pressed();
+    bool just_pressed();
+    bool just_released();
+    bool touched(Box const& box);
+    bool just_touched(Box const& box);
+} // namespace touch
+
 
 void id(void const* addr);
 void cursor(ivec2 pos);
@@ -118,6 +131,7 @@ void same_line(bool same_line = true);
 void button_style(BoxStyle style);
 bool button(Icon icon, bool active = false);
 
+bool horizontal_drag_bar(int& value, int min, int max, int page);
 bool vertical_drag_bar(int& value, int min, int max, int page);
 
 bool vertical_drag_button(int& value);

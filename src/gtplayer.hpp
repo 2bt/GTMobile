@@ -34,7 +34,6 @@ public:
     }
 
 
-    // TODO: test
     void release_note(int chnnum);
     void play_test_note(int note, int ins, int chnnum);
 

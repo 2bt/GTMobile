@@ -122,7 +122,7 @@ void resize(int width, int height) {
 
 
 void touch(int x, int y, bool pressed) {
-    gui::touch((x - g_canvas_offset) / g_canvas_scale, y / g_canvas_scale, pressed);
+    gui::touch::event((x - g_canvas_offset) / g_canvas_scale, y / g_canvas_scale, pressed);
 }
 
 void key(int key, int unicode) {

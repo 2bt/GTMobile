@@ -115,7 +115,8 @@ void draw() {
     max_pattern_len = std::max(max_pattern_len, song.pattlen[g_pattern_nums[2]]);
 
 
-    int total_rows = (app::canvas_height() - 100) / g_row_height;
+    // XXX fix this
+    int total_rows = (app::canvas_height() - 130) / g_row_height;
     g_song_page_length = clamp(g_song_page_length, 0, total_rows);
     int pattern_page_length = total_rows - g_song_page_length;
 
@@ -346,15 +347,107 @@ void draw() {
         }
     }
 
-    gui::cursor({298, 36 + g_song_page_length * g_row_height});
-    gui::item_size({16, 19});
-    int dy = 0;
-    if (gui::vertical_drag_button(dy)) {
-        g_song_page_length += dy;
+    {
+        // scroll button
+        gui::cursor({298, 37 + g_song_page_length * g_row_height});
+        gui::item_size({16, 17});
+        int dy = 0;
+        if (gui::vertical_drag_button(dy)) {
+            g_song_page_length += dy;
+        }
     }
 
+
+    /////////////////////////////////////////////////////////////////////////////
+    // piano
+    enum {
+        KEY_HALF_WIDTH = 12,
+        KEY_HALF_HEIGHT = 24,
+        PIANO_PAGE = app::CANVAS_WIDTH / KEY_HALF_WIDTH,
+        PIANO_KEY_COUNT = 14 * 8 - 4,
+    };
+    int const piano_y = app::canvas_height() - 48;
+
+    static int  g_piano_scroll = 14 * 3;
+    static bool g_piano_gate   = false;
+    static int  g_piano_note;
+
+    gui::cursor({app::CANVAS_WIDTH - 200, piano_y - 18});
+    gui::item_size({200, 16});
+    gui::horizontal_drag_bar(g_piano_scroll, 0, PIANO_KEY_COUNT - PIANO_PAGE, PIANO_PAGE);
+
+
+    auto loop_keys = [&](auto f) {
+        for (int i = -1; i < 30; i += 1) {
+            constexpr int NOTE_LUT[14] = { 0, 1, 2, 3, 4, -1, 5, 6, 7, 8, 9, 10, 11, -1, };
+            int n = i + g_piano_scroll;
+            int note = NOTE_LUT[n % 14];
+            if (note == -1) continue;
+            f(i, n, note + n / 14 * 12);
+        }
+    };
+
+    // check touch
+    bool prev_gate = g_piano_gate;
+    int  prev_note = g_piano_note;
+
+    g_piano_gate = false;
+
+    if (gui::touch::pressed()) {
+        loop_keys([&](int i, int n, int note) {
+            gui::Box b = {
+                { i * KEY_HALF_WIDTH, piano_y },
+                { KEY_HALF_WIDTH * 2, KEY_HALF_HEIGHT },
+            };
+            if (n % 2 == 0) b.pos.y += KEY_HALF_HEIGHT;
+            if (gui::touch::touched(b)) {
+                g_piano_gate = true;
+                g_piano_note = note;
+            }
+        });
+    }
+    if (g_piano_gate && (!prev_gate || g_piano_note != prev_note)) {
+        app::player().play_test_note(g_piano_note + gt::FIRSTNOTE, 3, g_chan_num);
+    }
+    if (!g_piano_gate && prev_gate) {
+        app::player().release_note(g_chan_num);
+    }
+
+
+    // render
+    loop_keys([&](int i, int n, int note) {
+        if (n % 2 == 0) {
+            dc.color(gui::rgb(0xbbbbbb));
+            if (g_piano_gate && g_piano_note == note) {
+                // key is pressed
+                dc.color(gui::rgb(0xff4422));
+            }
+            gui::Box b = {
+                { i * KEY_HALF_WIDTH, piano_y },
+                { KEY_HALF_WIDTH * 2, KEY_HALF_HEIGHT * 2 },
+            };
+            dc.box(b, gui::BoxStyle::PianoKey);
+            if (note % 12 == 0) {
+                char str[] = { char('0' + note / 12), '\0' };
+                dc.color(gui::DARK_GREY);
+                dc.text({b.pos.x + KEY_HALF_WIDTH - 4, piano_y + 33}, str);
+            }
+        }
+    });
+    loop_keys([&](int i, int n, int note) {
+        if (n % 2 == 1) {
+            dc.color(gui::rgb(0x333333));
+            if (g_piano_gate && g_piano_note == note) {
+                // key is pressed
+                dc.color(gui::rgb(0xff4422));
+            }
+            gui::Box b = {
+                { i * KEY_HALF_WIDTH, piano_y },
+                { KEY_HALF_WIDTH * 2, KEY_HALF_HEIGHT },
+            };
+            dc.box(b, gui::BoxStyle::PianoKey);
+        }
+    });
 }
-
-
 
 } // namespace songview

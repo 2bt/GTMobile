@@ -27,16 +27,6 @@ void const* g_id;
 void const* g_active_item;
 
 
-bool just_pressed() {
-    return g_touch_pressed && !g_touch_prev_pressed;
-}
-bool just_released() {
-    return !g_touch_pressed && g_touch_prev_pressed;
-}
-bool box_touched(Box const& box) {
-    return (g_touch_pressed | g_touch_prev_pressed) && box.contains(g_touch_pos);
-}
-
 void const* get_id(void const* addr) {
     if (g_id) {
         addr = g_id;
@@ -67,13 +57,13 @@ bool button_helper(Box const& box, bool active) {
     g_hold = false;
     ButtonState state = active ? ButtonState::Active : ButtonState::Normal;
     bool clicked = false;
-    if (g_active_item == nullptr && box_touched(box)) {
+    if (g_active_item == nullptr && touch::touched(box)) {
         state = ButtonState::Hover;
         if (box.contains(g_touch_prev_pos)) {
             if (++g_hold_count > g_refresh_rate * 0.25f) g_hold = true;
         }
         else g_hold_count = 0;
-        if (just_released()) clicked = true;
+        if (touch::just_released()) clicked = true;
     }
     g_dc.color(state == ButtonState::Active ? DARK_GREEN :
                state == ButtonState::Hover  ? GREEN :
@@ -85,6 +75,28 @@ bool button_helper(Box const& box, bool active) {
 
 } // namespace
 
+
+namespace touch {
+    void event(int x, int y, bool pressed) {
+        g_touch_pos = {x, y};
+        g_touch_pressed = pressed;
+    }
+    bool pressed() {
+        return g_touch_pressed;
+    }
+    bool just_pressed() {
+        return g_touch_pressed && !g_touch_prev_pressed;
+    }
+    bool just_released() {
+        return !g_touch_pressed && g_touch_prev_pressed;
+    }
+    bool touched(Box const& box) {
+        return (g_touch_pressed | g_touch_prev_pressed) && box.contains(g_touch_pos);
+    }
+    bool just_touched(Box const& box) {
+        return just_pressed() && box.contains(g_touch_pos);
+    }
+} // namespace touch
 
 
 void init() {
@@ -101,11 +113,6 @@ void set_refresh_rate(float refresh_rate) {
 
 DrawContext& get_draw_context() {
     return g_dc;
-}
-
-void touch(int x, int y, bool pressed) {
-    g_touch_pos = {x, y};
-    g_touch_pressed = pressed;
 }
 
 void begin_frame() {
@@ -160,11 +167,50 @@ bool button(Icon icon, bool active) {
     return clicked;
 }
 
+
+bool horizontal_drag_bar(int& value, int min, int max, int page) {
+    Box box = item_box();
+
+    void const* id = get_id(&value);
+    if (g_active_item == nullptr && touch::just_touched(box)) {
+        g_active_item = id;
+    }
+    bool is_active = g_active_item == id;
+
+    int range = max - min;
+    int handle_w = box.size.x * page / (range + page);
+    handle_w = std::max(handle_w, 16);
+    int move_w = box.size.x - handle_w;
+
+    int old_value = value;
+    if (is_active && range > 0) {
+        int x = g_touch_pos.x - box.pos.x - handle_w / 2 + move_w / range / 2;
+        value = clamp(min + x * range / move_w, min, max);
+    }
+    int handle_x = range == 0 ? 0 : (value - min) * move_w / range;
+
+    g_dc.color(rgb(0x222222));
+    g_dc.fill(box);
+    if (move_w > 0) {
+        g_dc.color(rgb(0x444444));
+        if (is_active) g_dc.color(rgb(0x666666));
+        g_dc.box({box.pos + ivec2(handle_x, 0), {handle_w, box.size.y}}, BoxStyle::Normal);
+
+        g_dc.color(rgb(0x777777));
+        int i = int(Icon::HGrab);
+        g_dc.rect(box.pos + ivec2(handle_x, 0) + ivec2(handle_w, box.size.y) / 2 - 8, 16,
+                 { i % 8 * 16, i / 8 * 16 });
+    }
+
+    return value != old_value;
+}
+
+
 bool vertical_drag_bar(int& value, int min, int max, int page) {
     Box box = item_box();
 
     void const* id = get_id(&value);
-    if (g_active_item == nullptr && box_touched(box) && just_pressed()) {
+    if (g_active_item == nullptr && touch::just_touched(box)) {
         g_active_item = id;
     }
     bool is_active = g_active_item == id;
@@ -185,10 +231,11 @@ bool vertical_drag_bar(int& value, int min, int max, int page) {
     g_dc.fill(box);
     if (move_h > 0) {
         g_dc.color(rgb(0x444444));
+        if (is_active) g_dc.color(rgb(0x666666));
         g_dc.box({box.pos + ivec2(0, handle_y), {box.size.x, handle_h}}, BoxStyle::Normal);
 
         g_dc.color(rgb(0x777777));
-        int i = int(Icon::Grab);
+        int i = int(Icon::VGrab);
         g_dc.rect(box.pos + ivec2(0, handle_y) + ivec2(box.size.x, handle_h) / 2 - 8, 16,
                  { i % 8 * 16, i / 8 * 16 });
     }
@@ -201,13 +248,11 @@ bool vertical_drag_button(int& value) {
     Box box = item_box();
 
     void const* id = get_id(&value);
-    if (g_active_item == nullptr && box_touched(box) && just_pressed()) {
+    if (g_active_item == nullptr && touch::just_touched(box)) {
         g_active_item = id;
     }
     bool is_active = g_active_item == id;
-
     int old_value = value;
-
     if (is_active) {
         int dy = g_touch_pos.y - box.pos.y;
         value = dy / box.size.y;
@@ -215,10 +260,11 @@ bool vertical_drag_button(int& value) {
     }
 
     g_dc.color(rgb(0x444444));
+    if (is_active) g_dc.color(rgb(0x666666));
     g_dc.box(box, g_button_style);
 
     g_dc.color(rgb(0x777777));
-    int i = int(Icon::Grab);
+    int i = int(Icon::VGrab);
     g_dc.rect(box.pos + box.size / 2 - 8, 16, { i % 8 * 16, i / 8 * 16 });
     return value != old_value;
 }
