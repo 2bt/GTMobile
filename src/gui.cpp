@@ -154,9 +154,11 @@ void same_line(bool same_line) {
 void id(void const* addr) {
     if (!g_id) g_id = addr;
 }
-
 void button_style(BoxStyle style) {
     g_button_style = style;
+}
+bool has_active_item() {
+    return g_active_item != nullptr;
 }
 bool button(Icon icon, bool active) {
     Box box = item_box();

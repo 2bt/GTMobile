@@ -79,7 +79,10 @@ void Player::stop_song() {
 //    initsong(psnum, lastsonginit);
 //}
 
-void Player::release_note(int chnnum) { m_channels[chnnum].gate = 0xfe; }
+void Player::release_note(int chnnum) {
+    m_channels[chnnum].gate = 0xfe;
+    m_channels[chnnum].newnote = 0; // XXX: 2bt added this
+}
 
 void Player::play_test_note(int note, int ins, int chnnum) {
     if (note == KEYON) return;

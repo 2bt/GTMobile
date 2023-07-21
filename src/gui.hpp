@@ -127,6 +127,7 @@ void cursor(ivec2 pos);
 void item_size(ivec2 size);
 void item_padding(ivec2 padding);
 void same_line(bool same_line = true);
+bool has_active_item();
 
 void button_style(BoxStyle style);
 bool button(Icon icon, bool active = false);

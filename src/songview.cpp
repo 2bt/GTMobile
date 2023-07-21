@@ -57,6 +57,11 @@ int                g_song_page_length   = 8;
 int                g_song_scroll        = 0;
 int                g_pattern_scroll     = 0;
 
+int                g_instrument   = 3;
+int                g_piano_scroll = 14 * 3;
+bool               g_piano_gate   = false;
+int                g_piano_note;
+
 //int                g_song_row;
 //int                g_pattern_row;
 
@@ -368,9 +373,6 @@ void draw() {
     };
     int const piano_y = app::canvas_height() - 48;
 
-    static int  g_piano_scroll = 14 * 3;
-    static bool g_piano_gate   = false;
-    static int  g_piano_note;
 
     gui::cursor({app::CANVAS_WIDTH - 200, piano_y - 18});
     gui::item_size({200, 16});
@@ -393,7 +395,7 @@ void draw() {
 
     g_piano_gate = false;
 
-    if (gui::touch::pressed()) {
+    if (!gui::has_active_item() && gui::touch::pressed()) {
         loop_keys([&](int i, int n, int note) {
             gui::Box b = {
                 { i * KEY_HALF_WIDTH, piano_y },
@@ -407,7 +409,7 @@ void draw() {
         });
     }
     if (g_piano_gate && (!prev_gate || g_piano_note != prev_note)) {
-        app::player().play_test_note(g_piano_note + gt::FIRSTNOTE, 3, g_chan_num);
+        app::player().play_test_note(g_piano_note + gt::FIRSTNOTE, g_instrument, g_chan_num);
     }
     if (!g_piano_gate && prev_gate) {
         app::player().release_note(g_chan_num);
