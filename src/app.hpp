@@ -6,9 +6,6 @@
 
 namespace app {
 
-    gt::Song&   song();
-    gt::Player& player();
-
     enum {
         MIXRATE           = 44100,
 
@@ -18,6 +15,9 @@ namespace app {
         KEYCODE_ENTER     = 66,
         KEYCODE_DEL       = 67,
     };
+
+    gt::Song&   song();
+    gt::Player& player();
     int  canvas_height();
 
     void init();
@@ -28,5 +28,4 @@ namespace app {
     void key(int key, int unicode);
     void draw();
     void audio_callback(int16_t* buffer, int length);
-    int  canvas_height();
 }

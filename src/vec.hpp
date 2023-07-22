@@ -43,6 +43,16 @@ TVec2<T> clamp(TVec2<T> v, TVec2<T> minv, TVec2<T> maxv) {
     return { clamp(v.x, minv.x, maxv.x), clamp(v.y, minv.y, maxv.y) };
 }
 
+template<class T, class U>
+constexpr TVec4<T> mix(TVec4<T> x, TVec4<T> y, U a) {
+    auto b = 1 - a;
+    return {
+        x.x * b + y.x * a,
+        x.y * b + y.y * a,
+        x.z * b + y.z * a,
+        x.w * b + y.w * a,
+    };
+}
 
 using ivec2   = TVec2<int32_t>;
 using i16vec2 = TVec2<int16_t>;

@@ -1,5 +1,6 @@
 #include "gui.hpp"
 #include "log.hpp"
+#include <cstring>
 
 
 namespace gui {
@@ -11,7 +12,7 @@ gfx::Image  g_img;
 ivec2       g_cursor_min;
 ivec2       g_cursor_max;
 ivec2       g_item_size;
-ivec2       g_item_padding = 1;
+ivec2       g_item_padding = 2;
 bool        g_same_line;
 BoxStyle    g_button_style = BoxStyle::Normal;
 
@@ -163,9 +164,17 @@ bool has_active_item() {
 bool button(Icon icon, bool active) {
     Box box = item_box();
     bool clicked = button_helper(box, active);
-    int i = int(icon);
     g_dc.color(WHITE);
+    int i = int(icon);
     g_dc.rect(box.pos + box.size / 2 - 8, 16, { i % 8 * 16, i / 8 * 16 });
+    return clicked;
+}
+bool button(char const* label, bool active) {
+    Box box = item_box();
+    bool clicked = button_helper(box, active);
+    ivec2 text_size(strlen(label) * 8, 8);
+    g_dc.color(WHITE);
+    g_dc.text(box.pos + box.size / 2 - text_size / 2, label);
     return clicked;
 }
 

@@ -5,7 +5,8 @@
 #include "sid.hpp"
 #include "log.hpp"
 #include "gui.hpp"
-#include "songview.hpp"
+#include "project_view.hpp"
+#include "song_view.hpp"
 #include <cstring>
 
 
@@ -21,6 +22,29 @@ gfx::Canvas g_canvas;
 float       g_canvas_scale;
 int16_t     g_canvas_offset;
 bool        g_initialized = false;
+
+
+
+enum class View {
+    Project,
+    Song,
+};
+
+const std::array<const char*, 2> VIEW_NAMES = {
+    "PROJECT",
+    "SONG",
+};
+
+const std::array<void(*)() , 2> VIEW_FUNCS = {
+    project_view::draw,
+    song_view::draw,
+};
+
+View g_view = View::Project;
+
+void set_view(View view) {
+    g_view = view;
+}
 
 
 } // namespace
@@ -140,7 +164,18 @@ void draw() {
 
 
     gui::begin_frame();
-    songview::draw();
+    gui::item_size({80, 32});
+    gui::button_style(gui::BoxStyle::Round2);
+    for (size_t i = 0; i < VIEW_NAMES.size(); ++i) {
+        if (gui::button(VIEW_NAMES[i], i == size_t(g_view))) {
+            set_view(View(i));
+        }
+        gui::same_line();
+    }
+    gui::button_style(gui::BoxStyle::Normal);
+
+    VIEW_FUNCS[size_t(g_view)]();
+
     gui::end_frame();
 
 

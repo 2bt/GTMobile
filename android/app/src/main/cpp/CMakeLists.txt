@@ -12,7 +12,8 @@ add_library(
     src/gfx.cpp
     src/gui.cpp
     src/app.cpp
-    src/songview.cpp
+    src/song_view.cpp
+    src/project_view.cpp
 )
 
 target_include_directories(

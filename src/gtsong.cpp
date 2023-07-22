@@ -172,13 +172,13 @@ bool Song::save(std::ostream& stream) {
 
     stream.write("GTS5", 4);
 
-    //for (int c = 1; c < MAX_INSTR; c++) {
-    //    if (instr[c].ad || instr[c].sr || instr[c].ptr[0] || instr[c].ptr[1] ||
-    //        instr[c].ptr[2] || instr[c].vibdelay || instr[c].ptr[3])
-    //    {
-    //        if (c > highestusedinstr) highestusedinstr = c;
-    //    }
-    //}
+    for (int c = 1; c < MAX_INSTR; c++) {
+        if (instr[c].ad || instr[c].sr || instr[c].ptr[0] || instr[c].ptr[1] ||
+            instr[c].ptr[2] || instr[c].ptr[3] || instr[c].vibdelay)
+        {
+            if (c > highestusedinstr) highestusedinstr = c;
+        }
+    }
 
     // infotexts
     write(stream, songname);

@@ -28,7 +28,6 @@ enum {
     FTBL = 2,
     STBL = 3,
 
-    MAX_FILT         = 64,
     MAX_STR          = 32,
     MAX_INSTR        = 64,
     MAX_CHN          = 3,

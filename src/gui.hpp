@@ -131,6 +131,7 @@ bool has_active_item();
 
 void button_style(BoxStyle style);
 bool button(Icon icon, bool active = false);
+bool button(char const* label, bool active = false);
 
 bool horizontal_drag_bar(int& value, int min, int max, int page);
 bool vertical_drag_bar(int& value, int min, int max, int page);
