@@ -25,11 +25,6 @@ bool        g_initialized = false;
 
 
 
-enum class View {
-    Project,
-    Song,
-};
-
 const std::array<const char*, 2> VIEW_NAMES = {
     "PROJECT",
     "SONG",
@@ -42,18 +37,17 @@ const std::array<void(*)() , 2> VIEW_FUNCS = {
 
 View g_view = View::Project;
 
-void set_view(View view) {
-    g_view = view;
-}
 
 
 } // namespace
 
 
-int canvas_height() { return g_canvas_height; }
-
 gt::Song& song() { return g_song; }
 gt::Player& player() { return g_player; }
+int canvas_height() { return g_canvas_height; }
+void set_view(View view) {
+    g_view = view;
+}
 
 
 void audio_callback(int16_t* buffer, int length) {
@@ -87,6 +81,7 @@ void init() {
     gfx::init();
     gui::init();
 
+    set_view(View::Song);
 
     // load song
     std::vector<uint8_t> buffer;
@@ -131,7 +126,8 @@ void resize(int width, int height) {
     }
 
     // XXX
-    //g_canvas_scale = 1;
+    // g_canvas_scale = 1;
+    LOGD("canvas scale = %f", g_canvas_scale);
 
     // reinit canvas with POT dimensions
     int w = 2;
@@ -146,11 +142,12 @@ void resize(int width, int height) {
 
 
 void touch(int x, int y, bool pressed) {
-    gui::touch::event((x - g_canvas_offset) / g_canvas_scale, y / g_canvas_scale, pressed);
+    gui::touch_event((x - g_canvas_offset) / g_canvas_scale, y / g_canvas_scale, pressed);
 }
 
 void key(int key, int unicode) {
     LOGD("key %d %d", key, unicode);
+    gui::key_event(key, unicode);
 }
 
 
@@ -164,14 +161,15 @@ void draw() {
 
 
     gui::begin_frame();
-    gui::item_size({80, 32});
-    gui::button_style(gui::BoxStyle::Round2);
+    gui::item_size({80, 24});
+    gui::button_style(gui::BoxStyle::Tab);
     for (size_t i = 0; i < VIEW_NAMES.size(); ++i) {
         if (gui::button(VIEW_NAMES[i], i == size_t(g_view))) {
             set_view(View(i));
         }
         gui::same_line();
     }
+    gui::same_line(false);
     gui::button_style(gui::BoxStyle::Normal);
 
     VIEW_FUNCS[size_t(g_view)]();

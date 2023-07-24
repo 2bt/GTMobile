@@ -40,13 +40,12 @@ constexpr u8vec4 COLOR_CMDS[16] = {
     gui::rgb(0xffec27), // F tempo
 };
 
-constexpr u8vec4 COLOR_SEPARATOR     = gui::rgb(0x444433);
 constexpr u8vec4 COLOR_INSTRUMENT    = gui::rgb(0xbbccdd);
 constexpr u8vec4 COLOR_HIGHLIGHT_ROW = gui::rgb(0x1f1f10);
 constexpr u8vec4 COLOR_PLAYER_ROW    = gui::rgb(0x553300);
 
 // settings
-int                g_row_height         = 13;
+int                g_row_height         = 13; // 8-16, default: 13
 int                g_row_highlight_step = 4;
 
 std::array<int, 3> g_pattern_nums = { 0, 1, 2 };
@@ -126,7 +125,7 @@ void draw_piano() {
     }
 
 
-    gui::DrawContext& dc = gui::get_draw_context();
+    gui::DrawContext& dc = gui::draw_context();
 
     // draw white keys
     loop_keys([&](int i, int n, int note) {
@@ -166,11 +165,14 @@ void draw_piano() {
 }
 
 
+
 void draw() {
 
 
     // buttons
-    gui::item_size({40, 32});
+    gui::same_line();
+
+    gui::item_size(24);
     bool is_playing = app::player().is_playing();
     if (gui::button(gui::Icon::Play, is_playing)) {
         if (is_playing) {
@@ -211,6 +213,7 @@ void draw() {
     max_pattern_len = std::max(max_pattern_len, song.pattlen[g_pattern_nums[2]]);
 
 
+
     // XXX fix this
     int total_rows = (app::canvas_height() - 130) / g_row_height;
     g_song_page_length = clamp(g_song_page_length, 0, total_rows);
@@ -229,59 +232,43 @@ void draw() {
 
 
 
-    gui::DrawContext& dc = gui::get_draw_context();
-
-    ivec2 cursor = {0, 34};
-    // dc.color(COLOR_SEPARATOR);
-    // dc.fill({cursor, {8 * 37, 2}});
-    // cursor.y += 2;
-
-    // // table outline
-    // dc.color(COLOR_SEPARATOR);
-    // dc.fill({{0, cursor.y}, {8 * 37, 2}});
-    // int h = g_row_height * (g_song_page_length + pattern_page_length) + 27;
-    // dc.fill({{31, 32}, {2, h}});
-    // dc.fill({{31 + 11 * 8, 32}, {2, h}});
-    // dc.fill({{31 + 22 * 8, 32}, {2, h}});
-    // dc.fill({{31 + 33 * 8, 32}, {2, h}});
-
-
+    gui::DrawContext& dc = gui::draw_context();
 
 
 
     // put text in the center of the row
-    ivec2 text_offset = {0, (g_row_height - 7) / 2};
+    ivec2 text_offset = {4, (g_row_height - 7) / 2};
 
 
     char line[16];
 
     // song table
     {
+        gui::item_padding({2, 0});
         for (int i = 0; i < g_song_page_length; ++i) {
             int row = g_song_scroll + i;
 
-            cursor.x += 8;
+            gui::item_size({ 28, g_row_height });
+            gui::Box box = gui::item_box();
+
             sprintf(line, "%02X", row);
             dc.color(gui::WHITE);
-            dc.text(cursor + text_offset, line);
-            cursor.x += 32;
+            dc.text(box.pos + text_offset + ivec2(4, 0), line);
 
+            gui::item_size({ 84, g_row_height });
             for (int c = 0; c < 3; ++c) {
+                gui::same_line();
+                gui::Box box = gui::item_box();
 
-                if (row > song.songlen[SONG_NR][c]) {
-                    cursor.x += 11 * 8;
-                    continue;
-                }
+                if (row > song.songlen[SONG_NR][c]) continue;
 
                 // highlight player position
                 if (is_playing && row == player_song_rows[c]) {
                     dc.color(COLOR_PLAYER_ROW);
-                    dc.fill({ cursor - ivec2(3, 0), {78, g_row_height} });
+                    dc.fill(box);
                 }
 
-
                 uint8_t v = song.songorder[SONG_NR][c][row];
-
                 if (v == gt::LOOPSONG) {
                     sprintf(line, "LOOP %02X", song.songorder[SONG_NR][c][row + 1]);
                 }
@@ -299,25 +286,24 @@ void draw() {
                 }
 
                 dc.color(gui::WHITE);
-                dc.text(cursor + text_offset, line);
-                cursor.x += 11 * 8;
+                dc.text(box.pos + text_offset, line);
             }
-            cursor.x = 0;
-            cursor.y += g_row_height;
 
         }
+        gui::item_padding(2);
+        gui::cursor(gui::cursor() + ivec2(0, 2));
     }
+
 
     {
         // pattern bar
-        // dc.color(COLOR_SEPARATOR);
-        // dc.fill({{0, cursor.y}, {8 * 37, 2}});
-        cursor.y += 8;
-        cursor.x = 40;
+        gui::item_size({ 28, g_row_height });
+        gui::item_box();
+        gui::item_size({84, 16});
         for (int c = 0; c < 3; ++c) {
+            gui::same_line();
 
-            gui::cursor(cursor - ivec2(6, 5));
-            gui::item_size({84, 17});
+            ivec2 p = gui::cursor();
             bool active = app::player().is_channel_active(c);
             if (gui::button(gui::Icon::None, active)) {
                 app::player().set_channel_active(c, !active);
@@ -325,56 +311,47 @@ void draw() {
 
             sprintf(line, "%02X", g_pattern_nums[c]);
             dc.color(gui::WHITE);
-            dc.text(cursor, line);
+            dc.text(p + 4, line);
 
-            // show channel activity
-            dc.color(gui::LIGHT_GREY);
-            dc.fill({cursor + ivec2(24, 0), ivec2(std::min(sid::chan_level(c) * 1.2f, 1.0f) * 48,  7)});
-
-            cursor.x += 11 * 8;
+            dc.fill({p + ivec2(24, 5), ivec2(sid::chan_level(c) * 56.0f + 0.9f,  6)});
         }
-        cursor.y += 7;
-        cursor.y += 8;
-        // dc.color(COLOR_SEPARATOR);
-        // dc.fill({{0, cursor.y - 2}, {8 * 37, 2}});
-        cursor.x = 0;
     }
 
 
     {
         // patterns
+        gui::item_padding({2, 0});
         for (int i = 0; i < pattern_page_length; ++i) {
             int row = g_pattern_scroll + i;
+
+            gui::item_size({ 28, g_row_height });
+            gui::Box box = gui::item_box();
 
             // highlight background
             if (row % g_row_highlight_step == 0) {
                 dc.color(COLOR_HIGHLIGHT_ROW);
-                dc.fill({ cursor, {27, g_row_height} });
+                dc.fill(box);
             }
 
-            cursor.x += 8;
             sprintf(line, "%02X", row);
             dc.color(gui::WHITE);
-            dc.text(cursor + text_offset, line);
-            cursor.x += 32;
+            dc.text(box.pos + text_offset + ivec2(4, 0), line);
 
+            gui::item_size({ 84, g_row_height });
             for (int c = 0; c < 3; ++c) {
+                gui::same_line();
+                gui::Box box = gui::item_box();
 
-                if (row >= song.pattlen[g_pattern_nums[c]]) {
-                    cursor.x += 28;
-                    cursor.x += 20;
-                    cursor.x += 40;
-                    continue;
-                }
+                if (row >= song.pattlen[g_pattern_nums[c]]) continue;
 
                 // highlight player position
                 if (row % g_row_highlight_step == 0) {
                     dc.color(COLOR_HIGHLIGHT_ROW);
-                    dc.fill({ cursor - ivec2(3, 0), {78, g_row_height} });
+                    dc.fill(box);
                 }
                 if (is_playing && g_pattern_nums[c] == player_pattern_nums[c] && row == player_pattern_rows[c]) {
                     dc.color(COLOR_PLAYER_ROW);
-                    dc.fill({ cursor - ivec2(3, 0), {78, g_row_height} });
+                    dc.fill(box);
                 }
 
                 uint8_t const* p = song.pattern[g_pattern_nums[c]] + row * 4;
@@ -386,69 +363,63 @@ void draw() {
                 dc.color(gui::WHITE);
                 if (note == gt::REST) {
                     dc.color(gui::DARK_GREY);
-                    dc.text(cursor + text_offset, "...");
+                    dc.text(box.pos + text_offset, "...");
                 }
                 else if (note == gt::KEYOFF) {
-                    dc.text(cursor + text_offset, "===");
+                    dc.text(box.pos + text_offset, "===");
                 }
                 else if (note == gt::KEYON) {
-                    dc.text(cursor + text_offset, "+++");
+                    dc.text(box.pos + text_offset, "+++");
                 }
                 else {
                     sprintf(line, "%c%c%d", "CCDDEFFGGAAB"[note % 12],
                                   "-#-#--#-#-#-"[note % 12],
                                   (note - gt::FIRSTNOTE) / 12);
-                    dc.text(cursor + text_offset, line);
+                    dc.text(box.pos + text_offset, line);
                 }
-                cursor.x += 28;
+                box.pos.x += 28;
 
                 if (instr > 0) {
                     sprintf(line, "%02X", instr);
                     dc.color(COLOR_INSTRUMENT);
-                    dc.text(cursor + text_offset, line);
+                    dc.text(box.pos + text_offset, line);
                 }
-                cursor.x += 20;
+                box.pos.x += 20;
 
                 if (cmd > 0) {
                     dc.color(COLOR_CMDS[cmd]);
                     sprintf(line, "%X%02X", cmd, arg);
-                    dc.text(cursor + text_offset, line);
+                    dc.text(box.pos + text_offset, line);
                 }
-                cursor.x += 40;
             }
-            cursor.x = 0;
-            cursor.y += g_row_height;
         }
+        gui::item_padding(2);
     }
 
 
     // scroll bars
+    gui::cursor({288, 26});
     {
         int page = g_song_page_length;
         int max_scroll = std::max<int>(0, max_song_len - page);
-        gui::cursor({298, 34});
         gui::item_size({16, page * g_row_height});
         if (gui::vertical_drag_bar(g_song_scroll, 0, max_scroll, page)) {
             if (is_playing) g_follow = false;
         }
     }
     {
+        gui::item_size(16);
+        static int dy = 0;
+        if (gui::vertical_drag_button(dy)) {
+            g_song_page_length += dy;
+        }
+    }
+    {
         int page = pattern_page_length;
         int max_scroll = std::max<int>(0, max_pattern_len - page);
-        gui::cursor({298, 57 + g_song_page_length * g_row_height});
         gui::item_size({16, page * g_row_height});
         if (gui::vertical_drag_bar(g_pattern_scroll, 0, max_scroll, page)) {
             if (is_playing) g_follow = false;
-        }
-    }
-
-    {
-        // scroll button
-        gui::cursor({298, 37 + g_song_page_length * g_row_height});
-        gui::item_size({16, 17});
-        int dy = 0;
-        if (gui::vertical_drag_button(dy)) {
-            g_song_page_length += dy;
         }
     }
 

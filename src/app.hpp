@@ -8,17 +8,21 @@ namespace app {
 
     enum {
         MIXRATE           = 44100,
-
         CANVAS_WIDTH      = 360,
         CANVAS_MIN_HEIGHT = 590,
-
-        KEYCODE_ENTER     = 66,
-        KEYCODE_DEL       = 67,
     };
+
+    enum class View {
+        Project,
+        Song,
+    };
+
 
     gt::Song&   song();
     gt::Player& player();
-    int  canvas_height();
+    int         canvas_height();
+    void        set_view(View view);
+
 
     void init();
     void free();

@@ -4,6 +4,7 @@
 #include <fstream>
 #include "platform.hpp"
 #include "app.hpp"
+#include "gui.hpp"
 #include "log.hpp"
 
 
@@ -43,6 +44,11 @@ bool load_asset(std::string const& name, std::vector<uint8_t>& buf) {
     buf = std::vector<uint8_t>((std::istreambuf_iterator<char>(f)),
                                 std::istreambuf_iterator<char>());
     return true;
+}
+
+
+void show_keyboard(bool enabled) {
+    // do nothing
 }
 
 } // namespace platform
@@ -94,10 +100,10 @@ int main(int argc, char** argv) {
                     running = false;
                     break;
                 case SDL_SCANCODE_RETURN:
-                    app::key(app::KEYCODE_ENTER, 0);
+                    app::key(gui::KEYCODE_ENTER, 0);
                     break;
                 case SDL_SCANCODE_BACKSPACE:
-                    app::key(app::KEYCODE_DEL, 0);
+                    app::key(gui::KEYCODE_DEL, 0);
                     break;
                 default: break;
                 }

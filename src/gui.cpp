@@ -1,6 +1,9 @@
 #include "gui.hpp"
 #include "log.hpp"
+#include "platform.hpp"
+#include <cstdarg>
 #include <cstring>
+#include <array>
 
 
 namespace gui {
@@ -17,8 +20,8 @@ bool        g_same_line;
 BoxStyle    g_button_style = BoxStyle::Normal;
 
 
-float       g_refresh_rate = 60.0f;
-int         g_hold_count;
+float       g_frame_time = 1.0f / 60.0f;
+float       g_hold_time;
 bool        g_hold;
 ivec2       g_touch_pos;
 ivec2       g_touch_prev_pos;
@@ -26,7 +29,16 @@ bool        g_touch_pressed;
 bool        g_touch_prev_pressed;
 void const* g_id;
 void const* g_active_item;
+char*       g_input_text_str = nullptr;
+int         g_input_text_len;
+int         g_input_text_pos;
+float       g_input_cursor_blink;
 
+
+std::array<char, 256> g_text_buffer;
+void print_to_text_buffer(const char* fmt, va_list args) {
+    vsnprintf(g_text_buffer.data(), g_text_buffer.size(), fmt, args);
+}
 
 void const* get_id(void const* addr) {
     if (g_id) {
@@ -36,6 +48,23 @@ void const* get_id(void const* addr) {
    return addr;
 }
 
+void draw_button(Box const& box, ButtonState state, bool active) {
+    g_dc.color(state == ButtonState::Normal && !active  ? DARK_GREY :
+               state == ButtonState::Normal && active   ? ORANGE :
+               state == ButtonState::Pressed            ? GREEN :
+               state == ButtonState::Held               ? GREEN :
+             /*state == ButtonState::Released*/           YELLOW);
+    g_dc.box(box, g_button_style);
+}
+
+
+} // namespace
+
+
+// low-level
+DrawContext& draw_context() {
+    return g_dc;
+}
 Box item_box() {
     ivec2 size = g_item_size;
     ivec2 pos;
@@ -51,37 +80,68 @@ Box item_box() {
     }
     return { pos, size };
 }
+ButtonState button_state(Box const& box, void const* addr) {
 
-
-bool button_helper(Box const& box, bool active) {
-    enum class ButtonState { Normal, Hover, Active };
-    g_hold = false;
-    ButtonState state = active ? ButtonState::Active : ButtonState::Normal;
-    bool clicked = false;
-    if (g_active_item == nullptr && touch::touched(box)) {
-        state = ButtonState::Hover;
-        if (box.contains(g_touch_prev_pos)) {
-            if (++g_hold_count > g_refresh_rate * 0.25f) g_hold = true;
+    void const* id = get_id(addr);
+    if (id) {
+        if (g_active_item == nullptr && touch::just_touched(box)) {
+            g_active_item = id;
+            return ButtonState::Pressed;
         }
-        else g_hold_count = 0;
-        if (touch::just_released()) clicked = true;
+        if (g_active_item != id) return ButtonState::Normal;
+        if (touch::just_released()) return ButtonState::Released;
+        return ButtonState::Held;
     }
-    g_dc.color(state == ButtonState::Active ? DARK_GREEN :
-               state == ButtonState::Hover  ? GREEN :
-                                              DARK_GREY);
-    g_dc.box(box, g_button_style);
-    return clicked;
+
+    if (g_active_item || !touch::touched(box)) return ButtonState::Normal;
+
+    // hold
+    if (box.contains(g_touch_prev_pos)) {
+        g_hold_time += g_frame_time;
+        if (g_hold_time > 0.25f) g_hold = true;
+    }
+    else g_hold_time = 0;
+
+    if (touch::just_pressed()) return ButtonState::Pressed;
+    if (touch::just_released()) return ButtonState::Released;
+    return ButtonState::Held;
 }
 
 
-} // namespace
+
+void touch_event(int x, int y, bool pressed) {
+    g_touch_pos = {x, y};
+    g_touch_pressed = pressed;
+}
+
+
+void key_event(int key, int unicode) {
+    if (!g_input_text_str) return;
+    switch (key) {
+    case KEYCODE_DEL:
+        g_input_cursor_blink = 0;
+        if (g_input_text_pos > 0) g_input_text_str[--g_input_text_pos] = '\0';
+        return;
+    case KEYCODE_ENTER:
+        platform::show_keyboard(false);
+        g_input_text_str = nullptr;
+        return;
+    default: break;
+    }
+
+    if (unicode == 0) return;
+    if (g_input_text_pos >= g_input_text_len) return;
+
+    g_input_cursor_blink = 0;
+    int c = unicode;
+    if (isalnum(c) || (g_input_text_pos > 0 && strchr(" _-.+()", c))) {
+        g_input_text_str[g_input_text_pos++] = c;
+    }
+}
+
 
 
 namespace touch {
-    void event(int x, int y, bool pressed) {
-        g_touch_pos = {x, y};
-        g_touch_pressed = pressed;
-    }
     bool pressed() {
         return g_touch_pressed;
     }
@@ -100,6 +160,7 @@ namespace touch {
 } // namespace touch
 
 
+
 void init() {
     g_img.init("gui.png");
 }
@@ -109,39 +170,42 @@ void free() {
 }
 
 void set_refresh_rate(float refresh_rate) {
-    g_refresh_rate = refresh_rate;
+    g_frame_time = 1.0f / refresh_rate;
 }
 
-DrawContext& get_draw_context() {
-    return g_dc;
-}
 
 void begin_frame() {
-//    ++g_input_cursor_blink;
 
     g_cursor_min = {};
     g_cursor_max = {};
     g_same_line = false;
-    if (!(g_touch_pressed | g_touch_prev_pressed)) {
+    if (!g_touch_pressed && !g_touch_prev_pressed) {
         g_active_item = nullptr;
-        g_hold_count = 0;
+        g_hold = false;
+        g_hold_time = 0;
     }
-//    if (touch_just_pressed() && g_input_text_str) {
-//        g_input_text_str = nullptr;
-//        android::hide_keyboard();
-//    }
+
+    g_input_cursor_blink += g_frame_time * 2.0f;
+    g_input_cursor_blink -= (int) g_input_cursor_blink;
+    if (touch::just_pressed() && g_input_text_str) {
+        g_input_text_str = nullptr;
+        platform::show_keyboard(false);
+    }
 
 }
 void end_frame() {
     gfx::draw(g_dc, g_img);
     g_dc.clear();
-
     g_touch_prev_pos     = g_touch_pos;
     g_touch_prev_pressed = g_touch_pressed;
 }
 void cursor(ivec2 pos) {
     g_cursor_min = pos;
     g_cursor_max = pos;
+}
+ivec2 cursor() {
+    if (g_same_line) return { g_cursor_max.x, g_cursor_min.y };
+    return { g_cursor_min.x, g_cursor_max.y };
 }
 void item_size(ivec2 size) {
     g_item_size = size;
@@ -161,32 +225,64 @@ void button_style(BoxStyle style) {
 bool has_active_item() {
     return g_active_item != nullptr;
 }
+
 bool button(Icon icon, bool active) {
     Box box = item_box();
-    bool clicked = button_helper(box, active);
-    g_dc.color(WHITE);
+    ButtonState state = button_state(box);
+    draw_button(box, state, active);
+
     int i = int(icon);
+    g_dc.color(WHITE);
     g_dc.rect(box.pos + box.size / 2 - 8, 16, { i % 8 * 16, i / 8 * 16 });
-    return clicked;
+    return state == ButtonState::Released;
 }
 bool button(char const* label, bool active) {
     Box box = item_box();
-    bool clicked = button_helper(box, active);
+    ButtonState state = button_state(box);
+    draw_button(box, state, active);
+
     ivec2 text_size(strlen(label) * 8, 8);
     g_dc.color(WHITE);
     g_dc.text(box.pos + box.size / 2 - text_size / 2, label);
-    return clicked;
+    return state == ButtonState::Released;
+}
+
+void text(char const* fmt, ...) {
+    va_list args;
+    va_start(args, fmt);
+    print_to_text_buffer(fmt, args);
+    va_end(args);
+    Box box = item_box();
+    g_dc.text(box.pos + 4, g_text_buffer.data());
+}
+void input_text(char* str, int len) {
+    Box box = item_box();
+    ButtonState state = button_state(box);
+    if (state == ButtonState::Released) {
+        platform::show_keyboard(true);
+        g_input_text_str = str;
+        g_input_text_len = len;
+        g_input_text_pos = strlen(g_input_text_str);
+    }
+
+    bool active = g_input_text_str == str;
+    g_dc.color(active ? ORANGE : DARK_GREY);
+    g_dc.box(box, BoxStyle::Text);
+
+    ivec2 p = box.pos + 4;
+    g_dc.color(WHITE);
+    g_dc.text(p, str);
+    // cursor
+    if (g_input_text_str == str && g_input_cursor_blink < 0.5f) {
+        g_dc.text(p + ivec2(strlen(str) * 8, 0), "\x7f");
+    }
 }
 
 
 bool horizontal_drag_bar(int& value, int min, int max, int page) {
     Box box = item_box();
-
-    void const* id = get_id(&value);
-    if (g_active_item == nullptr && touch::just_touched(box)) {
-        g_active_item = id;
-    }
-    bool is_active = g_active_item == id;
+    ButtonState state = button_state(box, &value);
+    bool is_active = state != ButtonState::Normal;
 
     int range = max - min;
     int handle_w = box.size.x * page / (range + page);
@@ -219,12 +315,8 @@ bool horizontal_drag_bar(int& value, int min, int max, int page) {
 
 bool vertical_drag_bar(int& value, int min, int max, int page) {
     Box box = item_box();
-
-    void const* id = get_id(&value);
-    if (g_active_item == nullptr && touch::just_touched(box)) {
-        g_active_item = id;
-    }
-    bool is_active = g_active_item == id;
+    ButtonState state = button_state(box, &value);
+    bool is_active = state != ButtonState::Normal;
 
     int range = max - min;
     int handle_h = box.size.y * page / (range + page);
@@ -250,19 +342,13 @@ bool vertical_drag_bar(int& value, int min, int max, int page) {
         g_dc.rect(box.pos + ivec2(0, handle_y) + ivec2(box.size.x, handle_h) / 2 - 8, 16,
                  { i % 8 * 16, i / 8 * 16 });
     }
-
     return value != old_value;
 }
-
-
 bool vertical_drag_button(int& value) {
     Box box = item_box();
+    ButtonState state = button_state(box, &value);
+    bool is_active = state != ButtonState::Normal;
 
-    void const* id = get_id(&value);
-    if (g_active_item == nullptr && touch::just_touched(box)) {
-        g_active_item = id;
-    }
-    bool is_active = g_active_item == id;
     int old_value = value;
     if (is_active) {
         int dy = g_touch_pos.y - box.pos.y;
@@ -285,7 +371,7 @@ bool vertical_drag_button(int& value) {
 // DrawContext //
 /////////////////
 void DrawContext::fill(Box const& box) {
-    i16vec2 uv(1, 65); // a white pixel
+    i16vec2 uv(8, 8); // a white pixel
     auto i0 = add_vertex({ box.pos, uv, m_color });
     auto i1 = add_vertex({ box.pos + box.size.xo(), uv, m_color });
     auto i2 = add_vertex({ box.pos + box.size, uv, m_color });
@@ -297,7 +383,7 @@ void DrawContext::box(Box const& box, BoxStyle style) {
     i16vec2 p1 = box.pos + 8;
     i16vec2 p2 = box.pos + box.size - 8;
     i16vec2 p3 = box.pos + box.size;
-    i16vec2 t0(16 * int(style), 64);
+    i16vec2 t0(int(style) % 8 * 16, int(style) / 8 * 16);
     i16vec2 t1 = t0 + 8;
     i16vec2 t2 = t1;
     i16vec2 t3 = t2 + 8;

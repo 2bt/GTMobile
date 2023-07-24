@@ -38,18 +38,21 @@ struct Box {
 
 
 enum class BoxStyle {
+    Fill, 
     Normal,
-    Round,
     Tab,
-    Frame,
-    Round2,
-    PianoKey,
+    Text,
+    Corner,
+
+    PianoKey = 8,
 };
 
 
 class DrawContext : public gfx::DrawContext {
 public:
-
+    DrawContext() {
+        font(0);
+    }
     void character(ivec2 pos, uint8_t g) {
         ivec2 uv(g % 16 * m_char_size.x, g / 16 * m_char_size.x + m_font_offset);
         rect(pos, m_char_size, uv);
@@ -66,15 +69,20 @@ public:
     void fill(Box const& box);
     void box(Box const& box, BoxStyle style = BoxStyle::Normal);
 
+
+    void font(int i) {
+        m_font_offset = 256 + 64 * i;
+    }
+
 private:
-    int    m_font_offset  = 192; // 0;
-    ivec2  m_char_size    = {8, 8};
+    int    m_font_offset = 256 + 64 * 2;
+    ivec2  m_char_size   = {8, 8};
 };
 
 
 enum class Icon {
-    None = 63,
-    Loop = 48,
+    None = 47,
+    Loop = 16,
     Stop,
     Play,
     FastBackward,
@@ -83,14 +91,14 @@ enum class Icon {
     VGrab,
     HGrab,
 
-    Copy = 56,
+    Copy = 24,
     Paste,
 
-    Lowpass = 64,
+    Lowpass = 32,
     Bandpass,
     Highpass,
 
-    Noise = 72,
+    Noise = 40,
     Pulse,
     Saw,
     Tri,
@@ -99,21 +107,26 @@ enum class Icon {
     VGate,
     HGate,
 
-    AddRowAbove = 80,
+    AddRowAbove = 48,
     AddRowBelow,
     DeleteRow,
 };
 
 
+enum {
+    KEYCODE_ENTER = 66,
+    KEYCODE_DEL   = 67,
+};
+
+
 void init();
 void free();
+void touch_event(int x, int y, bool pressed);
+void key_event(int key, int unicode);
 void set_refresh_rate(float refresh_rate);
-void begin_frame();
-void end_frame();
 
 
 namespace touch {
-    void event(int x, int y, bool pressed);
     bool pressed();
     bool just_pressed();
     bool just_released();
@@ -122,22 +135,32 @@ namespace touch {
 } // namespace touch
 
 
+void begin_frame();
+void end_frame();
 void id(void const* addr);
 void cursor(ivec2 pos);
+ivec2 cursor();
 void item_size(ivec2 size);
 void item_padding(ivec2 padding);
 void same_line(bool same_line = true);
 bool has_active_item();
 
+void text(char const* fmt, ...);
 void button_style(BoxStyle style);
 bool button(Icon icon, bool active = false);
 bool button(char const* label, bool active = false);
-
+void input_text(char* str, int len);
+template<class T>void input_text(T& t) { input_text(t.data(), t.size() - 1); }
 bool horizontal_drag_bar(int& value, int min, int max, int page);
 bool vertical_drag_bar(int& value, int min, int max, int page);
 
 bool vertical_drag_button(int& value);
 
-DrawContext& get_draw_context();
+
+// low level functions
+enum class ButtonState { Normal, Pressed, Held, Released };
+DrawContext& draw_context();
+Box          item_box();
+ButtonState  button_state(Box const& box, void const* addr = nullptr);
 
 } // namespace

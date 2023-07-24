@@ -22,6 +22,8 @@ struct Callback : oboe::AudioStreamCallback {
 }                  g_callback;
 oboe::AudioStream* g_stream;
 AAssetManager*     g_asset_manager;
+JNIEnv*            g_env;
+
 
 bool start_audio() {
     LOGI("start_audio");
@@ -86,34 +88,50 @@ bool load_asset(std::string const& name, std::vector<uint8_t>& buf) {
     return true;
 }
 
+
+void show_keyboard(bool enabled) {
+    jclass clazz = g_env->FindClass("com/twobit/gtmobile/MainActivity");
+    jmethodID method = g_env->GetStaticMethodID(clazz, "showKeyboard", "(Z)V");
+    g_env->CallStaticVoidMethod(clazz, method, enabled);
+}
+
+
 } // namespace platform
 
 
 extern "C" {
     JNIEXPORT void JNICALL Java_com_twobit_gtmobile_Native_init(JNIEnv* env, jobject thiz, jobject asset_manager, jfloat refresh_rate) {
         g_asset_manager = AAssetManager_fromJava(env, asset_manager);
+        g_env = env;
         app::init();
         gui::set_refresh_rate(refresh_rate);
     }
     JNIEXPORT void JNICALL Java_com_twobit_gtmobile_Native_free(JNIEnv* env, jobject thiz) {
+        g_env = env;
         app::free();
     }
-    JNIEXPORT void JNICALL Java_com_twobit_gtmobile_Native_resize(JNIEnv* env, jobject obj, jint width, jint height) {
+    JNIEXPORT void JNICALL Java_com_twobit_gtmobile_Native_resize(JNIEnv* env, jobject thiz, jint width, jint height) {
+        g_env = env;
         app::resize(width, height);
     }
-    JNIEXPORT void JNICALL Java_com_twobit_gtmobile_Native_draw(JNIEnv* env, jobject obj) {
+    JNIEXPORT void JNICALL Java_com_twobit_gtmobile_Native_draw(JNIEnv* env, jobject thiz) {
+        g_env = env;
         app::draw();
     }
-    JNIEXPORT void JNICALL Java_com_twobit_gtmobile_Native_touch(JNIEnv* env, jobject obj, jint x, jint y, jint action) {
+    JNIEXPORT void JNICALL Java_com_twobit_gtmobile_Native_touch(JNIEnv* env, jobject thiz, jint x, jint y, jint action) {
+        g_env = env;
         app::touch(x, y, action == 0 || action == 2);
     }
-    JNIEXPORT void JNICALL Java_com_twobit_gtmobile_Native_key(JNIEnv* env, jobject obj, jint key, jint unicode) {
+    JNIEXPORT void JNICALL Java_com_twobit_gtmobile_Native_key(JNIEnv* env, jobject thiz, jint key, jint unicode) {
+        g_env = env;
         app::key(key, unicode);
     }
-    JNIEXPORT void JNICALL Java_com_twobit_gtmobile_Native_startAudio(JNIEnv * env, jobject obj) {
+    JNIEXPORT void JNICALL Java_com_twobit_gtmobile_Native_startAudio(JNIEnv * env, jobject thiz) {
+        g_env = env;
         start_audio();
     }
-    JNIEXPORT void JNICALL Java_com_twobit_gtmobile_Native_stopAudio(JNIEnv * env, jobject obj) {
+    JNIEXPORT void JNICALL Java_com_twobit_gtmobile_Native_stopAudio(JNIEnv * env, jobject thiz) {
+        g_env = env;
         stop_audio();
     }
 }
