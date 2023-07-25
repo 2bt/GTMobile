@@ -1,16 +1,28 @@
 #include "gui.hpp"
 #include "log.hpp"
+#include "app.hpp"
 #include "platform.hpp"
 #include <cstdarg>
 #include <cstring>
+#include <cassert>
 #include <array>
 
 
 namespace gui {
 namespace {
 
-DrawContext g_dc;
+struct Window {
+    gfx::Mesh mesh;
+};
+
+std::vector<Window> g_windows = { {} };
+int                 g_window_index;
+int                 g_max_window_index;
+int                 g_last_max_window_count;
+
+
 gfx::Image  g_img;
+DrawContext g_dc;
 
 ivec2       g_cursor_min;
 ivec2       g_cursor_max;
@@ -142,18 +154,23 @@ void key_event(int key, int unicode) {
 
 namespace touch {
     bool pressed() {
+        if (g_window_index != g_last_max_window_count) return false;
         return g_touch_pressed;
     }
     bool just_pressed() {
+        if (g_window_index != g_last_max_window_count) return false;
         return g_touch_pressed && !g_touch_prev_pressed;
     }
     bool just_released() {
+        if (g_window_index != g_last_max_window_count) return false;
         return !g_touch_pressed && g_touch_prev_pressed;
     }
     bool touched(Box const& box) {
+        if (g_window_index != g_last_max_window_count) return false;
         return (g_touch_pressed | g_touch_prev_pressed) && box.contains(g_touch_pos);
     }
     bool just_touched(Box const& box) {
+        if (g_window_index != g_last_max_window_count) return false;
         return just_pressed() && box.contains(g_touch_pos);
     }
 } // namespace touch
@@ -162,6 +179,7 @@ namespace touch {
 
 void init() {
     g_img.init("gui.png");
+    g_dc.font(0);
 }
 
 void free() {
@@ -174,6 +192,10 @@ void set_refresh_rate(float refresh_rate) {
 
 
 void begin_frame() {
+
+    g_window_index = 0;
+    g_max_window_index = 0;
+    g_dc.mesh(g_windows[0].mesh);
 
     g_cursor_min = {};
     g_cursor_max = {};
@@ -193,11 +215,42 @@ void begin_frame() {
 
 }
 void end_frame() {
-    gfx::draw(g_dc, g_img);
-    g_dc.clear();
+    assert(g_window_index == 0);
+    int n = std::min(g_last_max_window_count, g_max_window_index);
+    for (int i = 0; i <= n; ++i) {
+        Window& w = g_windows[i];
+
+        if (i == n - 1) {
+            g_dc.mesh(w.mesh);
+            g_dc.color({ 0, 0, 0, 150 });
+            g_dc.fill({ {}, { app::CANVAS_WIDTH, app::canvas_height() } });
+        }
+
+        gfx::draw(w.mesh, g_img);
+        w.mesh.vertices.clear();
+        w.mesh.indices.clear();
+    }
+    g_last_max_window_count = g_max_window_index;
+
     g_touch_prev_pos     = g_touch_pos;
     g_touch_prev_pressed = g_touch_pressed;
 }
+
+void begin_popup() {
+    if (++g_window_index > g_max_window_index) {
+        g_max_window_index = g_window_index;
+        if (g_windows.size() < g_max_window_index + 1) {
+            g_windows.emplace_back();
+        }
+    }
+    g_dc.mesh(g_windows[g_window_index].mesh);
+}
+void end_popup() {
+    --g_window_index;
+    g_dc.mesh(g_windows[g_window_index].mesh);
+}
+
+
 void cursor(ivec2 pos) {
     g_cursor_min = pos;
     g_cursor_max = pos;
@@ -364,14 +417,6 @@ bool vertical_drag_button(int& value) {
 /////////////////
 // DrawContext //
 /////////////////
-void DrawContext::fill(Box const& box) {
-    i16vec2 uv(8, 8); // a white pixel
-    auto i0 = add_vertex({ box.pos, uv, m_color });
-    auto i1 = add_vertex({ box.pos + box.size.xo(), uv, m_color });
-    auto i2 = add_vertex({ box.pos + box.size, uv, m_color });
-    auto i3 = add_vertex({ box.pos + box.size.oy(), uv, m_color });
-    m_indices.insert(m_indices.end(), { i0, i1, i2, i0, i2, i3 });
-}
 void DrawContext::box(Box const& box, BoxStyle style) {
     i16vec2 p0 = box.pos;
     i16vec2 p1 = box.pos + 8;
@@ -397,7 +442,7 @@ void DrawContext::box(Box const& box, BoxStyle style) {
     auto i13 = add_vertex({ { p1.x, p3.y }, { t1.x, t3.y }, m_color });
     auto i14 = add_vertex({ { p2.x, p3.y }, { t2.x, t3.y }, m_color });
     auto i15 = add_vertex({ { p3.x, p3.y }, { t3.x, t3.y }, m_color });
-    m_indices.insert(m_indices.end(), {
+    m_mesh->indices.insert(m_mesh->indices.end(), {
         i0,  i1,  i5,  i0,  i5,  i4,
         i1,  i2,  i6,  i1,  i6,  i5,
         i2,  i3,  i7,  i2,  i7,  i6,

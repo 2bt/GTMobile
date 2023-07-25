@@ -43,7 +43,6 @@ namespace color {
 namespace gui {
 
 
-
 struct Box {
     bool contains(ivec2 p) const {
         return p.x >= pos.x && p.y >= pos.y &&
@@ -65,11 +64,26 @@ enum class BoxStyle {
 };
 
 
-class DrawContext : public gfx::DrawContext {
+class DrawContext {
 public:
-    DrawContext() {
-        font(0);
+
+    void fill(Box const& box) {
+        i16vec2 uv(8, 8); // a white pixel
+        auto i0 = add_vertex({ box.pos, uv, m_color });
+        auto i1 = add_vertex({ box.pos + box.size.xo(), uv, m_color });
+        auto i2 = add_vertex({ box.pos + box.size, uv, m_color });
+        auto i3 = add_vertex({ box.pos + box.size.oy(), uv, m_color });
+        m_mesh->indices.insert(m_mesh->indices.end(), { i0, i1, i2, i0, i2, i3 });
     }
+
+    void rect(ivec2 pos, ivec2 size, ivec2 uv) {
+        uint16_t i0 = add_vertex({ pos, uv, m_color });
+        uint16_t i1 = add_vertex({ pos + ivec2(size.x, 0), uv + ivec2(size.x, 0), m_color });
+        uint16_t i2 = add_vertex({ pos + size, uv + size, m_color });
+        uint16_t i3 = add_vertex({ pos + ivec2(0, size.y), uv + ivec2(0, size.y), m_color });
+        m_mesh->indices.insert(m_mesh->indices.end(), { i0, i1, i2, i0, i2, i3 });
+    }
+
     void character(ivec2 pos, uint8_t g) {
         ivec2 uv(g % 16 * m_char_size.x, g / 16 * m_char_size.x + m_font_offset);
         rect(pos, m_char_size, uv);
@@ -83,17 +97,31 @@ public:
         }
     }
 
-    void fill(Box const& box);
     void box(Box const& box, BoxStyle style = BoxStyle::Normal);
 
-
+    void mesh(gfx::Mesh& mesh) {
+        m_mesh = &mesh;
+    }
+    void color(u8vec4 color) {
+        m_color = color;
+    }
     void font(int i) {
         m_font_offset = 256 + 64 * i;
     }
 
 private:
-    int    m_font_offset = 256 + 64 * 2;
-    ivec2  m_char_size   = {8, 8};
+
+    uint16_t add_vertex(gfx::Vertex v) {
+        uint16_t index = m_mesh->vertices.size();
+        m_mesh->vertices.emplace_back(v);
+        return index;
+    }
+
+    u8vec4     m_color       = {255};
+    int        m_font_offset = 256;
+    ivec2      m_char_size   = {8, 8};
+    gfx::Mesh* m_mesh;
+
 };
 
 
@@ -153,6 +181,11 @@ namespace touch {
 
 void begin_frame();
 void end_frame();
+
+void begin_popup();
+void end_popup();
+
+
 void id(void const* addr);
 void cursor(ivec2 pos);
 ivec2 cursor();

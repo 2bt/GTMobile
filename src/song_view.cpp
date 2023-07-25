@@ -447,13 +447,22 @@ void draw() {
 
     gui::cursor(gui::cursor() + ivec2(18, -68));
     gui::item_size(32);
-    gui::button(gui::Icon::Stop);
+    gui::button("");
     gui::same_line();
-    gui::button(gui::Icon::Stop);
-    gui::button(gui::Icon::Stop);
+    gui::button("");
+    gui::button("");
     gui::same_line();
-    gui::button(gui::Icon::Stop);
 
+
+    static bool pop = false;
+    if (gui::button(gui::Icon::Stop)) pop = true;
+    if (pop) {
+        gui::begin_popup();
+        // gui::cursor({});
+        gui::item_size(16);
+        if (gui::button("X")) pop = false;
+        gui::end_popup();
+    }
 
     draw_piano();
 }

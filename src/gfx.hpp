@@ -14,46 +14,14 @@ struct Vertex {
 };
 
 
-class DrawContext {
-public:
-
-    void color(u8vec4 color) { m_color = color; }
-
-    uint16_t add_vertex(Vertex v) {
-        uint16_t index = m_vertices.size();
-        m_vertices.emplace_back(v);
-        return index;
-    }
-
-    void add_index(uint16_t index) {
-        m_indices.push_back(index);
-    }
-
-    void clear() {
-        m_vertices.clear();
-        m_indices.clear();
-    }
-
-    void rect(ivec2 pos, ivec2 size, ivec2 uv) {
-        uint16_t i0 = add_vertex({ pos, uv, m_color });
-        uint16_t i1 = add_vertex({ pos + ivec2(size.x, 0), uv + ivec2(size.x, 0), m_color });
-        uint16_t i2 = add_vertex({ pos + size, uv + size, m_color });
-        uint16_t i3 = add_vertex({ pos + ivec2(0, size.y), uv + ivec2(0, size.y), m_color });
-        m_indices.insert(m_indices.end(), { i0, i1, i2, i0, i2, i3 });
-    }
-
-    std::vector<Vertex> const& vertices() const { return m_vertices; }
-    std::vector<uint16_t> const& indices() const { return m_indices; }
-
-protected:
-    u8vec4                m_color = {255};
-    std::vector<Vertex>   m_vertices;
-    std::vector<uint16_t> m_indices;
+struct Mesh {
+    std::vector<Vertex>   vertices;
+    std::vector<uint16_t> indices;
 };
 
 
 class Texture {
-friend void draw(DrawContext const& dc, Texture const& tex);
+friend void draw(Mesh const& mesh, Texture const& tex);
 public:
     enum FilterMode { NEAREST, LINEAR };
     ivec2 size() const { return m_size; }
@@ -94,6 +62,6 @@ void set_canvas();
 void set_canvas(Canvas const& canvas);
 
 void clear(float r, float g, float b);
-void draw(DrawContext const& dc, Texture const& tex);
+void draw(Mesh const& mesh, Texture const& tex);
 
 } // namespace gfx

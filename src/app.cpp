@@ -185,18 +185,15 @@ void draw() {
     ivec2 p(g_canvas_offset, 0);
     ivec2 S(CANVAS_WIDTH, g_canvas_height);
     ivec2 s = S * g_canvas_scale;
-    gfx::DrawContext dc;
-    dc.add_vertex({ p, S.oy(), white });
-    dc.add_vertex({ ivec2(p.x + s.x, 0), S, white });
-    dc.add_vertex({ p + s, S.xo(), white });
-    dc.add_vertex({ ivec2{ p.x, s.y }, {}, white });
-    dc.add_index(0);
-    dc.add_index(1);
-    dc.add_index(2);
-    dc.add_index(0);
-    dc.add_index(2);
-    dc.add_index(3);
-    gfx::draw(dc, g_canvas);
+    gfx::Mesh mesh;
+    mesh.vertices = {
+        { p, S.oy(), white },
+        { ivec2(p.x + s.x, 0), S, white },
+        { p + s, S.xo(), white },
+        { ivec2{ p.x, s.y }, {}, white },
+    };
+    mesh.indices = { 0, 1, 2, 0, 2, 3 };
+    gfx::draw(mesh, g_canvas);
 }
 
 

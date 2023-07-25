@@ -226,18 +226,18 @@ void set_blend(bool enabled) {
     }
 }
 
-void draw(DrawContext const& dc, Texture const& tex) {
+void draw(Mesh const& mesh, Texture const& tex) {
 
     glBindBuffer(GL_ARRAY_BUFFER, g_vbo);
     glBufferData(GL_ARRAY_BUFFER,
-                 sizeof(Vertex) * dc.vertices().size(),
-                 dc.vertices().data(),
+                 sizeof(Vertex) * mesh.vertices.size(),
+                 mesh.vertices.data(),
                  GL_STREAM_DRAW);
 
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, g_ebo);
     glBufferData(GL_ELEMENT_ARRAY_BUFFER,
-                 sizeof(uint16_t) * dc.indices().size(),
-                 dc.indices().data(),
+                 sizeof(uint16_t) * mesh.indices.size(),
+                 mesh.indices.data(),
                  GL_STREAM_DRAW);
 
     glUniform2f(g_uv_scale_loc, 1.0f / tex.m_size.x, 1.0f / tex.m_size.y);
@@ -245,7 +245,7 @@ void draw(DrawContext const& dc, Texture const& tex) {
     glUniform1i(g_tex_loc, 0);
 
     glBindVertexArray(g_vao);
-    glDrawElements(GL_TRIANGLES, dc.indices().size(), GL_UNSIGNED_SHORT, 0);
+    glDrawElements(GL_TRIANGLES, mesh.indices.size(), GL_UNSIGNED_SHORT, 0);
 }
 
 
