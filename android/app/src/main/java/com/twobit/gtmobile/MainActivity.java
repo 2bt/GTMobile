@@ -19,7 +19,7 @@ public class MainActivity extends Activity {
             public void run() {
                 InputMethodManager imm = (InputMethodManager) sInstance.getSystemService(Context.INPUT_METHOD_SERVICE);
                 if (show) {
-                    imm.showSoftInput(sInstance.getWindow().getDecorView(), InputMethodManager.SHOW_FORCED);
+                    imm.showSoftInput(sInstance.getWindow().getDecorView(), InputMethodManager.SHOW_IMPLICIT);
                 } else {
                     imm.hideSoftInputFromWindow(sInstance.getWindow().getDecorView().getWindowToken(), 0);
                 }
@@ -34,6 +34,7 @@ public class MainActivity extends Activity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+
         mView = new View(getApplication());
         setContentView(mView);
     }

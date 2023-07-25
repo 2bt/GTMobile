@@ -1,6 +1,7 @@
 #pragma once
 #include <cstdint>
 #include <istream>
+#include <array>
 
 
 namespace gt {
@@ -70,7 +71,7 @@ struct Instr {
     uint8_t vibdelay;
     uint8_t gatetimer;
     uint8_t firstwave;
-    char    name[MAX_INSTRNAMELEN];
+    std::array<char, MAX_INSTRNAMELEN> name;
 };
 
 
@@ -81,9 +82,9 @@ struct Song {
     uint8_t songorder[MAX_SONGS][MAX_CHN][MAX_SONGLEN + 2];
     uint8_t pattern[MAX_PATT][MAX_PATTROWS * 4 + 4];
 
-    char    songname[MAX_STR];
-    char    authorname[MAX_STR];
-    char    copyrightname[MAX_STR];
+    std::array<char, MAX_STR> songname;
+    std::array<char, MAX_STR> authorname;
+    std::array<char, MAX_STR> copyrightname;
 
     int     pattlen[MAX_PATT];
     int     songlen[MAX_SONGS][MAX_CHN];

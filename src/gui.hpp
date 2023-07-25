@@ -2,28 +2,45 @@
 #include "gfx.hpp"
 
 
+namespace color {
+
+    constexpr u8vec4 rgb(uint32_t c, uint8_t a = 255) {
+        return { uint8_t(c >> 16), uint8_t(c >> 8), uint8_t(c), a };
+    }
+
+    constexpr u8vec4 BLACK       = rgb(0x000000);
+    constexpr u8vec4 DARK_BLUE   = rgb(0x1D2B53);
+    constexpr u8vec4 DARK_PURPLE = rgb(0x7E2553);
+    constexpr u8vec4 DARK_GREEN  = rgb(0x008751);
+    constexpr u8vec4 BROWN       = rgb(0xAB5236);
+    constexpr u8vec4 DARK_GREY   = rgb(0x5F574F);
+    constexpr u8vec4 LIGHT_GREY  = rgb(0xC2C3C7);
+    constexpr u8vec4 WHITE       = rgb(0xFFF1E8);
+    constexpr u8vec4 RED         = rgb(0xFF004D);
+    constexpr u8vec4 ORANGE      = rgb(0xFFA300);
+    constexpr u8vec4 YELLOW      = rgb(0xFFEC27);
+    constexpr u8vec4 GREEN       = rgb(0x00E436);
+    constexpr u8vec4 BLUE        = rgb(0x29ADFF);
+    constexpr u8vec4 LAVENDER    = rgb(0x83769C);
+    constexpr u8vec4 PINK        = rgb(0xFF77A8);
+    constexpr u8vec4 LIGHT_PEACH = rgb(0xFFCCAA);
+
+
+    constexpr u8vec4 DRAG_BG            = rgb(0x222222);
+    constexpr u8vec4 DRAG_HANDLE_NORMAL = rgb(0x444444);
+    constexpr u8vec4 DRAG_HANDLE_ACTIVE = rgb(0x666666);
+    constexpr u8vec4 DRAG_ICON          = rgb(0x777777);
+
+    constexpr u8vec4 BUTTON_NORMAL      = DARK_GREY;
+    constexpr u8vec4 BUTTON_ACTIVE      = mix(color::ORANGE, color::BLACK, 0.3f);
+    constexpr u8vec4 BUTTON_PRESSED     = mix(color::ORANGE, color::YELLOW, 0.3f);
+    constexpr u8vec4 BUTTON_HELD        = mix(color::ORANGE, color::YELLOW, 0.3f);
+    constexpr u8vec4 BUTTON_RELEASED    = color::YELLOW;
+
+} // namespace color
+
+
 namespace gui {
-
-constexpr u8vec4 rgb(uint32_t c, uint8_t a = 255) {
-    return { uint8_t(c >> 16), uint8_t(c >> 8), uint8_t(c), a };
-}
-
-constexpr u8vec4 BLACK       = rgb(0x000000);
-constexpr u8vec4 DARK_BLUE   = rgb(0x1D2B53);
-constexpr u8vec4 DARK_PURPLE = rgb(0x7E2553);
-constexpr u8vec4 DARK_GREEN  = rgb(0x008751);
-constexpr u8vec4 BROWN       = rgb(0xAB5236);
-constexpr u8vec4 DARK_GREY   = rgb(0x5F574F);
-constexpr u8vec4 LIGHT_GREY  = rgb(0xC2C3C7);
-constexpr u8vec4 WHITE       = rgb(0xFFF1E8);
-constexpr u8vec4 RED         = rgb(0xFF004D);
-constexpr u8vec4 ORANGE      = rgb(0xFFA300);
-constexpr u8vec4 YELLOW      = rgb(0xFFEC27);
-constexpr u8vec4 GREEN       = rgb(0x00E436);
-constexpr u8vec4 BLUE        = rgb(0x29ADFF);
-constexpr u8vec4 LAVENDER    = rgb(0x83769C);
-constexpr u8vec4 PINK        = rgb(0xFF77A8);
-constexpr u8vec4 LIGHT_PEACH = rgb(0xFFCCAA);
 
 
 
@@ -38,7 +55,7 @@ struct Box {
 
 
 enum class BoxStyle {
-    Fill, 
+    Fill,
     Normal,
     Tab,
     Text,
@@ -81,7 +98,6 @@ private:
 
 
 enum class Icon {
-    None = 47,
     Loop = 16,
     Stop,
     Play,

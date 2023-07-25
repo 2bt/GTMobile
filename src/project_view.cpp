@@ -1,5 +1,6 @@
 #include "project_view.hpp"
 #include "gui.hpp"
+#include "app.hpp"
 #include <array>
 
 
@@ -25,7 +26,10 @@ void draw() {
     gui::text("INPUT");
     gui::same_line();
     gui::item_size({ 33 * 8, 16 });
-    gui::input_text(g_str);
+
+
+    // gui::input_text(g_str);
+    gui::input_text(app::song().instr[3].name);
 
 
     gui::item_size({ 92, 16 });

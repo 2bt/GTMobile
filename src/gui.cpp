@@ -49,11 +49,11 @@ void const* get_id(void const* addr) {
 }
 
 void draw_button(Box const& box, ButtonState state, bool active) {
-    g_dc.color(state == ButtonState::Normal && !active  ? DARK_GREY :
-               state == ButtonState::Normal && active   ? ORANGE :
-               state == ButtonState::Pressed            ? GREEN :
-               state == ButtonState::Held               ? GREEN :
-             /*state == ButtonState::Released*/           YELLOW);
+    g_dc.color(state == ButtonState::Normal && !active  ? color::BUTTON_NORMAL :
+               state == ButtonState::Normal && active   ? color::BUTTON_ACTIVE :
+               state == ButtonState::Pressed            ? color::BUTTON_PRESSED :
+               state == ButtonState::Held               ? color::BUTTON_HELD :
+             /*state == ButtonState::Released*/           color::BUTTON_RELEASED);
     g_dc.box(box, g_button_style);
 }
 
@@ -62,9 +62,8 @@ void draw_button(Box const& box, ButtonState state, bool active) {
 
 
 // low-level
-DrawContext& draw_context() {
-    return g_dc;
-}
+DrawContext& draw_context() { return g_dc; }
+
 Box item_box() {
     ivec2 size = g_item_size;
     ivec2 pos;
@@ -80,8 +79,8 @@ Box item_box() {
     }
     return { pos, size };
 }
-ButtonState button_state(Box const& box, void const* addr) {
 
+ButtonState button_state(Box const& box, void const* addr) {
     void const* id = get_id(addr);
     if (id) {
         if (g_active_item == nullptr && touch::just_touched(box)) {
@@ -232,7 +231,7 @@ bool button(Icon icon, bool active) {
     draw_button(box, state, active);
 
     int i = int(icon);
-    g_dc.color(WHITE);
+    g_dc.color(color::WHITE);
     g_dc.rect(box.pos + box.size / 2 - 8, 16, { i % 8 * 16, i / 8 * 16 });
     return state == ButtonState::Released;
 }
@@ -242,7 +241,7 @@ bool button(char const* label, bool active) {
     draw_button(box, state, active);
 
     ivec2 text_size(strlen(label) * 8, 8);
-    g_dc.color(WHITE);
+    g_dc.color(color::WHITE);
     g_dc.text(box.pos + box.size / 2 - text_size / 2, label);
     return state == ButtonState::Released;
 }
@@ -266,11 +265,11 @@ void input_text(char* str, int len) {
     }
 
     bool active = g_input_text_str == str;
-    g_dc.color(active ? ORANGE : DARK_GREY);
+    g_dc.color(active ? color::BUTTON_ACTIVE : color::BUTTON_NORMAL);
     g_dc.box(box, BoxStyle::Text);
 
     ivec2 p = box.pos + 4;
-    g_dc.color(WHITE);
+    g_dc.color(color::WHITE);
     g_dc.text(p, str);
     // cursor
     if (g_input_text_str == str && g_input_cursor_blink < 0.5f) {
@@ -296,17 +295,15 @@ bool horizontal_drag_bar(int& value, int min, int max, int page) {
     }
     int handle_x = range == 0 ? 0 : (value - min) * move_w / range;
 
-    g_dc.color(rgb(0x222222));
+    g_dc.color(color::DRAG_BG);
     g_dc.fill(box);
     if (move_w > 0) {
-        g_dc.color(rgb(0x444444));
-        if (is_active) g_dc.color(rgb(0x666666));
+        g_dc.color(is_active ? color::DRAG_HANDLE_ACTIVE : color::DRAG_HANDLE_NORMAL);
         g_dc.box({box.pos + ivec2(handle_x, 0), {handle_w, box.size.y}}, BoxStyle::Normal);
-
-        g_dc.color(rgb(0x777777));
+        g_dc.color(color::DRAG_ICON);
         int i = int(Icon::HGrab);
         g_dc.rect(box.pos + ivec2(handle_x, 0) + ivec2(handle_w, box.size.y) / 2 - 8, 16,
-                 { i % 8 * 16, i / 8 * 16 });
+                  { i % 8 * 16, i / 8 * 16 });
     }
 
     return value != old_value;
@@ -330,17 +327,15 @@ bool vertical_drag_bar(int& value, int min, int max, int page) {
     }
     int handle_y = range == 0 ? 0 : (value - min) * move_h / range;
 
-    g_dc.color(rgb(0x222222));
+    g_dc.color(color::DRAG_BG);
     g_dc.fill(box);
     if (move_h > 0) {
-        g_dc.color(rgb(0x444444));
-        if (is_active) g_dc.color(rgb(0x666666));
+        g_dc.color(is_active ? color::DRAG_HANDLE_ACTIVE : color::DRAG_HANDLE_NORMAL);
         g_dc.box({box.pos + ivec2(0, handle_y), {box.size.x, handle_h}}, BoxStyle::Normal);
-
-        g_dc.color(rgb(0x777777));
+        g_dc.color(color::DRAG_ICON);
         int i = int(Icon::VGrab);
         g_dc.rect(box.pos + ivec2(0, handle_y) + ivec2(box.size.x, handle_h) / 2 - 8, 16,
-                 { i % 8 * 16, i / 8 * 16 });
+                  { i % 8 * 16, i / 8 * 16 });
     }
     return value != old_value;
 }
@@ -356,11 +351,10 @@ bool vertical_drag_button(int& value) {
         value -= dy < 0;
     }
 
-    g_dc.color(rgb(0x444444));
-    if (is_active) g_dc.color(rgb(0x666666));
+    g_dc.color(is_active ? color::DRAG_HANDLE_ACTIVE : color::DRAG_HANDLE_NORMAL);
     g_dc.box(box, g_button_style);
 
-    g_dc.color(rgb(0x777777));
+    g_dc.color(color::DRAG_ICON);
     int i = int(Icon::VGrab);
     g_dc.rect(box.pos + box.size / 2 - 8, 16, { i % 8 * 16, i / 8 * 16 });
     return value != old_value;

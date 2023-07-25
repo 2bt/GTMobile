@@ -91,9 +91,9 @@ void Song::clear() {
             }
         }
     }
-    memset(songname, 0, sizeof songname);
-    memset(authorname, 0, sizeof authorname);
-    memset(copyrightname, 0, sizeof copyrightname);
+    songname = {};
+    authorname = {};
+    copyrightname = {};
     for (int c = 0; c < MAX_PATT; c++) clear_pattern(c);
     for (int c = 0; c < MAX_INSTR; c++) clear_instr(c);
     for (int c = MAX_TABLES - 1; c >= 0; c--) {

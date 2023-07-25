@@ -46,12 +46,11 @@ TVec2<T> clamp(TVec2<T> v, TVec2<T> minv, TVec2<T> maxv) {
 template<class T, class U>
 constexpr TVec4<T> mix(TVec4<T> x, TVec4<T> y, U a) {
     auto b = 1 - a;
-    return {
+    return TVec4<T>(
         x.x * b + y.x * a,
         x.y * b + y.y * a,
         x.z * b + y.z * a,
-        x.w * b + y.w * a,
-    };
+        x.w * b + y.w * a);
 }
 
 using ivec2   = TVec2<int32_t>;

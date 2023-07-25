@@ -161,7 +161,7 @@ void draw() {
 
 
     gui::begin_frame();
-    gui::item_size({80, 24});
+    gui::item_size({ 80, 24 });
     gui::button_style(gui::BoxStyle::Tab);
     for (size_t i = 0; i < VIEW_NAMES.size(); ++i) {
         if (gui::button(VIEW_NAMES[i], i == size_t(g_view))) {
@@ -186,10 +186,10 @@ void draw() {
     ivec2 S(CANVAS_WIDTH, g_canvas_height);
     ivec2 s = S * g_canvas_scale;
     gfx::DrawContext dc;
-    dc.add_vertex({p, S.oy(), white});
-    dc.add_vertex({ivec2(p.x + s.x, 0), S, white});
-    dc.add_vertex({p + s, S.xo(), white});
-    dc.add_vertex({ivec2{p.x, s.y}, {0, 0}, white});
+    dc.add_vertex({ p, S.oy(), white });
+    dc.add_vertex({ ivec2(p.x + s.x, 0), S, white });
+    dc.add_vertex({ p + s, S.xo(), white });
+    dc.add_vertex({ ivec2{ p.x, s.y }, {}, white });
     dc.add_index(0);
     dc.add_index(1);
     dc.add_index(2);
