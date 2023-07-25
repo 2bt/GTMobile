@@ -7,6 +7,41 @@
 #include <array>
 
 
+namespace color {
+
+    constexpr u8vec4 CMDS[16] = {
+        mix(color::rgb(0x000000), color::WHITE, 0.3f),
+
+        mix(color::rgb(0xff77a8), color::WHITE, 0.3f), // 1 portamento up
+        mix(color::rgb(0xff77a8), color::WHITE, 0.3f), // 2 portamento down
+        mix(color::rgb(0xff77a8), color::WHITE, 0.3f), // 3 tone portamento
+        mix(color::rgb(0xff77a8), color::WHITE, 0.3f), // 4 vibrato
+
+        mix(color::rgb(0x00e436), color::WHITE, 0.3f), // 5 attack/decay
+        mix(color::rgb(0x00e436), color::WHITE, 0.3f), // 6 sustain/release
+
+        mix(color::rgb(0xffa300), color::WHITE, 0.3f), // 7 waveform reg
+        mix(color::rgb(0xffa300), color::WHITE, 0.3f), // 8 wavetable ptr
+        mix(color::rgb(0xffa300), color::WHITE, 0.3f), // 9 pulsetable ptr
+
+        mix(color::rgb(0x29adff), color::WHITE, 0.3f), // A filtertable ptr
+        mix(color::rgb(0x29adff), color::WHITE, 0.3f), // B filter control
+        mix(color::rgb(0x29adff), color::WHITE, 0.3f), // C filter cutoff
+
+        mix(color::rgb(0x00e436), color::WHITE, 0.3f), // D master volume
+
+        mix(color::rgb(0xffec27), color::WHITE, 0.3f), // E funk tempo
+        mix(color::rgb(0xffec27), color::WHITE, 0.3f), // F tempo
+    };
+
+    constexpr u8vec4 INSTRUMENT    = color::rgb(0xbbccdd);
+    constexpr u8vec4 HIGHLIGHT_ROW = color::rgb(0x1f1f10);
+    constexpr u8vec4 PLAYER_ROW    = color::rgb(0x553300);
+
+
+} // namespace color
+
+
 namespace song_view {
 namespace {
 
@@ -14,35 +49,6 @@ namespace {
 enum {
     SONG_NR = 0,
 };
-
-constexpr u8vec4 COLOR_CMDS[16] = {
-    mix(color::rgb(0x000000), color::WHITE, 0.3f),
-
-    mix(color::rgb(0xff77a8), color::WHITE, 0.3f), // 1 portamento up
-    mix(color::rgb(0xff77a8), color::WHITE, 0.3f), // 2 portamento down
-    mix(color::rgb(0xff77a8), color::WHITE, 0.3f), // 3 tone portamento
-    mix(color::rgb(0xff77a8), color::WHITE, 0.3f), // 4 vibrato
-
-    mix(color::rgb(0x00e436), color::WHITE, 0.3f), // 5 attack/decay
-    mix(color::rgb(0x00e436), color::WHITE, 0.3f), // 6 sustain/release
-
-    mix(color::rgb(0xffa300), color::WHITE, 0.3f), // 7 waveform reg
-    mix(color::rgb(0xffa300), color::WHITE, 0.3f), // 8 wavetable ptr
-    mix(color::rgb(0xffa300), color::WHITE, 0.3f), // 9 pulsetable ptr
-
-    mix(color::rgb(0x29adff), color::WHITE, 0.3f), // A filtertable ptr
-    mix(color::rgb(0x29adff), color::WHITE, 0.3f), // B filter control
-    mix(color::rgb(0x29adff), color::WHITE, 0.3f), // C filter cutoff
-
-    mix(color::rgb(0x00e436), color::WHITE, 0.3f), // D master volume
-
-    mix(color::rgb(0xffec27), color::WHITE, 0.3f), // E funk tempo
-    mix(color::rgb(0xffec27), color::WHITE, 0.3f), // F tempo
-};
-
-constexpr u8vec4 COLOR_INSTRUMENT    = color::rgb(0xbbccdd);
-constexpr u8vec4 COLOR_HIGHLIGHT_ROW = color::rgb(0x1f1f10);
-constexpr u8vec4 COLOR_PLAYER_ROW    = color::rgb(0x553300);
 
 // settings
 int                g_row_height         = 13; // 8-16, default: 13
@@ -277,7 +283,7 @@ void draw() {
 
                 dc.color(color::rgb(0x0a0a0a));
                 // highlight player position
-                if (is_playing && row == player_song_rows[c]) dc.color(COLOR_PLAYER_ROW);
+                if (is_playing && row == player_song_rows[c]) dc.color(color::PLAYER_ROW);
                 dc.fill(box);
 
                 uint8_t v = song.songorder[SONG_NR][c][row];
@@ -345,7 +351,7 @@ void draw() {
 
             dc.color(color::rgb(0x0a0a0a));
             // highlight background
-            if (row % g_row_highlight_step == 0) dc.color(COLOR_HIGHLIGHT_ROW);
+            if (row % g_row_highlight_step == 0) dc.color(color::HIGHLIGHT_ROW);
             dc.fill(box);
 
             sprintf(line, "%02X", row);
@@ -362,10 +368,10 @@ void draw() {
                 // highlight player position
                 dc.color(color::rgb(0x0a0a0a));
                 if (row % g_row_highlight_step == 0) {
-                    dc.color(COLOR_HIGHLIGHT_ROW);
+                    dc.color(color::HIGHLIGHT_ROW);
                 }
                 if (is_playing && g_pattern_nums[c] == player_pattern_nums[c] && row == player_pattern_rows[c]) {
-                    dc.color(COLOR_PLAYER_ROW);
+                    dc.color(color::PLAYER_ROW);
                 }
                 dc.fill(box);
 
@@ -396,13 +402,13 @@ void draw() {
 
                 if (instr > 0) {
                     sprintf(line, "%02X", instr);
-                    dc.color(COLOR_INSTRUMENT);
+                    dc.color(color::INSTRUMENT);
                     dc.text(box.pos + text_offset, line);
                 }
                 box.pos.x += 20;
 
                 if (cmd > 0) {
-                    dc.color(COLOR_CMDS[cmd]);
+                    dc.color(color::CMDS[cmd]);
                     sprintf(line, "%X%02X", cmd, arg);
                     dc.text(box.pos + text_offset, line);
                 }
