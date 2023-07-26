@@ -157,10 +157,10 @@ void draw() {
 
     gfx::set_canvas(g_canvas);
     gfx::set_blend(true);
-    gfx::clear(0, 0, 0);
-
+    gfx::clear(0.0, 0.0, 0.0);
 
     gui::begin_frame();
+
     gui::item_size({ 80, 24 });
     gui::button_style(gui::BoxStyle::Tab);
     for (size_t i = 0; i < VIEW_NAMES.size(); ++i) {

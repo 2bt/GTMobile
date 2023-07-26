@@ -8,8 +8,6 @@ namespace project_view {
 namespace {
 
 
-    std::array<char, 32> g_str;
-
     int g_font;
 
 } // namespace
@@ -28,22 +26,22 @@ void draw() {
     gui::item_size({ 33 * 8, 16 });
 
 
-    // gui::input_text(g_str);
+    // TEST edit instrument name
     gui::input_text(app::song().instr[3].name);
 
 
     gui::item_size({ 92, 16 });
     gui::text("FONT");
     gui::same_line();
-    gui::item_size({ 65, 16 });
-    if (gui::button("C64",    g_font == 0)) g_font = 0;
-    gui::same_line();
-    if (gui::button("Fake",   g_font == 1)) g_font = 1;
-    gui::same_line();
-    if (gui::button("ZX",     g_font == 2)) g_font = 2;
-    gui::same_line();
-    if (gui::button("FOOBAR", g_font == 3)) g_font = 3;
-    gui::draw_context().font(g_font);
+    gui::item_size({ 32, 16 });
+    for (int i = 0; i < 5; ++i) {
+        char str[2] = { char('1' + i), '\0' };
+        if (gui::button(str, g_font == i)) {
+            g_font = i;
+            gui::draw_context().font(g_font);
+        }
+        gui::same_line();
+    }
 }
 
 } // namespace project_view
