@@ -22,23 +22,38 @@ void draw_load_window() {
     static bool show_load_win = false;
 
     gui::align(gui::Align::Center);
-    gui::item_size({ 92, 16 });
+    gui::item_size({ app::CANVAS_WIDTH, 16 });
     if (gui::button("LOAD SONG", show_load_win)) {
         show_load_win = true;
         platform::list_assets("songs", g_file_names);
     }
     if (!show_load_win) return;
 
+
     gui::begin_window();
 
+
+    enum {
+        PAGE = 20,
+    };
+    static int scroll = 0;
+
+    ivec2 p = gui::cursor();
     gui::align(gui::Align::Left);
-    gui::item_size({ app::CANVAS_WIDTH, 16 });
-    for (size_t i = 0; i < g_file_names.size(); ++i) {
-        char const* s = g_file_names[i].c_str();
+    gui::item_size({ app::CANVAS_WIDTH - 16, 16 });
+
+    for (int i = 0; i < PAGE; ++i) {
+        int row = scroll + i;
+        if (row >= g_file_names.size()) {
+            gui::item_box();
+            continue;
+        }
+        char const* s = g_file_names[row].c_str();
         if (gui::button(s, strcmp(s, g_file_name.data()) == 0)) {
-            strncpy(g_file_name.data(), s, g_file_name.size());
+            strncpy(g_file_name.data(), s, g_file_name.size() - 1);
         }
     }
+
 
     gui::item_size({ app::CANVAS_WIDTH, 24 });
     gui::align(gui::Align::Center);
@@ -51,6 +66,13 @@ void draw_load_window() {
         app::player().init_song(0, gt::Player::PLAY_STOP);
     }
     if (gui::button("CANCEL")) show_load_win = false;
+
+    // scrollbar
+    gui::cursor(ivec2(app::CANVAS_WIDTH - 16, p.y));
+    gui::item_size({ 16, PAGE * 16 });
+    int max_scroll = std::max(0, int(g_file_names.size()) - PAGE);
+    gui::vertical_drag_bar(scroll, 0, max_scroll, PAGE);
+
 
     gui::end_window();
 }
@@ -88,6 +110,42 @@ void draw() {
     //     gui::same_line();
     // }
     // gui::same_line(false);
+
+
+    enum {
+        INPUT_WIDTH = 33 * 8,
+    };
+
+
+    gt::Song& song = app::song();
+
+    gui::item_size(16);
+    gui::item_box();
+
+    gui::align(gui::Align::Left);
+    gui::item_size({ app::CANVAS_WIDTH - INPUT_WIDTH, 16 });
+    gui::text("NAME");
+    gui::same_line();
+    gui::item_size({ INPUT_WIDTH, 16 });
+    gui::input_text(song.songname);
+
+    gui::item_size({ app::CANVAS_WIDTH - INPUT_WIDTH, 16 });
+    gui::text("AUTHOR");
+    gui::same_line();
+    gui::item_size({ INPUT_WIDTH, 16 });
+    gui::input_text(song.authorname);
+
+    gui::item_size({ app::CANVAS_WIDTH - INPUT_WIDTH, 16 });
+    gui::text("COPYR.");
+    gui::same_line();
+    gui::item_size({ INPUT_WIDTH, 16 });
+    gui::input_text(song.copyrightname);
+
+
+
+    gui::item_size(16);
+    gui::item_box();
+
 
 
     draw_load_window();

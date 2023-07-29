@@ -81,7 +81,7 @@ void init() {
     gfx::init();
     gui::init();
 
-    set_view(View::Song);
+    set_view(View::Project);
 
     // load song
     g_song.clear();
