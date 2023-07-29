@@ -34,7 +34,8 @@ namespace color {
         mix(color::rgb(0xffec27), color::WHITE, 0.3f), // F tempo
     };
 
-    constexpr u8vec4 INSTRUMENT    = color::rgb(0xbbccdd);
+    constexpr u8vec4 ROW_NUMBER    = color::rgb(0xaaaaaa);
+    constexpr u8vec4 INSTRUMENT    = color::rgb(0xaabbdd);
     constexpr u8vec4 HIGHLIGHT_ROW = color::rgb(0x1f1f10);
     constexpr u8vec4 PLAYER_ROW    = color::rgb(0x553300);
 
@@ -54,17 +55,17 @@ enum {
 int                g_row_height         = 13; // 8-16, default: 13
 int                g_row_highlight_step = 4;
 
-std::array<int, 3> g_pattern_nums = { 0, 1, 2 };
-int                g_chan_num = 0;
+std::array<int, 3> g_pattern_nums       = { 0, 1, 2 };
+int                g_chan_num           = 0;
 
 bool               g_follow             = false;
 int                g_song_page_length   = 8;
 int                g_song_scroll        = 0;
 int                g_pattern_scroll     = 0;
 
-int                g_instrument   = 3;
-int                g_piano_scroll = 14 * 3;
-bool               g_piano_gate   = false;
+int                g_instrument         = 1;
+int                g_piano_scroll       = 14 * 3; // show octave 3 and 4
+bool               g_piano_gate         = false;
 int                g_piano_note;
 
 //int                g_song_row;
@@ -91,12 +92,10 @@ void draw_piano() {
 
     // instrument button
     static bool show_instr_win = false;
-    ivec2 p = gui::cursor();
     gui::item_size({ 8 * 19, 16 });
-    if (gui::button("", show_instr_win)) show_instr_win = true;
+    gui::align(gui::Align::Left);
     sprintf(str, "%02X %s", g_instrument, song.instr[g_instrument].name.data());
-    dc.color(color::WHITE);
-    dc.text(p + 4, str);
+    if (gui::button(str, show_instr_win)) show_instr_win = true;
 
     // piano scroll bar
     gui::same_line();
@@ -108,21 +107,19 @@ void draw_piano() {
     if (show_instr_win) {
         gui::begin_window();
         gui::cursor({ 28, 31 });
-        gui::item_size({ 8 * 19 * 2, 16 });
-        if (gui::button("CANCEL")) show_instr_win = false;
-        auto q = gui::cursor();
+        gui::align(gui::Align::Left);
         gui::item_size({8 * 19, 16});
         for (int i = 0; i < gt::MAX_INSTR; ++i) {
-            if (i == 32) gui::cursor(q + ivec2(8 * 19, 0));
-            auto p = gui::cursor();
-            if (gui::button("", i == g_instrument)) {
+            gui::same_line(i % 2 == 1);
+            sprintf(str, "%02X %s", i, song.instr[i].name.data());
+            if (gui::button(str, i == g_instrument)) {
                 g_instrument = i;
                 show_instr_win = false;
             }
-            sprintf(str, "%02X %s", i, song.instr[i].name.data());
-            dc.color(color::WHITE);
-            dc.text(p + 4, str);
         }
+        gui::item_size({ 8 * 19 * 2, 24 });
+        gui::align(gui::Align::Center);
+        if (gui::button("CANCEL")) show_instr_win = false;
         gui::end_window();
     }
 
@@ -273,14 +270,11 @@ void draw() {
 
 
     // put text in the center of the row
-    ivec2 text_offset = {4, (g_row_height - 7) / 2};
-
-
+    ivec2 text_offset = { 4, (g_row_height - 7) / 2 };
     char line[16];
 
     // song table
     {
-        // gui::item_padding({ 2, 0 });
         for (int i = 0; i < g_song_page_length; ++i) {
             int row = g_song_scroll + i;
 
@@ -290,7 +284,7 @@ void draw() {
             dc.fill(box);
 
             sprintf(line, "%02X", row);
-            dc.color(color::WHITE);
+            dc.color(color::ROW_NUMBER);
             dc.text(box.pos + text_offset + ivec2(4, 0), line);
 
             gui::item_size({ 80, g_row_height });
@@ -300,7 +294,20 @@ void draw() {
 
                 if (row > song.songlen[SONG_NR][c]) continue;
 
-                dc.color(color::rgb(0x0a0a0a));
+                gui::ButtonState state = gui::button_state(box);
+                if (state == gui::ButtonState::Released) {
+                    uint8_t v = song.songorder[SONG_NR][c][row];
+                    if (v < gt::MAX_PATT) {
+                        g_follow          = false;
+                        g_pattern_nums[c] = v;
+                    }
+                }
+
+                dc.color(state == gui::ButtonState::Normal     ? color::rgb(0x0a0a0a) :
+                         state == gui::ButtonState::Pressed    ? color::BUTTON_PRESSED :
+                         state == gui::ButtonState::Held       ? color::BUTTON_HELD :
+                       /*state == gui::ButtonState::Released*/   color::BUTTON_RELEASED);
+
                 // highlight player position
                 if (is_playing && row == player_song_rows[c]) dc.color(color::PLAYER_ROW);
                 dc.fill(box);
@@ -327,8 +334,6 @@ void draw() {
             }
 
         }
-        // gui::item_padding(2);
-        // gui::cursor(gui::cursor() + ivec2(0, 2));
     }
 
 
@@ -351,17 +356,16 @@ void draw() {
             dc.text(p + 4, line);
 
             dc.color(color::BLACK);
-            dc.fill({ p + ivec2(24, 5), { 50, 6 } });
+            dc.fill({ p + ivec2(24, 5), { 51, 6 } });
 
             dc.color(color::WHITE);
-            dc.fill({ p + ivec2(24, 5), ivec2(sid::chan_level(c) * 50.0f + 0.9f,  6) });
+            dc.fill({ p + ivec2(24, 5), ivec2(sid::chan_level(c) * 51.0f + 0.9f,  6) });
         }
     }
 
 
     {
         // patterns
-        // gui::item_padding({ 2, 0 });
         for (int i = 0; i < pattern_page_length; ++i) {
             int row = g_pattern_scroll + i;
 
@@ -374,7 +378,7 @@ void draw() {
             dc.fill(box);
 
             sprintf(line, "%02X", row);
-            dc.color(color::WHITE);
+            dc.color(color::ROW_NUMBER);
             dc.text(box.pos + text_offset + ivec2(4, 0), line);
 
             gui::item_size({ 80, g_row_height });
@@ -433,7 +437,6 @@ void draw() {
                 }
             }
         }
-        // gui::item_padding(2);
     }
 
 

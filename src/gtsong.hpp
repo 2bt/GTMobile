@@ -93,6 +93,7 @@ struct Song {
 
     void count_pattern_lengths();
     bool load(char const* filename);
+    bool load(uint8_t const* data, size_t size);
     bool load(std::istream& stream);
     bool save(char const* filename);
     bool save(std::ostream& stream);

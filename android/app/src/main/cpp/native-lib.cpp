@@ -72,19 +72,34 @@ void stop_audio() {
 namespace platform {
 
 
-bool load_asset(std::string const& name, std::vector<uint8_t>& buf) {
-    AAsset* ad = AAssetManager_open(g_asset_manager, name.c_str(), AASSET_MODE_BUFFER);
+bool load_asset(char const* name, std::vector<uint8_t>& buf) {
+    AAsset* ad = AAssetManager_open(g_asset_manager, name, AASSET_MODE_BUFFER);
     if (!ad) {
-        LOGE("load_asset: could not open %s", name.c_str());
+        LOGE("load_asset: could not open %s", name);
         return false;
     }
     buf.resize(AAsset_getLength(ad));
     int len = AAsset_read(ad, buf.data(), buf.size());
     AAsset_close(ad);
     if (len != buf.size()) {
-        LOGE("load_asset: could not open %s", name.c_str());
+        LOGE("load_asset: could not open %s", name);
         return false;
     }
+
+    return true;
+}
+
+bool list_assets(char const* dir, std::vector<std::string>& list) {
+    list.clear();
+    AAssetDir* ad = AAssetManager_openDir(g_asset_manager, dir);
+    if (!ad) {
+        LOGE("list_assets: could not open %s", dir);
+        return false;
+    }
+    while (char const* s = AAssetDir_getNextFileName(ad)) {
+        list.push_back(s);
+    }
+    AAssetDir_close(ad);
     return true;
 }
 

@@ -84,19 +84,11 @@ void init() {
     set_view(View::Song);
 
     // load song
-    std::vector<uint8_t> buffer;
-    platform::load_asset("Smoke_and_Mirrors.sng", buffer);
-//    platform::load_asset("Nordic_Scene_Review.sng", buffer);
-//    platform::load_asset("test.sng", buffer);
-    struct MemBuf : std::streambuf {
-        MemBuf(uint8_t const* data, size_t size) {
-            char* p = (char*) data;
-            this->setg(p, p, p + size);
-        }
-    } membuf(buffer.data(), buffer.size());
-    std::istream stream(&membuf);
-    g_song.load(stream);
-    g_player.init_song(0, gt::Player::PLAY_STOP);
+    g_song.clear();
+    // std::vector<uint8_t> buffer;
+    // platform::load_asset("Smoke_and_Mirrors.sng", buffer);
+    // g_song.load(buffer.data(), buffer.size());
+    // g_player.init_song(0, gt::Player::PLAY_STOP);
 
     g_initialized = true;
 }
@@ -162,6 +154,7 @@ void draw() {
     gui::begin_frame();
 
     gui::item_size({ 80, 24 });
+    gui::align(gui::Align::Center);
     gui::button_style(gui::BoxStyle::Tab);
     for (size_t i = 0; i < VIEW_NAMES.size(); ++i) {
         if (gui::button(VIEW_NAMES[i], i == size_t(g_view))) {

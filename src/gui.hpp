@@ -15,7 +15,7 @@ namespace color {
     constexpr u8vec4 BROWN       = rgb(0xAB5236);
     constexpr u8vec4 DARK_GREY   = rgb(0x5F574F);
     constexpr u8vec4 LIGHT_GREY  = rgb(0xC2C3C7);
-    constexpr u8vec4 WHITE       = rgb(0xFFF1E8);
+    constexpr u8vec4 WHITE       = rgb(0xffffff);
     constexpr u8vec4 RED         = rgb(0xFF004D);
     constexpr u8vec4 ORANGE      = rgb(0xFFA300);
     constexpr u8vec4 YELLOW      = rgb(0xFFEC27);
@@ -156,6 +156,7 @@ enum class Icon {
     DeleteRow,
 };
 
+enum class Align { Left, Center };
 
 enum {
     KEYCODE_ENTER = 66,
@@ -192,10 +193,10 @@ ivec2 cursor();
 void item_size(ivec2 size);
 void same_line(bool same_line = true);
 bool has_active_item();
+void align(Align a);
 
 void text(char const* fmt, ...);
 void button_style(BoxStyle style);
-
 
 
 bool button(Icon icon, bool active = false);

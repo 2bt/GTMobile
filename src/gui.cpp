@@ -29,6 +29,7 @@ ivec2       g_cursor_max;
 ivec2       g_item_size;
 bool        g_same_line;
 BoxStyle    g_button_style = BoxStyle::Normal;
+Align       g_align = Align::Left;
 
 
 float       g_frame_time = 1.0f / 60.0f;
@@ -47,8 +48,17 @@ float       g_input_cursor_blink;
 
 
 std::array<char, 256> g_text_buffer;
-void print_to_text_buffer(const char* fmt, va_list args) {
+char const* print_to_text_buffer(const char* fmt, va_list args) {
     vsnprintf(g_text_buffer.data(), g_text_buffer.size(), fmt, args);
+    return g_text_buffer.data();
+}
+
+ivec2 text_pos(Box const& box, char const* text) {
+    switch (g_align) {
+    case Align::Left:   return box.pos + 4;
+    case Align::Center:
+    default:            return box.pos + ivec2(box.size.x / 2 - strlen(text) * 4, box.size.y / 2 - 4);
+    }
 }
 
 void const* get_id(void const* addr) {
@@ -60,11 +70,11 @@ void const* get_id(void const* addr) {
 }
 
 void draw_button(Box const& box, ButtonState state, bool active) {
-    g_dc.color(state == ButtonState::Normal && !active  ? color::BUTTON_NORMAL :
-               state == ButtonState::Normal && active   ? color::BUTTON_ACTIVE :
-               state == ButtonState::Pressed            ? color::BUTTON_PRESSED :
-               state == ButtonState::Held               ? color::BUTTON_HELD :
-             /*state == ButtonState::Released*/           color::BUTTON_RELEASED);
+    g_dc.color(state == ButtonState::Normal && !active ? color::BUTTON_NORMAL :
+               state == ButtonState::Normal && active  ? color::BUTTON_ACTIVE :
+               state == ButtonState::Pressed           ? color::BUTTON_PRESSED :
+               state == ButtonState::Held              ? color::BUTTON_HELD :
+             /*state == ButtonState::Released*/          color::BUTTON_RELEASED);
     g_dc.box(box, g_button_style);
 }
 
@@ -274,8 +284,9 @@ void button_style(BoxStyle style) {
 bool has_active_item() {
     return g_active_item != nullptr;
 }
-
-
+void align(Align a) {
+    g_align = a;
+}
 
 
 bool button(Icon icon, bool active) {
@@ -293,19 +304,18 @@ bool button(char const* label, bool active) {
     ButtonState state = button_state(box);
     draw_button(box, state, active);
 
-    ivec2 text_size(strlen(label) * 8, 8);
     g_dc.color(color::WHITE);
-    g_dc.text(box.pos + box.size / 2 - text_size / 2, label);
+    g_dc.text(text_pos(box, label), label);
     return state == ButtonState::Released;
 }
 
 void text(char const* fmt, ...) {
     va_list args;
     va_start(args, fmt);
-    print_to_text_buffer(fmt, args);
+    char const* str = print_to_text_buffer(fmt, args);
     va_end(args);
     Box box = item_box();
-    g_dc.text(box.pos + 4, g_text_buffer.data());
+    g_dc.text(text_pos(box, str), str);
 }
 void input_text(char* str, int len) {
     Box box = item_box();

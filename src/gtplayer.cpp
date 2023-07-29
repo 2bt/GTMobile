@@ -61,6 +61,8 @@ Player::Player(Song const& song) : song(song) {
         m_esend[c] = 0;
         m_epnum[c] = c;
     }
+
+    init_song(0, PLAY_STOP);
 }
 
 void Player::init_song(int num, Mode mode, int pattpos) {

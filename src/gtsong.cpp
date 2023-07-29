@@ -109,6 +109,16 @@ bool Song::load(char const* filename) {
     if (!stream.is_open()) return false;
     return load(stream);
 }
+bool Song::load(uint8_t const* data, size_t size) {
+    struct MemBuf : std::streambuf {
+        MemBuf(uint8_t const* data, size_t size) {
+            char* p = (char*) data;
+            this->setg(p, p, p + size);
+        }
+    } membuf(data, size);
+    std::istream stream(&membuf);
+    return load(stream);
+}
 bool Song::load(std::istream& stream) {
     char ident[4];
     stream.read(ident, 4);

@@ -2,6 +2,8 @@
 #include <SDL2/SDL.h>
 #include <GL/glew.h>
 #include <fstream>
+#include <filesystem>
+#include <algorithm>
 #include "platform.hpp"
 #include "app.hpp"
 #include "gui.hpp"
@@ -35,15 +37,26 @@ void stop_audio() {
 
 namespace platform {
 
-bool load_asset(std::string const& name, std::vector<uint8_t>& buf) {
-    std::ifstream f("assets/" + name, std::ios::in | std::ios::binary);
+bool load_asset(char const* name, std::vector<uint8_t>& buf) {
+    std::ifstream f("assets/" + std::string(name), std::ios::in | std::ios::binary);
     if (!f.is_open()) {
-        LOGE("load_asset: could not open %s", name.c_str());
+        LOGE("load_asset: could not open %s", name);
         return false;
     }
     buf = std::vector<uint8_t>((std::istreambuf_iterator<char>(f)),
                                 std::istreambuf_iterator<char>());
     return true;
+}
+
+bool list_assets(char const* dir, std::vector<std::string>& list) {
+    namespace fs = std::filesystem;
+    list.clear();
+    for (auto const& entry : fs::directory_iterator("assets/" + std::string(dir))) {
+        if (!entry.is_regular_file()) continue;
+        list.emplace_back(entry.path().filename().string());
+    }
+    std::sort(list.begin(), list.end());
+    return false;
 }
 
 
