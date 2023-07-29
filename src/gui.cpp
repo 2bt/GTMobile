@@ -16,9 +16,9 @@ struct Window {
 };
 
 std::vector<Window> g_windows = { {} };
-int                 g_window_index;
-int                 g_max_window_index;
-int                 g_last_max_window_count;
+size_t              g_window_index;
+size_t              g_max_window_index;
+size_t              g_last_max_window_count;
 
 
 gfx::Image  g_img;
@@ -27,7 +27,6 @@ DrawContext g_dc;
 ivec2       g_cursor_min;
 ivec2       g_cursor_max;
 ivec2       g_item_size;
-ivec2       g_item_padding = 2;
 bool        g_same_line;
 BoxStyle    g_button_style = BoxStyle::Normal;
 
@@ -82,12 +81,12 @@ Box item_box() {
     if (g_same_line) {
         g_same_line = false;
         pos = {g_cursor_max.x, g_cursor_min.y};
-        g_cursor_max = max(g_cursor_max, pos + size + g_item_padding);
+        g_cursor_max = max(g_cursor_max, pos + size);
     }
     else {
         pos = {g_cursor_min.x, g_cursor_max.y};
         g_cursor_min.y = g_cursor_max.y;
-        g_cursor_max = pos + size + g_item_padding;
+        g_cursor_max = pos + size;
     }
     return { pos, size };
 }
@@ -214,6 +213,7 @@ void begin_frame() {
     }
 
 }
+
 void end_frame() {
     assert(g_window_index == 0);
     int n = std::min(g_last_max_window_count, g_max_window_index);
@@ -236,7 +236,7 @@ void end_frame() {
     g_touch_prev_pressed = g_touch_pressed;
 }
 
-void begin_popup() {
+void begin_window() {
     if (++g_window_index > g_max_window_index) {
         g_max_window_index = g_window_index;
         if (g_windows.size() < g_max_window_index + 1) {
@@ -245,7 +245,7 @@ void begin_popup() {
     }
     g_dc.mesh(g_windows[g_window_index].mesh);
 }
-void end_popup() {
+void end_window() {
     --g_window_index;
     g_dc.mesh(g_windows[g_window_index].mesh);
 }
@@ -262,9 +262,6 @@ ivec2 cursor() {
 void item_size(ivec2 size) {
     g_item_size = size;
 }
-void item_padding(ivec2 padding) {
-    g_item_padding = padding;
-}
 void same_line(bool same_line) {
     g_same_line = same_line;
 }
@@ -277,6 +274,9 @@ void button_style(BoxStyle style) {
 bool has_active_item() {
     return g_active_item != nullptr;
 }
+
+
+
 
 bool button(Icon icon, bool active) {
     Box box = item_box();

@@ -182,22 +182,25 @@ namespace touch {
 void begin_frame();
 void end_frame();
 
-void begin_popup();
-void end_popup();
+void begin_window();
+void end_window();
 
 
 void id(void const* addr);
 void cursor(ivec2 pos);
 ivec2 cursor();
 void item_size(ivec2 size);
-void item_padding(ivec2 padding);
 void same_line(bool same_line = true);
 bool has_active_item();
 
 void text(char const* fmt, ...);
 void button_style(BoxStyle style);
+
+
+
 bool button(Icon icon, bool active = false);
 bool button(char const* label, bool active = false);
+
 void input_text(char* str, int len);
 template<class T>void input_text(T& t) { input_text(t.data(), t.size() - 1); }
 bool horizontal_drag_bar(int& value, int min, int max, int page);
