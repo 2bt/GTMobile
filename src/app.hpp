@@ -1,5 +1,6 @@
 #pragma once
 #include <cstdint>
+#include <string>
 #include "gtplayer.hpp"
 #include "gtsong.hpp"
 

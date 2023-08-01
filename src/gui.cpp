@@ -69,13 +69,12 @@ void const* get_id(void const* addr) {
    return addr;
 }
 
-void draw_button(Box const& box, ButtonState state, bool active) {
+void button_color(ButtonState state, bool active) {
     g_dc.color(state == ButtonState::Normal && !active ? color::BUTTON_NORMAL :
                state == ButtonState::Normal && active  ? color::BUTTON_ACTIVE :
                state == ButtonState::Pressed           ? color::BUTTON_PRESSED :
                state == ButtonState::Held              ? color::BUTTON_HELD :
              /*state == ButtonState::Released*/          color::BUTTON_RELEASED);
-    g_dc.box(box, g_button_style);
 }
 
 
@@ -102,6 +101,7 @@ Box item_box() {
 }
 
 ButtonState button_state(Box const& box, void const* addr) {
+    g_hold = false;
     void const* id = get_id(addr);
     if (id) {
         if (g_active_item == nullptr && touch::just_touched(box)) {
@@ -211,7 +211,6 @@ void begin_frame() {
     g_same_line = false;
     if (!g_touch_pressed && !g_touch_prev_pressed) {
         g_active_item = nullptr;
-        g_hold = false;
         g_hold_time = 0;
     }
 
@@ -287,12 +286,15 @@ bool has_active_item() {
 void align(Align a) {
     g_align = a;
 }
-
+bool hold() {
+    return g_hold;
+}
 
 bool button(Icon icon, bool active) {
     Box box = item_box();
     ButtonState state = button_state(box);
-    draw_button(box, state, active);
+    button_color(state, active);
+    g_dc.box(box, g_button_style);
 
     int i = int(icon);
     g_dc.color(color::WHITE);
@@ -302,7 +304,8 @@ bool button(Icon icon, bool active) {
 bool button(char const* label, bool active) {
     Box box = item_box();
     ButtonState state = button_state(box);
-    draw_button(box, state, active);
+    button_color(state, active);
+    g_dc.box(box, g_button_style);
 
     g_dc.color(color::WHITE);
     g_dc.text(text_pos(box, label), label);
@@ -328,7 +331,7 @@ void input_text(char* str, int len) {
     }
 
     bool active = g_input_text_str == str;
-    g_dc.color(active ? color::BUTTON_ACTIVE : color::BUTTON_NORMAL);
+    button_color(state, active);
     g_dc.box(box, BoxStyle::Text);
 
     ivec2 p = box.pos + 4;
@@ -359,7 +362,8 @@ bool horizontal_drag_bar(int& value, int min, int max, int page) {
     int handle_x = range == 0 ? 0 : (value - min) * move_w / range;
 
     g_dc.color(color::DRAG_BG);
-    g_dc.fill(box);
+    // g_dc.fill(box);
+    g_dc.box(box, BoxStyle::Normal);
     if (move_w > 0) {
         g_dc.color(is_active ? color::DRAG_HANDLE_ACTIVE : color::DRAG_HANDLE_NORMAL);
         g_dc.box({box.pos + ivec2(handle_x, 0), {handle_w, box.size.y}}, BoxStyle::Normal);
@@ -391,7 +395,8 @@ bool vertical_drag_bar(int& value, int min, int max, int page) {
     int handle_y = range == 0 ? 0 : (value - min) * move_h / range;
 
     g_dc.color(color::DRAG_BG);
-    g_dc.fill(box);
+    // g_dc.fill(box);
+    g_dc.box(box, BoxStyle::Normal);
     if (move_h > 0) {
         g_dc.color(is_active ? color::DRAG_HANDLE_ACTIVE : color::DRAG_HANDLE_NORMAL);
         g_dc.box({box.pos + ivec2(0, handle_y), {box.size.x, handle_h}}, BoxStyle::Normal);
@@ -415,7 +420,8 @@ bool vertical_drag_button(int& value) {
     }
 
     g_dc.color(is_active ? color::DRAG_HANDLE_ACTIVE : color::DRAG_HANDLE_NORMAL);
-    g_dc.box(box, g_button_style);
+    // g_dc.box(box, g_button_style);
+    g_dc.box(box, BoxStyle::Normal);
 
     g_dc.color(color::DRAG_ICON);
     int i = int(Icon::VGrab);
@@ -428,6 +434,7 @@ bool vertical_drag_button(int& value) {
 // DrawContext //
 /////////////////
 void DrawContext::box(Box const& box, BoxStyle style) {
+    if (box.size.x <= 0 || box.size.y <= 0) return;
     i16vec2 p0 = box.pos;
     i16vec2 p1 = box.pos + 8;
     i16vec2 p2 = box.pos + box.size - 8;

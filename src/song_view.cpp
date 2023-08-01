@@ -34,10 +34,11 @@ namespace color {
         mix(color::rgb(0xffec27), color::WHITE, 0.3f), // F tempo
     };
 
-    constexpr u8vec4 ROW_NUMBER    = color::rgb(0xaaaaaa);
-    constexpr u8vec4 INSTRUMENT    = color::rgb(0xaabbdd);
-    constexpr u8vec4 HIGHLIGHT_ROW = color::rgb(0x1f1f10);
-    constexpr u8vec4 PLAYER_ROW    = color::rgb(0x553300);
+    constexpr u8vec4 ROW_NUMBER     = color::rgb(0xaaaaaa);
+    constexpr u8vec4 INSTRUMENT     = color::rgb(0xaabbdd);
+    constexpr u8vec4 HIGHLIGHT_ROW  = color::rgb(0x1a1a1a);
+    constexpr u8vec4 PLAYER_ROW     = color::rgb(0x553300);
+    constexpr u8vec4 BACKGROUND_ROW = color::rgb(0x0a0a0a);
 
 
 } // namespace color
@@ -53,12 +54,11 @@ enum {
 
 // settings
 int                g_row_height         = 13; // 8-16, default: 13
-int                g_row_highlight_step = 4;
+int                g_row_highlight_step = 8;
 
 std::array<int, 3> g_pattern_nums       = { 0, 1, 2 };
-int                g_chan_num           = 0;
 
-bool               g_follow             = false;
+bool               g_follow             = true;
 int                g_song_page_length   = 8;
 int                g_song_scroll        = 0;
 int                g_pattern_scroll     = 0;
@@ -68,8 +68,19 @@ int                g_piano_scroll       = 14 * 3; // show octave 3 and 4
 bool               g_piano_gate         = false;
 int                g_piano_note;
 
+int                g_cursor_chan        = 0;
+int                g_cursor_pattern_row = -1;
+int                g_cursor_song_row    = -1;
+
 //int                g_song_row;
 //int                g_pattern_row;
+
+enum class Dialog {
+    None,
+    Order,
+};
+Dialog g_dialog = Dialog::None;
+
 
 
 } // namespace
@@ -106,18 +117,27 @@ void draw_piano() {
     // instrument window
     if (show_instr_win) {
         gui::begin_window();
-        gui::cursor({ 28, 31 });
+
+        ivec2 size = { 8 * 19 * 2, 16 * 33 };
+        ivec2 pos  = ivec2(app::CANVAS_WIDTH, app::canvas_height()) / 2 - size / 2;
+        gui::cursor(pos);
+
+        dc.color(color::BLACK);
+        dc.fill({ pos, size });
+
         gui::align(gui::Align::Left);
         gui::item_size({8 * 19, 16});
-        for (int i = 0; i < gt::MAX_INSTR; ++i) {
-            gui::same_line(i % 2 == 1);
+        for (int n = 0; n < gt::MAX_INSTR; ++n) {
+            gui::same_line(n % 2 == 1);
+
+            int i = n % 2 * 32 + n / 2;
             sprintf(str, "%02X %s", i, song.instr[i].name.data());
             if (gui::button(str, i == g_instrument)) {
                 g_instrument = i;
                 show_instr_win = false;
             }
         }
-        gui::item_size({ 8 * 19 * 2, 24 });
+        gui::item_size({ 8 * 19 * 2, 16 });
         gui::align(gui::Align::Center);
         if (gui::button("CANCEL")) show_instr_win = false;
         gui::end_window();
@@ -154,10 +174,10 @@ void draw_piano() {
         });
     }
     if (g_piano_gate && (!prev_gate || g_piano_note != prev_note)) {
-        app::player().play_test_note(g_piano_note + gt::FIRSTNOTE, g_instrument, g_chan_num);
+        app::player().play_test_note(g_piano_note + gt::FIRSTNOTE, g_instrument, g_cursor_chan);
     }
     if (!g_piano_gate && prev_gate) {
-        app::player().release_note(g_chan_num);
+        app::player().release_note(g_cursor_chan);
     }
 
 
@@ -204,8 +224,12 @@ void draw() {
 
     // buttons
     gui::same_line();
-
-    gui::item_size(24);
+    // gui::item_size(24);
+    gui::item_size({ 48, 24 });
+    if (gui::button(gui::Icon::Follow, g_follow)) {
+        g_follow = !g_follow;
+    }
+    gui::same_line();
     bool is_playing = app::player().is_playing();
     if (gui::button(gui::Icon::Play, is_playing)) {
         if (is_playing) {
@@ -214,10 +238,6 @@ void draw() {
         else {
             app::player().init_song(0, gt::Player::PLAY_BEGINNING);
         }
-    }
-    gui::same_line();
-    if (gui::button(gui::Icon::Follow, g_follow)) {
-        g_follow = !g_follow;
     }
 
 
@@ -256,9 +276,11 @@ void draw() {
 
     if (is_playing && g_follow) {
         // auto scroll
-        g_pattern_nums = player_pattern_nums;
-        g_song_scroll    = player_song_rows[g_chan_num] - g_song_page_length / 2;
-        g_pattern_scroll = player_pattern_rows[g_chan_num] - pattern_page_length / 2;
+        g_pattern_nums       = player_pattern_nums;
+        g_song_scroll        = player_song_rows[g_cursor_chan] - g_song_page_length / 2;
+        g_pattern_scroll     = player_pattern_rows[g_cursor_chan] - pattern_page_length / 2;
+        g_cursor_pattern_row = player_pattern_rows[g_cursor_chan];
+        g_cursor_song_row    = -1;
     }
     g_song_scroll    = clamp(g_song_scroll, 0, max_song_len - g_song_page_length);
     g_pattern_scroll = clamp(g_pattern_scroll, 0, max_pattern_len - pattern_page_length);
@@ -274,167 +296,181 @@ void draw() {
     char line[16];
 
     // song table
-    {
-        for (int i = 0; i < g_song_page_length; ++i) {
-            int row = g_song_scroll + i;
+    for (int i = 0; i < g_song_page_length; ++i) {
+        int row = g_song_scroll + i;
 
-            gui::item_size({ 28, g_row_height });
-            gui::Box box = gui::item_box();
-            dc.color(color::rgb(0x0a0a0a));
-            dc.fill(box);
-
-            sprintf(line, "%02X", row);
-            dc.color(color::ROW_NUMBER);
-            dc.text(box.pos + text_offset + ivec2(4, 0), line);
-
-            gui::item_size({ 80, g_row_height });
-            for (int c = 0; c < 3; ++c) {
-                gui::same_line();
-                gui::Box box = gui::item_box();
-
-                if (row > song.songlen[SONG_NR][c]) continue;
-
-                gui::ButtonState state = gui::button_state(box);
-                if (state == gui::ButtonState::Released) {
-                    uint8_t v = song.songorder[SONG_NR][c][row];
-                    if (v < gt::MAX_PATT) {
-                        g_follow          = false;
-                        g_pattern_nums[c] = v;
-                    }
-                }
-
-                dc.color(state == gui::ButtonState::Normal     ? color::rgb(0x0a0a0a) :
-                         state == gui::ButtonState::Pressed    ? color::BUTTON_PRESSED :
-                         state == gui::ButtonState::Held       ? color::BUTTON_HELD :
-                       /*state == gui::ButtonState::Released*/   color::BUTTON_RELEASED);
-
-                // highlight player position
-                if (is_playing && row == player_song_rows[c]) dc.color(color::PLAYER_ROW);
-                dc.fill(box);
-
-                uint8_t v = song.songorder[SONG_NR][c][row];
-                if (v == gt::LOOPSONG) {
-                    sprintf(line, "LOOP %02X", song.songorder[SONG_NR][c][row + 1]);
-                }
-                else if (v >= gt::TRANSUP) {
-                    sprintf(line, "TRANSP +%X", v & 0xf);
-                }
-                else if (v >= gt::TRANSDOWN) {
-                    sprintf(line, "TRANSP -%X", v & 0xf);
-                }
-                else if (v >= gt::REPEAT) {
-                    sprintf(line, "REPEAT %X", v & 0xf);
-                }
-                else {
-                    sprintf(line, "%02X", v);
-                }
-
-                dc.color(color::WHITE);
-                dc.text(box.pos + text_offset, line);
-            }
-
-        }
-    }
-
-
-    {
-        // pattern bar
         gui::item_size({ 28, g_row_height });
-        gui::item_box();
-        gui::item_size({ 80, 16 });
+        gui::Box box = gui::item_box();
+        dc.color(color::BACKGROUND_ROW);
+        dc.fill(box);
+
+        sprintf(line, "%02X", row);
+        dc.color(color::ROW_NUMBER);
+        dc.text(box.pos + text_offset + ivec2(4, 0), line);
+
+        gui::item_size({ 80, g_row_height });
         for (int c = 0; c < 3; ++c) {
             gui::same_line();
+            gui::Box box = gui::item_box();
 
-            ivec2 p = gui::cursor();
-            bool active = app::player().is_channel_active(c);
-            if (gui::button("", active)) {
-                app::player().set_channel_active(c, !active);
+            if (row > song.songlen[SONG_NR][c]) continue;
+            uint8_t v = song.songorder[SONG_NR][c][row];
+
+            dc.color(color::BACKGROUND_ROW);
+            if (row % g_row_highlight_step == 0) dc.color(color::HIGHLIGHT_ROW);
+            if (is_playing && row == player_song_rows[c]) dc.color(color::PLAYER_ROW);
+            dc.fill(box);
+
+            gui::ButtonState state = gui::button_state(box);
+            if (state == gui::ButtonState::Released) {
+                g_follow = false;
+                if (v < gt::MAX_PATT) {
+                    g_pattern_nums[c] = v;
+                }
+                g_cursor_chan        = c;
+                g_cursor_pattern_row = -1;
+                g_cursor_song_row    = row;
+            }
+            if (state != gui::ButtonState::Normal) {
+                dc.color(color::BUTTON_HELD);
+                dc.box(box, gui::BoxStyle::Cursor);
+            }
+            if (c == g_cursor_chan && row == g_cursor_song_row) {
+                dc.color(color::BUTTON_ACTIVE);
+                dc.box(box, gui::BoxStyle::Cursor);
             }
 
-            sprintf(line, "%02X", g_pattern_nums[c]);
-            dc.color(color::WHITE);
-            dc.text(p + 4, line);
+            if (v == gt::LOOPSONG) {
+                sprintf(line, "LOOP %02X", song.songorder[SONG_NR][c][row + 1]);
+            }
+            else if (v >= gt::TRANSUP) {
+                sprintf(line, "TRANSP +%X", v & 0xf);
+            }
+            else if (v >= gt::TRANSDOWN) {
+                sprintf(line, "TRANSP -%X", v & 0xf);
+            }
+            else if (v >= gt::REPEAT) {
+                sprintf(line, "REPEAT %X", v & 0xf);
+            }
+            else {
+                sprintf(line, "%02X", v);
+            }
 
-            dc.color(color::BLACK);
-            dc.fill({ p + ivec2(24, 5), { 51, 6 } });
-
             dc.color(color::WHITE);
-            dc.fill({ p + ivec2(24, 5), ivec2(sid::chan_level(c) * 51.0f + 0.9f,  6) });
+            dc.text(box.pos + text_offset, line);
         }
+
     }
 
 
-    {
-        // patterns
-        for (int i = 0; i < pattern_page_length; ++i) {
-            int row = g_pattern_scroll + i;
+    // pattern bar
+    gui::item_size({ 28, g_row_height });
+    gui::item_box();
+    gui::item_size({ 80, 16 });
+    for (int c = 0; c < 3; ++c) {
+        gui::same_line();
 
-            gui::item_size({ 28, g_row_height });
+        ivec2 p = gui::cursor();
+        bool active = app::player().is_channel_active(c);
+        if (gui::button("", active)) {
+            app::player().set_channel_active(c, !active);
+        }
+
+        sprintf(line, "%02X", g_pattern_nums[c]);
+        dc.color(color::WHITE);
+        dc.text(p + 4, line);
+
+        dc.color(color::BLACK);
+        dc.fill({ p + ivec2(24, 5), { 51, 6 } });
+
+        dc.color(color::WHITE);
+        dc.fill({ p + ivec2(24, 5), ivec2(sid::chan_level(c) * 51.0f + 0.9f,  6) });
+    }
+
+
+    // patterns
+    for (int i = 0; i < pattern_page_length; ++i) {
+        int row = g_pattern_scroll + i;
+
+        gui::item_size({ 28, g_row_height });
+        gui::Box box = gui::item_box();
+
+        dc.color(color::BACKGROUND_ROW);
+        // highlight background
+        if (row % g_row_highlight_step == 0) dc.color(color::HIGHLIGHT_ROW);
+        dc.fill(box);
+
+        sprintf(line, "%02X", row);
+        dc.color(color::ROW_NUMBER);
+        dc.text(box.pos + text_offset + ivec2(4, 0), line);
+
+        gui::item_size({ 80, g_row_height });
+        for (int c = 0; c < 3; ++c) {
+            gui::same_line();
             gui::Box box = gui::item_box();
 
-            dc.color(color::rgb(0x0a0a0a));
-            // highlight background
+            if (row >= song.pattlen[g_pattern_nums[c]]) continue;
+
+            dc.color(color::BACKGROUND_ROW);
             if (row % g_row_highlight_step == 0) dc.color(color::HIGHLIGHT_ROW);
+            if (is_playing && g_pattern_nums[c] == player_pattern_nums[c] && row == player_pattern_rows[c]) {
+                dc.color(color::PLAYER_ROW);
+            }
             dc.fill(box);
 
-            sprintf(line, "%02X", row);
-            dc.color(color::ROW_NUMBER);
-            dc.text(box.pos + text_offset + ivec2(4, 0), line);
+            gui::ButtonState state = gui::button_state(box);
+            if (state == gui::ButtonState::Released) {
+                g_follow = false;
+                g_cursor_chan        = c;
+                g_cursor_pattern_row = row;
+                g_cursor_song_row    = -1;
+            }
+            if (state != gui::ButtonState::Normal) {
+                dc.color(color::BUTTON_HELD);
+                dc.box(box, gui::BoxStyle::Cursor);
+            }
+            if (c == g_cursor_chan && row == g_cursor_pattern_row) {
+                dc.color(color::BUTTON_ACTIVE);
+                dc.box(box, gui::BoxStyle::Cursor);
+            }
 
-            gui::item_size({ 80, g_row_height });
-            for (int c = 0; c < 3; ++c) {
-                gui::same_line();
-                gui::Box box = gui::item_box();
 
-                if (row >= song.pattlen[g_pattern_nums[c]]) continue;
+            uint8_t const* p = song.pattern[g_pattern_nums[c]] + row * 4;
+            int note  = p[0];
+            int instr = p[1];
+            int cmd   = p[2];
+            int arg   = p[3];
 
-                // highlight player position
-                dc.color(color::rgb(0x0a0a0a));
-                if (row % g_row_highlight_step == 0) {
-                    dc.color(color::HIGHLIGHT_ROW);
-                }
-                if (is_playing && g_pattern_nums[c] == player_pattern_nums[c] && row == player_pattern_rows[c]) {
-                    dc.color(color::PLAYER_ROW);
-                }
-                dc.fill(box);
+            dc.color(color::WHITE);
+            if (note == gt::REST) {
+                dc.color(color::DARK_GREY);
+                dc.text(box.pos + text_offset, "...");
+            }
+            else if (note == gt::KEYOFF) {
+                dc.text(box.pos + text_offset, "===");
+            }
+            else if (note == gt::KEYON) {
+                dc.text(box.pos + text_offset, "+++");
+            }
+            else {
+                sprintf(line, "%c%c%d", "CCDDEFFGGAAB"[note % 12],
+                                "-#-#--#-#-#-"[note % 12],
+                                (note - gt::FIRSTNOTE) / 12);
+                dc.text(box.pos + text_offset, line);
+            }
+            box.pos.x += 28;
 
-                uint8_t const* p = song.pattern[g_pattern_nums[c]] + row * 4;
-                int note  = p[0];
-                int instr = p[1];
-                int cmd   = p[2];
-                int arg   = p[3];
+            if (instr > 0) {
+                sprintf(line, "%02X", instr);
+                dc.color(color::INSTRUMENT);
+                dc.text(box.pos + text_offset, line);
+            }
+            box.pos.x += 20;
 
-                dc.color(color::WHITE);
-                if (note == gt::REST) {
-                    dc.color(color::DARK_GREY);
-                    dc.text(box.pos + text_offset, "...");
-                }
-                else if (note == gt::KEYOFF) {
-                    dc.text(box.pos + text_offset, "===");
-                }
-                else if (note == gt::KEYON) {
-                    dc.text(box.pos + text_offset, "+++");
-                }
-                else {
-                    sprintf(line, "%c%c%d", "CCDDEFFGGAAB"[note % 12],
-                                  "-#-#--#-#-#-"[note % 12],
-                                  (note - gt::FIRSTNOTE) / 12);
-                    dc.text(box.pos + text_offset, line);
-                }
-                box.pos.x += 28;
-
-                if (instr > 0) {
-                    sprintf(line, "%02X", instr);
-                    dc.color(color::INSTRUMENT);
-                    dc.text(box.pos + text_offset, line);
-                }
-                box.pos.x += 20;
-
-                if (cmd > 0) {
-                    dc.color(color::CMDS[cmd]);
-                    sprintf(line, "%X%02X", cmd, arg);
-                    dc.text(box.pos + text_offset, line);
-                }
+            if (cmd > 0) {
+                dc.color(color::CMDS[cmd]);
+                sprintf(line, "%X%02X", cmd, arg);
+                dc.text(box.pos + text_offset, line);
             }
         }
     }
@@ -464,6 +500,19 @@ void draw() {
         if (gui::vertical_drag_bar(g_pattern_scroll, 0, max_scroll, page)) {
             if (is_playing) g_follow = false;
         }
+    }
+
+
+
+    if (g_dialog == Dialog::Order) {
+        gui::begin_window();
+
+        gui::cursor({});
+        gui::item_size({ app::CANVAS_WIDTH, 16 });
+        gui::align(gui::Align::Center);
+        if (gui::button("CANCEL")) g_dialog = Dialog::None;
+
+        gui::end_window();
     }
 
 

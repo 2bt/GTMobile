@@ -58,7 +58,7 @@ enum class BoxStyle {
     Normal,
     Tab,
     Text,
-    Corner,
+    Cursor,
 
     PianoKey = 8,
 };
@@ -194,6 +194,7 @@ void item_size(ivec2 size);
 void same_line(bool same_line = true);
 bool has_active_item();
 void align(Align a);
+bool hold();
 
 void text(char const* fmt, ...);
 void button_style(BoxStyle style);

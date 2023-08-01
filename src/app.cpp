@@ -38,7 +38,6 @@ const std::array<void(*)() , 2> VIEW_FUNCS = {
 View g_view = View::Project;
 
 
-
 } // namespace
 
 
@@ -166,6 +165,7 @@ void draw() {
     gui::button_style(gui::BoxStyle::Normal);
 
     VIEW_FUNCS[size_t(g_view)]();
+
 
     gui::end_frame();
 
