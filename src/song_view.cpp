@@ -317,7 +317,6 @@ void draw() {
             uint8_t v = song.songorder[SONG_NR][c][row];
 
             dc.color(color::BACKGROUND_ROW);
-            if (row % g_row_highlight_step == 0) dc.color(color::HIGHLIGHT_ROW);
             if (is_playing && row == player_song_rows[c]) dc.color(color::PLAYER_ROW);
             dc.fill(box);
 
@@ -347,7 +346,7 @@ void draw() {
                 sprintf(line, "TRANSP +%X", v & 0xf);
             }
             else if (v >= gt::TRANSDOWN) {
-                sprintf(line, "TRANSP -%X", v & 0xf);
+                sprintf(line, "TRANSP -%X", 16 - (v & 0xf));
             }
             else if (v >= gt::REPEAT) {
                 sprintf(line, "REPEAT %X", v & 0xf);
