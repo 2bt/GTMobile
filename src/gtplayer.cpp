@@ -83,7 +83,7 @@ void Player::stop_song() {
 
 void Player::release_note(int chnnum) {
     m_channels[chnnum].gate = 0xfe;
-    m_channels[chnnum].newnote = 0; // XXX: 2bt added this
+    m_channels[chnnum].newnote = 0; // 2bt: I added this
 }
 
 void Player::play_test_note(int note, int ins, int chnnum) {
@@ -789,14 +789,15 @@ GETNEWNOTES:
             }
         }
 NEXTCHN:
+        // 2bt: also set freq on muted channel for sync/ringmod
+        regs[0x0 + 7 * c] = chan.freq & 0xff;
+        regs[0x1 + 7 * c] = chan.freq >> 8;
+        regs[0x2 + 7 * c] = chan.pulse & 0xfe;
+        regs[0x3 + 7 * c] = chan.pulse >> 8;
         if (chan.mute) {
-            regs[0x4 + 7 * c] = chan.wave = 0x08;
+            regs[0x4 + 7 * c] = chan.wave & 0x08; // 2bt: don't set test bit every time
         }
         else {
-            regs[0x0 + 7 * c] = chan.freq & 0xff;
-            regs[0x1 + 7 * c] = chan.freq >> 8;
-            regs[0x2 + 7 * c] = chan.pulse & 0xfe;
-            regs[0x3 + 7 * c] = chan.pulse >> 8;
             regs[0x4 + 7 * c] = chan.wave & chan.gate;
         }
     }
