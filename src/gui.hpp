@@ -132,8 +132,7 @@ enum class Icon {
     FastBackward,
     FastForward,
     Follow,
-    VGrab,
-    HGrab,
+    Record,
 
     Copy = 24,
     Paste,
@@ -154,6 +153,8 @@ enum class Icon {
     AddRowAbove = 48,
     AddRowBelow,
     DeleteRow,
+    VGrab,
+    HGrab,
 };
 
 enum class Align { Left, Center };

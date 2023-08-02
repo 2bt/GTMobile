@@ -7,6 +7,7 @@
 #include "gui.hpp"
 #include "project_view.hpp"
 #include "song_view.hpp"
+#include "instrument_view.hpp"
 #include <cstring>
 
 
@@ -25,14 +26,16 @@ bool        g_initialized = false;
 
 
 
-const std::array<const char*, 2> VIEW_NAMES = {
+const std::array<const char*, 3> VIEW_NAMES = {
     "PROJECT",
     "SONG",
+    "INSTRUMENT",
 };
 
-const std::array<void(*)() , 2> VIEW_FUNCS = {
+const std::array<void(*)() , 3> VIEW_FUNCS = {
     project_view::draw,
     song_view::draw,
+    instrument_view::draw,
 };
 
 View g_view = View::Project;
@@ -82,12 +85,7 @@ void init() {
 
     set_view(View::Project);
 
-    // load song
     g_song.clear();
-    // std::vector<uint8_t> buffer;
-    // platform::load_asset("Smoke_and_Mirrors.sng", buffer);
-    // g_song.load(buffer.data(), buffer.size());
-    // g_player.init_song(0, gt::Player::PLAY_STOP);
 
     g_initialized = true;
 }
@@ -152,7 +150,7 @@ void draw() {
 
     gui::begin_frame();
 
-    gui::item_size({ 80, 24 });
+    gui::item_size({ 120, 24 });
     gui::align(gui::Align::Center);
     gui::button_style(gui::BoxStyle::Tab);
     for (size_t i = 0; i < VIEW_NAMES.size(); ++i) {

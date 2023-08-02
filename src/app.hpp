@@ -16,6 +16,7 @@ namespace app {
     enum class View {
         Project,
         Song,
+        Instrument,
     };
 
 

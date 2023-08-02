@@ -55,7 +55,7 @@ char const* print_to_text_buffer(const char* fmt, va_list args) {
 
 ivec2 text_pos(Box const& box, char const* text) {
     switch (g_align) {
-    case Align::Left:   return box.pos + 4;
+    case Align::Left:   return box.pos + ivec2(4, box.size.y / 2 - 4);
     case Align::Center:
     default:            return box.pos + ivec2(box.size.x / 2 - strlen(text) * 4, box.size.y / 2 - 4);
     }

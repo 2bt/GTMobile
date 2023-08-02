@@ -11,8 +11,9 @@ add_executable(
     src/gfx.cpp
     src/gui.cpp
     src/app.cpp
-    src/song_view.cpp
     src/project_view.cpp
+    src/song_view.cpp
+    src/instrument_view.cpp
 )
 
 target_compile_options(
