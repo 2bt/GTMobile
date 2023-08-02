@@ -16,8 +16,8 @@ namespace {
 
 
 using ConfirmCallback = void(*)(bool);
-std::string   g_confirm_msg;
 ConfirmCallback g_confirm_callback;
+std::string     g_confirm_msg;
 void draw_confirm() {
     if (g_confirm_msg.empty()) return;
     gui::begin_window();
@@ -52,10 +52,16 @@ void confirm(std::string msg, ConfirmCallback cb) {
 std::array<char, 32>     g_file_name;
 std::vector<std::string> g_file_names;
 
-bool g_show_load_win = false;
+
+enum Dialog {
+    None,
+    Load,
+};
+
+Dialog g_dialog = Dialog::None;
 
 void draw_load_window() {
-    if (!g_show_load_win) return;
+    if (g_dialog != Dialog::Load) return;
 
     gui::begin_window();
 
@@ -82,15 +88,16 @@ void draw_load_window() {
 
     gui::align(gui::Align::Center);
     gui::item_size({ app::CANVAS_WIDTH / 2, 16 });
-    if (gui::button("CANCEL")) g_show_load_win = false;
+    if (gui::button("CANCEL")) g_dialog = Dialog::None;
     gui::same_line();
     if (gui::button("LOAD")) {
-        g_show_load_win = false;
+        g_dialog = Dialog::None;
+        app::player().init_song(0, gt::Player::PLAY_STOP);
 
         std::vector<uint8_t> buffer;
         platform::load_asset((std::string("songs/") + g_file_name.data()).c_str(), buffer);
         app::song().load(buffer.data(), buffer.size());
-        app::player().init_song(0, gt::Player::PLAY_STOP);
+        // app::player().init_song(0, gt::Player::PLAY_STOP);
     }
 
     // scrollbar
@@ -151,12 +158,17 @@ void draw() {
     gui::align(gui::Align::Center);
     gui::item_size({ app::CANVAS_WIDTH, 16 });
     if (gui::button("RESET")) {
+        app::player().init_song(0, gt::Player::PLAY_STOP);
         confirm("LOSE CHANGES TO THE CURRENT SONG?", [](bool ok) {
-            if (ok) app::song().clear();
+            if (ok) {
+                app::song().clear();
+            }
         });
     }
-    if (gui::button("LOAD", g_show_load_win)) {
-        g_show_load_win = true;
+    if (gui::button("LOAD", g_dialog == Dialog::Load)) {
+        g_dialog = Dialog::Load;
+
+        app::player().init_song(0, gt::Player::PLAY_STOP);
         platform::list_assets("songs", g_file_names);
     }
 
