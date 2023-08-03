@@ -11,28 +11,29 @@
 namespace color {
 
     constexpr u8vec4 CMDS[16] = {
-        mix(color::rgb(0x000000), color::WHITE, 0.3f),
+        mix(color::rgb(0x000000), color::WHITE, 0.2f),
 
-        mix(color::rgb(0xff77a8), color::WHITE, 0.3f), // 1 portamento up
-        mix(color::rgb(0xff77a8), color::WHITE, 0.3f), // 2 portamento down
-        mix(color::rgb(0xff77a8), color::WHITE, 0.3f), // 3 tone portamento
-        mix(color::rgb(0xff77a8), color::WHITE, 0.3f), // 4 vibrato
+        mix(color::rgb(0xff77a8), color::WHITE, 0.2f), // 1 portamento up
+        mix(color::rgb(0xff77a8), color::WHITE, 0.2f), // 2 portamento down
+        mix(color::rgb(0xff77a8), color::WHITE, 0.2f), // 3 tone portamento
 
-        mix(color::rgb(0x00e436), color::WHITE, 0.3f), // 5 attack/decay
-        mix(color::rgb(0x00e436), color::WHITE, 0.3f), // 6 sustain/release
+        mix(color::rgb(0xff004d), color::WHITE, 0.2f), // 4 vibrato
 
-        mix(color::rgb(0xffa300), color::WHITE, 0.3f), // 7 waveform reg
-        mix(color::rgb(0xffa300), color::WHITE, 0.3f), // 8 wavetable ptr
-        mix(color::rgb(0xffa300), color::WHITE, 0.3f), // 9 pulsetable ptr
+        mix(color::rgb(0x00e436), color::WHITE, 0.2f), // 5 attack/decay
+        mix(color::rgb(0x00e436), color::WHITE, 0.2f), // 6 sustain/release
 
-        mix(color::rgb(0x29adff), color::WHITE, 0.3f), // A filtertable ptr
-        mix(color::rgb(0x29adff), color::WHITE, 0.3f), // B filter control
-        mix(color::rgb(0x29adff), color::WHITE, 0.3f), // C filter cutoff
+        mix(color::rgb(0xffa300), color::WHITE, 0.2f), // 7 waveform reg
+        mix(color::rgb(0xffa300), color::WHITE, 0.2f), // 8 wavetable ptr
+        mix(color::rgb(0xffa300), color::WHITE, 0.2f), // 9 pulsetable ptr
 
-        mix(color::rgb(0x00e436), color::WHITE, 0.3f), // D master volume
+        mix(color::rgb(0x29adff), color::WHITE, 0.2f), // A filtertable ptr
+        mix(color::rgb(0x29adff), color::WHITE, 0.2f), // B filter control
+        mix(color::rgb(0x29adff), color::WHITE, 0.2f), // C filter cutoff
 
-        mix(color::rgb(0xffec27), color::WHITE, 0.3f), // E funk tempo
-        mix(color::rgb(0xffec27), color::WHITE, 0.3f), // F tempo
+        mix(color::rgb(0x00e436), color::WHITE, 0.2f), // D master volume
+
+        mix(color::rgb(0xffec27), color::WHITE, 0.2f), // E funk tempo
+        mix(color::rgb(0xffec27), color::WHITE, 0.2f), // F tempo
     };
 
     constexpr u8vec4 ROW_NUMBER     = color::rgb(0xaaaaaa);
@@ -54,7 +55,7 @@ enum {
 };
 
 // settings
-int                g_row_height         = 13; // 8-16, default: 13
+int                g_row_height         = 13; // 9-16, default: 13
 int                g_row_highlight_step = 8;
 
 std::array<int, 3> g_pattern_nums       = { 0, 1, 2 };
@@ -319,6 +320,7 @@ void draw() {
             uint8_t v = song.songorder[SONG_NR][c][row];
 
             dc.color(color::BACKGROUND_ROW);
+            if (v == g_pattern_nums[c]) dc.color(color::HIGHLIGHT_ROW);
             if (is_playing && row == player_song_rows[c]) dc.color(color::PLAYER_ROW);
             dc.fill(box);
 
@@ -332,6 +334,10 @@ void draw() {
                 g_cursor_pattern_row = -1;
                 g_cursor_song_row    = row;
             }
+            if (gui::hold()) {
+                LOGD("hold");
+            }
+
             if (state != gui::ButtonState::Normal) {
                 dc.color(color::BUTTON_HELD);
                 dc.box(box, gui::BoxStyle::Cursor);
@@ -504,17 +510,10 @@ void draw() {
     }
 
 
-
-    // if (g_dialog == Dialog::Order) {
-    //     gui::begin_window();
-    //     gui::cursor({});
-    //     gui::item_size({ app::CANVAS_WIDTH, 16 });
-    //     gui::align(gui::Align::Center);
-    //     if (gui::button("CANCEL")) g_dialog = Dialog::None;
-    //     gui::end_window();
-    // }
-
+    // piano
     bool note_on = draw_piano();
+
+
 
     gui::cursor({ 0, app::canvas_height() - 48 - 16 - 24 });
     gui::align(gui::Align::Center);
@@ -588,7 +587,7 @@ void draw() {
         if (gui::button(gui::Icon::DeleteRow)) {
             if (len > 1) {
                 --len;
-                memmove(pattern + pos*4, pattern + pos*4 + 4, (len-pos) * 4);
+                memmove(pattern + pos*4, pattern + pos*4 + 4, (len-pos) * 4 + 4);
                 if (pos >= len) pos = len - 1;
             }
         }

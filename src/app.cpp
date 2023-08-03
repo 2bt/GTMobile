@@ -15,17 +15,6 @@
 namespace app {
 namespace {
 
-gt::Song    g_song;
-gt::Player  g_player(g_song);
-
-int         g_canvas_height;
-gfx::Canvas g_canvas;
-float       g_canvas_scale;
-int16_t     g_canvas_offset;
-bool        g_initialized = false;
-
-
-
 const std::array<const char*, 3> VIEW_NAMES = {
     "PROJECT",
     "SONG",
@@ -38,15 +27,27 @@ const std::array<void(*)() , 3> VIEW_FUNCS = {
     instrument_view::draw,
 };
 
-View g_view = View::Project;
+View        g_view = View::Project;
+
+gt::Song    g_song;
+gt::Player  g_player(g_song);
+
+int         g_canvas_height;
+gfx::Canvas g_canvas;
+float       g_canvas_scale;
+int16_t     g_canvas_offset;
+bool        g_initialized = false;
+
+
 
 
 } // namespace
 
 
-gt::Song& song() { return g_song; }
+gt::Song&   song() { return g_song; }
 gt::Player& player() { return g_player; }
-int canvas_height() { return g_canvas_height; }
+int         canvas_height() { return g_canvas_height; }
+
 void set_view(View view) {
     g_view = view;
 }
@@ -98,7 +99,7 @@ void free() {
 }
 
 void resize(int width, int height) {
-    gfx::set_screen_size({width, height});
+    gfx::screen_size({width, height});
 
     g_canvas_height = std::max<int16_t>(CANVAS_WIDTH * height / width, CANVAS_MIN_HEIGHT);
 
@@ -125,7 +126,7 @@ void resize(int width, int height) {
     while (h < g_canvas_height) h *= 2;
     g_canvas.init({ w, h });
     if (g_canvas_scale != (int) g_canvas_scale) {
-        g_canvas.set_filter(gfx::Texture::LINEAR);
+        g_canvas.filter(gfx::Texture::LINEAR);
     }
 }
 
@@ -144,8 +145,8 @@ void key(int key, int unicode) {
 void draw() {
     sid::update_state();
 
-    gfx::set_canvas(g_canvas);
-    gfx::set_blend(true);
+    gfx::canvas(g_canvas);
+    gfx::blend(true);
     gfx::clear(0.0, 0.0, 0.0);
 
     gui::begin_frame();
@@ -169,8 +170,8 @@ void draw() {
 
 
     // draw canvas
-    gfx::set_canvas();
-    gfx::set_blend(false);
+    gfx::reset_canvas();
+    gfx::blend(false);
     gfx::clear(0.1, 0.1, 0.1);
     u8vec4 white(255);
     ivec2 p(g_canvas_offset, 0);

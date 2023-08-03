@@ -48,17 +48,16 @@ void confirm(std::string msg, ConfirmCallback cb) {
 
 
 
-
-std::array<char, 32>     g_file_name;
-std::vector<std::string> g_file_names;
-
-
 enum Dialog {
     None,
     Load,
 };
 
-Dialog g_dialog = Dialog::None;
+Dialog                   g_dialog = Dialog::None;
+std::array<char, 32>     g_file_name;
+std::vector<std::string> g_file_names;
+
+
 
 void draw_load_window() {
     if (g_dialog != Dialog::Load) return;
@@ -87,7 +86,7 @@ void draw_load_window() {
     }
 
     gui::align(gui::Align::Center);
-    gui::item_size({ app::CANVAS_WIDTH / 2, 16 });
+    gui::item_size({ app::CANVAS_WIDTH / 2, 24 });
     if (gui::button("CANCEL")) g_dialog = Dialog::None;
     gui::same_line();
     if (gui::button("LOAD")) {
@@ -97,7 +96,6 @@ void draw_load_window() {
         std::vector<uint8_t> buffer;
         platform::load_asset((std::string("songs/") + g_file_name.data()).c_str(), buffer);
         app::song().load(buffer.data(), buffer.size());
-        // app::player().init_song(0, gt::Player::PLAY_STOP);
     }
 
     // scrollbar
@@ -156,7 +154,7 @@ void draw() {
     gui::item_box();
 
     gui::align(gui::Align::Center);
-    gui::item_size({ app::CANVAS_WIDTH, 16 });
+    gui::item_size({ app::CANVAS_WIDTH, 24 });
     if (gui::button("RESET")) {
         app::player().init_song(0, gt::Player::PLAY_STOP);
         confirm("LOSE CHANGES TO THE CURRENT SONG?", [](bool ok) {

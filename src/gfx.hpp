@@ -26,7 +26,7 @@ public:
     enum FilterMode { NEAREST, LINEAR };
     ivec2 size() const { return m_size; }
     void free();
-    void set_filter(FilterMode filter);
+    void filter(FilterMode filter);
 protected:
     Texture() {}
     void init(ivec2 size, uint8_t const* pixels);
@@ -36,7 +36,7 @@ protected:
 
 
 class Canvas : public Texture {
-friend void set_canvas(Canvas const& canvas);
+friend void canvas(Canvas const& canvas);
 public:
     void init(ivec2 size);
     void free();
@@ -54,12 +54,12 @@ public:
 bool init();
 void free();
 
-void set_screen_size(ivec2 size);
+void  screen_size(ivec2 size);
 ivec2 screen_size();
 
-void set_blend(bool enabled);
-void set_canvas();
-void set_canvas(Canvas const& canvas);
+void blend(bool enabled);
+void reset_canvas();
+void canvas(Canvas const& canvas);
 
 void clear(float r, float g, float b);
 void draw(Mesh const& mesh, Texture const& tex);

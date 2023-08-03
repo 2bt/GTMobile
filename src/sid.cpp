@@ -46,6 +46,7 @@ void update_state() {
 }
 
 float chan_level(int c) {
+    if (!(g_state.sid_register[c * 7 + 4] & 0xf0)) return 0;
     return g_state.envelope_counter[c] * (1.0f / 0xff);
 }
 

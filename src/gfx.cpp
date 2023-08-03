@@ -37,12 +37,12 @@ void Texture::init(ivec2 size, uint8_t const* pixels) {
     m_size = size;
     glGenTextures(1, &m_gl_texture);
     //glBindTexture(GL_TEXTURE_2D, m_gl_texture);
-    set_filter(NEAREST);
+    filter(NEAREST);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
     glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, size.x, size.y, 0, GL_RGBA, GL_UNSIGNED_BYTE, pixels);
 }
-void Texture::set_filter(FilterMode filter) {
+void Texture::filter(FilterMode filter) {
     GLint f = filter == LINEAR ? GL_LINEAR : GL_NEAREST;
     glBindTexture(GL_TEXTURE_2D, m_gl_texture);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, f);
@@ -98,13 +98,13 @@ namespace {
 } // namspace
 
 
-void set_canvas() {
+void reset_canvas() {
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
     glUseProgram(g_program);
     glUniform2f(g_pos_scale_loc, 2.0f / g_screen_size.x, 2.0f / g_screen_size.y);
     glViewport(0, 0, g_screen_size.x, g_screen_size.y);
 }
-void set_canvas(Canvas const& canvas) {
+void canvas(Canvas const& canvas) {
     glBindFramebuffer(GL_FRAMEBUFFER, canvas.m_gl_framebuffer);
     glUseProgram(g_program);
     glUniform2f(g_pos_scale_loc, 2.0f / canvas.size().x, 2.0f / canvas.size().y);
@@ -207,7 +207,7 @@ void free() {
 }
 
 
-void set_screen_size(ivec2 size) { g_screen_size = size; }
+void screen_size(ivec2 size) { g_screen_size = size; }
 ivec2 screen_size() { return g_screen_size; }
 
 
@@ -216,7 +216,7 @@ void clear(float r, float g, float b) {
     glClear(GL_COLOR_BUFFER_BIT);
 }
 
-void set_blend(bool enabled) {
+void blend(bool enabled) {
     if (enabled) {
         glEnable(GL_BLEND);
         glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);

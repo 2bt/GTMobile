@@ -5,6 +5,8 @@ namespace instrument_view {
 namespace {
 
 
+int g_instrument = 1;
+
 } // namespace
 
 

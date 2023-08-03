@@ -117,8 +117,13 @@ ButtonState button_state(Box const& box, void const* addr) {
 
     // hold
     if (box.contains(g_touch_prev_pos)) {
-        g_hold_time += g_frame_time;
-        if (g_hold_time > 0.25f) g_hold = true;
+        if (g_hold_time >= 0) {
+            g_hold_time += g_frame_time;
+            if (g_hold_time > 0.25f) {
+                g_hold = true;
+                g_hold_time = -1;
+            }
+        }
     }
     else g_hold_time = 0;
 
