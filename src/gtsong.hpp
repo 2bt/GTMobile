@@ -32,7 +32,7 @@ enum {
     MAX_STR          = 32,
     MAX_INSTR        = 64,
     MAX_CHN          = 3,
-    MAX_PATT         = 208,
+    MAX_PATT         = 208, // actually 0x00 - 0xCF
     MAX_TABLES       = 4,
     MAX_TABLELEN     = 255,
     MAX_INSTRNAMELEN = 16,

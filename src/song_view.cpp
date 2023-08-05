@@ -76,11 +76,11 @@ int                g_cursor_pattern_row = -1;
 int                g_cursor_song_row    = -1;
 
 
-// enum class Dialog {
-//     None,
-//     Order,
-// };
-// Dialog g_dialog = Dialog::None;
+enum class Dialog {
+    None,
+    OrderEdit,
+};
+Dialog g_dialog = Dialog::None;
 
 
 
@@ -122,10 +122,10 @@ bool draw_piano() {
 
         ivec2 size = { 8 * 19 * 2, 16 * 33 };
         ivec2 pos  = ivec2(app::CANVAS_WIDTH, app::canvas_height()) / 2 - size / 2;
-        gui::cursor(pos);
-
         dc.color(color::BLACK);
         dc.fill({ pos, size });
+        gui::cursor(pos);
+
 
         gui::align(gui::Align::Left);
         gui::item_size({8 * 19, 16});
@@ -565,6 +565,7 @@ void draw() {
                 // + pattern
                 // + transpose
                 // + repeat
+                g_dialog = Dialog::OrderEdit;
             }
             else {
                 // TODO: loop dialog
@@ -633,6 +634,41 @@ void draw() {
 
     }
 
+
+
+
+    // dialogs
+
+    if (g_dialog == Dialog::OrderEdit) {
+        gui::begin_window();
+
+        ivec2 size = { 13 * 24, 16 * 24 + 24 };
+        ivec2 pos  = ivec2(app::CANVAS_WIDTH, app::canvas_height()) / 2 - size / 2;
+        dc.color(color::BLACK);
+        dc.fill({ pos, size });
+        gui::cursor(pos);
+
+        uint8_t& v = song.songorder[SONG_NR][g_cursor_chan][g_cursor_song_row];
+
+        gui::item_size(24);
+        for (int i = 0; i < gt::MAX_PATT; ++i) {
+            gui::same_line(i % 13 != 0);
+            int n = i % 13 * 16 + i / 13;
+            char str[3] = {};
+            sprintf(str, "%02X", n);
+            if (gui::button(str, v == n)) {
+                g_dialog = Dialog::None;
+                v = n;
+            }
+        }
+
+        gui::item_size({ size.x, 24 });
+        if (gui::button("CANCEL")) {
+            g_dialog = Dialog::None;
+        }
+
+        gui::end_window();
+    }
 
 }
 
