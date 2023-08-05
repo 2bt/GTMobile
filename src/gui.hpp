@@ -126,7 +126,21 @@ private:
 
 
 enum class Icon {
-    Loop = 16,
+    VGrab = 16,
+    HGrab,
+
+    AddRowAbove = 24,
+    AddRowBelow,
+    DeleteRow,
+    Pen,
+    Trash,
+
+    Left = 32,
+    Right,
+    Up,
+    Down,
+
+    Loop = 40,
     Stop,
     Play,
     FastBackward,
@@ -134,14 +148,10 @@ enum class Icon {
     Follow,
     Record,
 
-    Copy = 24,
+    Copy = 48,
     Paste,
 
-    Lowpass = 32,
-    Bandpass,
-    Highpass,
-
-    Noise = 40,
+    Noise = 56,
     Pulse,
     Saw,
     Tri,
@@ -150,11 +160,9 @@ enum class Icon {
     VGate,
     HGate,
 
-    AddRowAbove = 48,
-    AddRowBelow,
-    DeleteRow,
-    VGrab,
-    HGrab,
+    Lowpass = 64,
+    Bandpass,
+    Highpass,
 };
 
 enum class Align { Left, Center };

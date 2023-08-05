@@ -17,7 +17,7 @@ namespace color {
         mix(color::rgb(0xff77a8), color::WHITE, 0.2f), // 2 portamento down
         mix(color::rgb(0xff77a8), color::WHITE, 0.2f), // 3 tone portamento
 
-        mix(color::rgb(0xff004d), color::WHITE, 0.2f), // 4 vibrato
+        mix(color::rgb(0xff2030), color::WHITE, 0.2f), // 4 vibrato
 
         mix(color::rgb(0x00e436), color::WHITE, 0.2f), // 5 attack/decay
         mix(color::rgb(0x00e436), color::WHITE, 0.2f), // 6 sustain/release
@@ -38,9 +38,9 @@ namespace color {
 
     constexpr u8vec4 ROW_NUMBER     = color::rgb(0xaaaaaa);
     constexpr u8vec4 INSTRUMENT     = color::rgb(0xaabbdd);
-    constexpr u8vec4 HIGHLIGHT_ROW  = color::rgb(0x1a1a1a);
-    constexpr u8vec4 PLAYER_ROW     = color::rgb(0x553300);
-    constexpr u8vec4 BACKGROUND_ROW = color::rgb(0x0a0a0a);
+    constexpr u8vec4 HIGHLIGHT_ROW  = color::rgb(0x1c1c1c);
+    constexpr u8vec4 BACKGROUND_ROW = color::rgb(0x0c0c0c);
+    constexpr u8vec4 PLAYER_ROW     = color::rgb(0x553311);
 
 
 } // namespace color
@@ -304,7 +304,7 @@ void draw() {
 
         gui::item_size({ 28, g_row_height });
         gui::Box box = gui::item_box();
-        dc.color(color::BACKGROUND_ROW);
+        dc.color(color::BLACK);
         dc.fill(box);
 
         sprintf(line, "%02X", row);
@@ -401,10 +401,7 @@ void draw() {
 
         gui::item_size({ 28, g_row_height });
         gui::Box box = gui::item_box();
-
-        dc.color(color::BACKGROUND_ROW);
-        // highlight background
-        if (row % g_row_highlight_step == 0) dc.color(color::HIGHLIGHT_ROW);
+        dc.color(color::BLACK);
         dc.fill(box);
 
         sprintf(line, "%02X", row);
@@ -525,24 +522,55 @@ void draw() {
         g_recording = !g_recording;
     }
 
+    gui::same_line();
+    gui::cursor(gui::cursor() + ivec2(24, 0));
+
     // order edit
     if (g_cursor_song_row >= 0) {
         auto& order = song.songorder[SONG_NR][g_cursor_chan];
-        int& len    = song.songlen[SONG_NR][g_cursor_chan];
+        int&  len   = song.songlen[SONG_NR][g_cursor_chan];
+        int&  pos   = g_cursor_song_row;
 
         gui::same_line();
         if (gui::button(gui::Icon::AddRowAbove)) {
-
+            if (len < gt::MAX_SONGLEN && pos <= len) {
+                memmove(order + pos + 1, order + pos, len - pos + 2);
+                order[pos] = 0;
+                ++len;
+                ++pos;
+            }
         }
         gui::same_line();
         if (gui::button(gui::Icon::AddRowBelow)) {
-
+            if (len < gt::MAX_SONGLEN && pos < len) {
+                memmove(order + pos + 2, order + pos + 1, len - pos + 1);
+                order[pos + 1] = 0;
+                ++len;
+            }
         }
         gui::same_line();
         if (gui::button(gui::Icon::DeleteRow)) {
-
+            if (len > 0 && pos < len) {
+                memmove(order + pos, order + pos + 1, len - pos + 1);
+                order[len + 1] = 0;
+                // if (order[len] > pos) --order[len];
+                --len;
+            }
         }
 
+        gui::same_line();
+        if (gui::button(gui::Icon::Pen)) {
+            if (pos < len) {
+                // TODO: order dialog
+                // + pattern
+                // + transpose
+                // + repeat
+            }
+            else {
+                // TODO: loop dialog
+
+            }
+        }
 
     }
 

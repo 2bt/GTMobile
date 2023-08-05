@@ -21,7 +21,7 @@ std::string     g_confirm_msg;
 void draw_confirm() {
     if (g_confirm_msg.empty()) return;
     gui::begin_window();
-    gui::cursor({ 0, app::canvas_height() / 2 - 16 });
+    gui::cursor({ 0, app::canvas_height() / 2 - 20 });
     gui::item_size({ app::CANVAS_WIDTH, 16 });
     gui::align(gui::Align::Center);
     gui::text(g_confirm_msg.c_str());
@@ -29,7 +29,7 @@ void draw_confirm() {
         if (gui::button("OK")) g_confirm_msg.clear();
         return;
     }
-    gui::item_size({ app::CANVAS_WIDTH / 2, 16 });
+    gui::item_size({ app::CANVAS_WIDTH / 2, 24 });
     if (gui::button("CANCEL")) {
         g_confirm_msg.clear();
         g_confirm_callback(false);
