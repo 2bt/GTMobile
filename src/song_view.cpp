@@ -6,6 +6,7 @@
 #include "sid.hpp"
 #include <array>
 #include <cstring>
+#include <cassert>
 
 
 namespace color {
@@ -101,18 +102,18 @@ bool draw_piano() {
     gui::DrawContext& dc = gui::draw_context();
     char str[32];
 
-    gui::cursor({ 0, piano_y - 16 });
+    gui::cursor({ 0, piano_y - 24 });
 
     // instrument button
     static bool show_instr_win = false;
-    gui::item_size({ 8 * 19, 16 });
+    gui::item_size({ 8 * 19, 24 });
     gui::align(gui::Align::Left);
     sprintf(str, "%02X %s", g_instrument, song.instr[g_instrument].name.data());
     if (gui::button(str, show_instr_win)) show_instr_win = true;
 
     // piano scroll bar
     gui::same_line();
-    gui::item_size({ app::CANVAS_WIDTH - gui::cursor().x, 16 });
+    gui::item_size({ app::CANVAS_WIDTH - gui::cursor().x, 24 });
     gui::horizontal_drag_bar(g_piano_scroll, 0, PIANO_STEP_COUNT - PIANO_PAGE, PIANO_PAGE);
 
 
@@ -120,10 +121,10 @@ bool draw_piano() {
     if (show_instr_win) {
         gui::begin_window();
 
-        ivec2 size = { 8 * 19 * 2, 16 * 33 };
+        ivec2 size = { 8 * 19 * 2, 16 * 32 + 24 };
         ivec2 pos  = ivec2(app::CANVAS_WIDTH, app::canvas_height()) / 2 - size / 2;
-        dc.color(color::BLACK);
-        dc.fill({ pos, size });
+        dc.color(color::BUTTON_NORMAL);
+        dc.box({ pos - 4, size + 8 }, gui::BoxStyle::Window);
         gui::cursor(pos);
 
 
@@ -139,7 +140,7 @@ bool draw_piano() {
                 show_instr_win = false;
             }
         }
-        gui::item_size({ 8 * 19 * 2, 16 });
+        gui::item_size({ 8 * 19 * 2, 24 });
         gui::align(gui::Align::Center);
         if (gui::button("CANCEL")) show_instr_win = false;
         gui::end_window();
@@ -223,25 +224,28 @@ bool draw_piano() {
 
 void draw() {
 
+    gt::Player& player = app::player();
+    gt::Song&   song   = app::song();
+
+    gui::DrawContext& dc = gui::draw_context();
 
     // buttons
-    gui::cursor({ 268 + 16, 24 });
-    gui::item_size({ 76, 24 });
+    gui::cursor({ app::CANVAS_WIDTH - 48, 24 });
+    gui::item_size({ 48, 24 });
 
     if (gui::button(gui::Icon::Follow, g_follow)) {
         g_follow = !g_follow;
     }
 
-    bool is_playing = app::player().is_playing();
+    bool is_playing = player.is_playing();
     if (gui::button(gui::Icon::Play, is_playing)) {
         if (is_playing) {
-            app::player().stop_song();
+            player.stop_song();
         }
         else {
-            app::player().init_song(0, gt::Player::PLAY_BEGINNING);
+            player.init_song(0, gt::Player::PLAY_BEGINNING);
         }
     }
-
 
 
     // get player position info
@@ -252,13 +256,12 @@ void draw() {
         uint8_t  songptr;
         uint8_t  pattnum;
         uint32_t pattptr;
-        app::player().get_chan_info(c, songptr, pattnum, pattptr);
+        player.get_chan_info(c, songptr, pattnum, pattptr);
         player_song_rows[c]    = std::max<int>(0, songptr - 1);
         player_pattern_nums[c] = pattnum;
         player_pattern_rows[c] = pattptr / 4;
     }
 
-    gt::Song& song = app::song();
     int max_song_len =                    song.songlen[SONG_NR][0];
     max_song_len = std::max(max_song_len, song.songlen[SONG_NR][1]);
     max_song_len = std::max(max_song_len, song.songlen[SONG_NR][2]);
@@ -271,7 +274,7 @@ void draw() {
 
     gui::cursor({ 0, 24 });
 
-    int height_left = app::canvas_height() - (gui::cursor().y + 48 + 16 + 16 + 24);
+    int height_left = app::canvas_height() - (gui::cursor().y + 48 + 24 + 24 + 24);
     int total_rows = height_left / g_row_height;
     g_song_page_length = clamp(g_song_page_length, 0, total_rows);
     int pattern_page_length = total_rows - g_song_page_length;
@@ -291,27 +294,24 @@ void draw() {
 
 
 
-    gui::DrawContext& dc = gui::draw_context();
 
 
     // put text in the center of the row
-    ivec2 text_offset = { 4, (g_row_height - 7) / 2 };
-    char line[16];
+    int text_offset = (g_row_height - 7) / 2;
+    char str[32];
 
     // song table
     for (int i = 0; i < g_song_page_length; ++i) {
         int row = g_song_scroll + i;
 
-        gui::item_size({ 28, g_row_height });
+        gui::item_size({ 30, g_row_height });
         gui::Box box = gui::item_box();
-        dc.color(color::BLACK);
-        dc.fill(box);
 
-        sprintf(line, "%02X", row);
+        sprintf(str, "%02X", row);
         dc.color(color::ROW_NUMBER);
-        dc.text(box.pos + text_offset + ivec2(4, 0), line);
+        dc.text(box.pos + ivec2(7, text_offset), str);
 
-        gui::item_size({ 80, g_row_height });
+        gui::item_size({ 86, g_row_height });
         for (int c = 0; c < 3; ++c) {
             gui::same_line();
             gui::Box box = gui::item_box();
@@ -322,7 +322,7 @@ void draw() {
             dc.color(color::BACKGROUND_ROW);
             if (v == g_pattern_nums[c]) dc.color(color::HIGHLIGHT_ROW);
             if (is_playing && row == player_song_rows[c]) dc.color(color::PLAYER_ROW);
-            dc.fill(box);
+            dc.fill({ box.pos + ivec2(1, 0), box.size - ivec2(2, 0) });
 
             gui::ButtonState state = gui::button_state(box);
             if (state == gui::ButtonState::Released) {
@@ -333,9 +333,6 @@ void draw() {
                 g_cursor_chan        = c;
                 g_cursor_pattern_row = -1;
                 g_cursor_song_row    = row;
-            }
-            if (gui::hold()) {
-                LOGD("hold");
             }
 
             if (state != gui::ButtonState::Normal) {
@@ -348,50 +345,50 @@ void draw() {
             }
 
             if (v == gt::LOOPSONG) {
-                sprintf(line, "LOOP %02X", song.songorder[SONG_NR][c][row + 1]);
+                sprintf(str, "GOTO %02X", song.songorder[SONG_NR][c][row + 1]);
             }
             else if (v >= gt::TRANSUP) {
-                sprintf(line, "TRANSP +%X", v & 0xf);
+                sprintf(str, "TR +%X", v & 0xf);
             }
             else if (v >= gt::TRANSDOWN) {
-                sprintf(line, "TRANSP -%X", 16 - (v & 0xf));
+                sprintf(str, "TR -%X", 16 - (v & 0xf));
             }
             else if (v >= gt::REPEAT) {
-                sprintf(line, "REPEAT %X", v & 0xf);
+                sprintf(str, "REP %X", v & 0xf);
             }
             else {
-                sprintf(line, "%02X", v);
+                sprintf(str, "%02X", v);
             }
 
             dc.color(color::WHITE);
-            dc.text(box.pos + text_offset, line);
+            dc.text(box.pos + ivec2(7, text_offset), str);
         }
 
     }
 
 
     // pattern bar
-    gui::item_size({ 28, g_row_height });
+    gui::item_size({ 30, g_row_height });
     gui::item_box();
-    gui::item_size({ 80, 16 });
+    gui::item_size({ 86, 24 });
     for (int c = 0; c < 3; ++c) {
         gui::same_line();
 
         ivec2 p = gui::cursor();
-        bool active = app::player().is_channel_active(c);
+        bool active = player.is_channel_active(c);
         if (gui::button("", active)) {
-            app::player().set_channel_active(c, !active);
+            player.set_channel_active(c, !active);
         }
 
-        sprintf(line, "%02X", g_pattern_nums[c]);
+        sprintf(str, "%02X", g_pattern_nums[c]);
         dc.color(color::WHITE);
-        dc.text(p + 4, line);
+        dc.text(p + ivec2(7, 8), str);
 
         dc.color(color::BLACK);
-        dc.fill({ p + ivec2(24, 5), { 51, 6 } });
+        dc.fill({ p + ivec2(27, 8), { 51, 8 } });
 
         dc.color(color::WHITE);
-        dc.fill({ p + ivec2(24, 5), ivec2(sid::chan_level(c) * 51.0f + 0.9f,  6) });
+        dc.fill({ p + ivec2(27, 8), ivec2(sid::chan_level(c) * 51.0f + 0.9f, 8) });
     }
 
 
@@ -399,16 +396,14 @@ void draw() {
     for (int i = 0; i < pattern_page_length; ++i) {
         int row = g_pattern_scroll + i;
 
-        gui::item_size({ 28, g_row_height });
+        gui::item_size({ 30, g_row_height });
         gui::Box box = gui::item_box();
-        dc.color(color::BLACK);
-        dc.fill(box);
 
-        sprintf(line, "%02X", row);
+        sprintf(str, "%02X", row);
         dc.color(color::ROW_NUMBER);
-        dc.text(box.pos + text_offset + ivec2(4, 0), line);
+        dc.text(box.pos + ivec2(7, text_offset), str);
 
-        gui::item_size({ 80, g_row_height });
+        gui::item_size({ 86, g_row_height });
         for (int c = 0; c < 3; ++c) {
             gui::same_line();
             gui::Box box = gui::item_box();
@@ -420,7 +415,7 @@ void draw() {
             if (is_playing && g_pattern_nums[c] == player_pattern_nums[c] && row == player_pattern_rows[c]) {
                 dc.color(color::PLAYER_ROW);
             }
-            dc.fill(box);
+            dc.fill({ box.pos + ivec2(1, 0), box.size - ivec2(2, 0) });
 
             gui::ButtonState state = gui::button_state(box);
             if (state == gui::ButtonState::Released) {
@@ -445,53 +440,55 @@ void draw() {
             int cmd   = p[2];
             int arg   = p[3];
 
+            ivec2 t = box.pos + ivec2(7, text_offset);
+
             dc.color(color::WHITE);
             if (note == gt::REST) {
                 dc.color(color::DARK_GREY);
-                dc.text(box.pos + text_offset, "...");
+                dc.text(t, "...");
             }
             else if (note == gt::KEYOFF) {
-                dc.text(box.pos + text_offset, "===");
+                dc.text(t, "===");
             }
             else if (note == gt::KEYON) {
-                dc.text(box.pos + text_offset, "+++");
+                dc.text(t, "+++");
             }
             else {
-                sprintf(line, "%c%c%d", "CCDDEFFGGAAB"[note % 12],
+                sprintf(str, "%c%c%d", "CCDDEFFGGAAB"[note % 12],
                                 "-#-#--#-#-#-"[note % 12],
                                 (note - gt::FIRSTNOTE) / 12);
-                dc.text(box.pos + text_offset, line);
+                dc.text(t, str);
             }
-            box.pos.x += 28;
+            t.x += 28;
 
             if (instr > 0) {
-                sprintf(line, "%02X", instr);
+                sprintf(str, "%02X", instr);
                 dc.color(color::INSTRUMENT);
-                dc.text(box.pos + text_offset, line);
+                dc.text(t, str);
             }
-            box.pos.x += 20;
+            t.x += 20;
 
             if (cmd > 0) {
                 dc.color(color::CMDS[cmd]);
-                sprintf(line, "%X%02X", cmd, arg);
-                dc.text(box.pos + text_offset, line);
+                sprintf(str, "%X%02X", cmd, arg);
+                dc.text(t, str);
             }
         }
     }
 
 
     // scroll bars
-    gui::cursor({ 268, 24 });
+    gui::cursor({ app::CANVAS_WIDTH - 24 * 3, 24 });
     {
         int page = g_song_page_length;
         int max_scroll = std::max<int>(0, max_song_len - page);
-        gui::item_size({16, page * g_row_height});
+        gui::item_size({ 24, page * g_row_height });
         if (gui::vertical_drag_bar(g_song_scroll, 0, max_scroll, page)) {
             if (is_playing) g_follow = false;
         }
     }
     {
-        gui::item_size(16);
+        gui::item_size(24);
         static int dy = 0;
         if (gui::vertical_drag_button(dy)) {
             g_song_page_length += dy;
@@ -500,7 +497,7 @@ void draw() {
     {
         int page = pattern_page_length;
         int max_scroll = std::max<int>(0, max_pattern_len - page);
-        gui::item_size({16, page * g_row_height});
+        gui::item_size({ 24, page * g_row_height });
         if (gui::vertical_drag_bar(g_pattern_scroll, 0, max_scroll, page)) {
             if (is_playing) g_follow = false;
         }
@@ -512,7 +509,7 @@ void draw() {
 
 
 
-    gui::cursor({ 0, app::canvas_height() - 48 - 16 - 24 });
+    gui::cursor({ 0, app::canvas_height() - 48 - 24 - 24 });
     gui::align(gui::Align::Center);
 
     // record button
@@ -526,7 +523,7 @@ void draw() {
     gui::cursor(gui::cursor() + ivec2(24, 0));
 
     // order edit
-    if (g_cursor_song_row >= 0) {
+    if (g_cursor_song_row >= 0 && !(is_playing && g_follow)) {
         auto& order = song.songorder[SONG_NR][g_cursor_chan];
         int&  len   = song.songlen[SONG_NR][g_cursor_chan];
         int&  pos   = g_cursor_song_row;
@@ -576,7 +573,7 @@ void draw() {
     }
 
     // pattern edit
-    if (g_cursor_pattern_row >= 0) {
+    if (g_cursor_pattern_row >= 0 && !(is_playing && g_follow)) {
         int      pat_nr  = g_pattern_nums[g_cursor_chan];
         auto&    pattern = song.pattern[pat_nr];
         int&     len     = song.pattlen[pat_nr];
@@ -642,24 +639,53 @@ void draw() {
     if (g_dialog == Dialog::OrderEdit) {
         gui::begin_window();
 
-        ivec2 size = { 13 * 24, 16 * 24 + 24 };
+        ivec2 size = { 13 * 24, (16 + 3) * 24 };
         ivec2 pos  = ivec2(app::CANVAS_WIDTH, app::canvas_height()) / 2 - size / 2;
-        dc.color(color::BLACK);
-        dc.fill({ pos, size });
+        dc.color(color::BUTTON_NORMAL);
+        dc.box({ pos - 4, size + 8 }, gui::BoxStyle::Window);
         gui::cursor(pos);
 
         uint8_t& v = song.songorder[SONG_NR][g_cursor_chan][g_cursor_song_row];
+        assert(v < gt::LOOPSONG);
 
         gui::item_size(24);
         for (int i = 0; i < gt::MAX_PATT; ++i) {
             gui::same_line(i % 13 != 0);
             int n = i % 13 * 16 + i / 13;
-            char str[3] = {};
             sprintf(str, "%02X", n);
             if (gui::button(str, v == n)) {
                 g_dialog = Dialog::None;
                 v = n;
             }
+        }
+
+
+        static int transpose = 0;
+        static int repeat    = 0;
+        bool       is_transpose = false;
+        bool       is_repeat    = false;
+
+        if (v >= gt::TRANSUP) {
+            is_transpose = true;
+            transpose    = v & 0x0f;
+        }
+        else if (v >= gt::TRANSDOWN) {
+            is_transpose = true;
+            transpose    = (v & 0x0f) - 16;
+        }
+        else if (v >= gt::REPEAT) {
+            is_repeat = true;
+            repeat    = v & 0x0f;
+        }
+
+        gui::item_size({ 48, 24 });
+        sprintf(str, "TR %c%X", "+-"[transpose < 0], abs(transpose));
+        if (gui::button(str, is_transpose)) {
+            // TODO
+        }
+        sprintf(str, "REP %X", repeat);
+        if (gui::button(str, is_repeat)) {
+            // TODO
         }
 
         gui::item_size({ size.x, 24 });

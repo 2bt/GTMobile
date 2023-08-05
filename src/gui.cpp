@@ -323,6 +323,7 @@ void text(char const* fmt, ...) {
     char const* str = print_to_text_buffer(fmt, args);
     va_end(args);
     Box box = item_box();
+    g_dc.color(color::WHITE);
     g_dc.text(text_pos(box, str), str);
 }
 void input_text(char* str, int len) {

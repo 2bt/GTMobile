@@ -21,15 +21,22 @@ std::string     g_confirm_msg;
 void draw_confirm() {
     if (g_confirm_msg.empty()) return;
     gui::begin_window();
-    gui::cursor({ 0, app::canvas_height() / 2 - 20 });
-    gui::item_size({ app::CANVAS_WIDTH, 16 });
+
+    ivec2 size = { app::CANVAS_WIDTH - 24 * 2, 24 * 2 };
+    ivec2 pos  = ivec2(app::CANVAS_WIDTH, app::canvas_height()) / 2 - size / 2;
+    gui::DrawContext& dc = gui::draw_context();
+    dc.color(color::BUTTON_NORMAL);
+    dc.box({ pos - 4, size + 8 }, gui::BoxStyle::Window);
+    gui::cursor(pos);
+
+    gui::item_size({ size.x, 24 });
     gui::align(gui::Align::Center);
     gui::text(g_confirm_msg.c_str());
     if (!g_confirm_callback) {
         if (gui::button("OK")) g_confirm_msg.clear();
         return;
     }
-    gui::item_size({ app::CANVAS_WIDTH / 2, 24 });
+    gui::item_size({ size.x / 2, 24 });
     if (gui::button("CANCEL")) {
         g_confirm_msg.clear();
         g_confirm_callback(false);
@@ -62,16 +69,26 @@ std::vector<std::string> g_file_names;
 void draw_load_window() {
     if (g_dialog != Dialog::Load) return;
 
-    gui::begin_window();
-
     enum {
         PAGE = 20,
     };
     static int scroll = 0;
 
-    ivec2 p = gui::cursor();
+    gui::begin_window();
+
+    ivec2 size = { app::CANVAS_WIDTH - 24 * 2, PAGE * 16 + 24 * 2  };
+    ivec2 pos  = ivec2(app::CANVAS_WIDTH, app::canvas_height()) / 2 - size / 2;
+    gui::DrawContext& dc = gui::draw_context();
+    dc.color(color::BUTTON_NORMAL);
+    dc.box({ pos - 4, size + 8 }, gui::BoxStyle::Window);
+    gui::cursor(pos);
+
+    gui::item_size({ size.x, 24 });
+    gui::align(gui::Align::Center);
+    gui::text("LOAD SONG");
+
     gui::align(gui::Align::Left);
-    gui::item_size({ app::CANVAS_WIDTH - 16, 16 });
+    gui::item_size({ size.x - 24, 16 });
 
     for (int i = 0; i < PAGE; ++i) {
         size_t row = scroll + i;
@@ -86,7 +103,7 @@ void draw_load_window() {
     }
 
     gui::align(gui::Align::Center);
-    gui::item_size({ app::CANVAS_WIDTH / 2, 24 });
+    gui::item_size({ size.x / 2, 24 });
     if (gui::button("CANCEL")) g_dialog = Dialog::None;
     gui::same_line();
     if (gui::button("LOAD")) {
@@ -99,8 +116,8 @@ void draw_load_window() {
     }
 
     // scrollbar
-    gui::cursor(ivec2(app::CANVAS_WIDTH - 16, p.y));
-    gui::item_size({ 16, PAGE * 16 });
+    gui::cursor(pos + ivec2(size.x - 24, 24));
+    gui::item_size({ 24, PAGE * 16 });
     int max_scroll = std::max(0, int(g_file_names.size()) - PAGE);
     gui::vertical_drag_bar(scroll, 0, max_scroll, PAGE);
 

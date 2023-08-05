@@ -59,6 +59,7 @@ enum class BoxStyle {
     Tab,
     Text,
     Cursor,
+    Window,
 
     PianoKey = 8,
 };
