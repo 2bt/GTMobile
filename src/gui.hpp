@@ -194,6 +194,7 @@ void begin_frame();
 void end_frame();
 
 void begin_window();
+Box  begin_window(ivec2 size);
 void end_window();
 
 

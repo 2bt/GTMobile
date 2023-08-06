@@ -259,6 +259,14 @@ void begin_window() {
     }
     g_dc.mesh(g_windows[g_window_index].mesh);
 }
+Box begin_window(ivec2 size) {
+    begin_window();
+    ivec2 pos  = ivec2(app::CANVAS_WIDTH, app::canvas_height()) / 2 - size / 2;
+    g_dc.color(color::BUTTON_NORMAL);
+    g_dc.box({ pos - 4, size + 8 }, BoxStyle::Window);
+    cursor(pos);
+    return { pos, size };
+}
 void end_window() {
     --g_window_index;
     g_dc.mesh(g_windows[g_window_index].mesh);

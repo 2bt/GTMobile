@@ -84,6 +84,91 @@ enum class Dialog {
 Dialog g_dialog = Dialog::None;
 
 
+int                            g_transpose;
+int                            g_repeat;
+std::array<bool, gt::MAX_PATT> g_pattern_empty;
+
+void init_order_edit() {
+    g_dialog = Dialog::OrderEdit;
+
+    gt::Song const& song = app::song();
+
+    uint8_t v = song.songorder[SONG_NR][g_cursor_chan][g_cursor_song_row];
+    assert(v < gt::LOOPSONG);
+    if      (v >= gt::TRANSUP)   g_transpose = v & 0x0f;
+    else if (v >= gt::TRANSDOWN) g_transpose = (v & 0x0f) - 16;
+    else if (v >= gt::REPEAT)    g_repeat = v & 0xf;
+
+    for (int i = 0; i < gt::MAX_PATT; ++i) {
+        g_pattern_empty[i] = true;
+        auto const& pattern = song.pattern[i];
+        int         len     = song.pattlen[i];
+        for (int r = 0; r < len; ++r) {
+            uint8_t const* p = pattern + r * 4;
+            if (p[0] || p[1] || p[2]) {
+                g_pattern_empty[i] = false;
+                break;
+            }
+        }
+    }
+}
+
+void draw_order_edit() {
+    if (g_dialog != Dialog::OrderEdit) return;
+
+    gui::Box box = gui::begin_window({ 13 * 24, (16 + 3) * 24 });
+
+    gt::Song& song = app::song();
+    uint8_t&  v    = song.songorder[SONG_NR][g_cursor_chan][g_cursor_song_row];
+    char      str[32];
+
+    gui::item_size(24);
+    for (int i = 0; i < gt::MAX_PATT; ++i) {
+        gui::same_line(i % 13 != 0);
+        int n = i % 13 * 16 + i / 13;
+        sprintf(str, "%02X", n);
+        if (gui::button(str, v == n)) {
+            g_dialog = Dialog::None;
+            v = n;
+        }
+    }
+
+    bool is_transpose = false;
+    bool is_repeat    = false;
+    if      (v >= gt::TRANSUP)   is_transpose = true;
+    else if (v >= gt::TRANSDOWN) is_transpose = true;
+    else if (v >= gt::REPEAT)    is_repeat    = true;
+
+    gui::item_size({ 24 * 4, 24 });
+    sprintf(str, "TRANSP %c%X", "+-"[g_transpose < 0], abs(g_transpose));
+    if (gui::button(str, is_transpose)) {
+        g_dialog = Dialog::None;
+        if (g_transpose < 0) v = gt::TRANSDOWN | (16 + g_transpose);
+        else                 v = gt::TRANSUP | g_transpose;
+    }
+    gui::same_line();
+    gui::item_size({ 24 * 9, 24 });
+    gui::horizontal_drag_bar(g_transpose, -0xf, 0xe, 0);
+
+    gui::item_size({ 24 * 4, 24 });
+    sprintf(str, "REPEAT  %X", g_repeat);
+    if (gui::button(str, is_repeat)) {
+        g_dialog = Dialog::None;
+        v = gt::REPEAT | g_repeat;
+    }
+    gui::same_line();
+    gui::item_size({ 24 * 9, 24 });
+    gui::horizontal_drag_bar(g_repeat, 0, 0xf, 0);
+
+    gui::item_size({ box.size.x, 24 });
+    if (gui::button("CANCEL")) {
+        g_dialog = Dialog::None;
+    }
+
+    gui::end_window();
+}
+
+
 
 } // namespace
 
@@ -106,7 +191,7 @@ bool draw_piano() {
 
     // instrument button
     static bool show_instr_win = false;
-    gui::item_size({ 8 * 19, app::SCROLLBAR_WIDTH });
+    gui::item_size({ 8 * 18 + 12, app::SCROLLBAR_WIDTH });
     gui::align(gui::Align::Left);
     sprintf(str, "%02X %s", g_instrument, song.instr[g_instrument].name.data());
     if (gui::button(str, show_instr_win)) show_instr_win = true;
@@ -119,15 +204,10 @@ bool draw_piano() {
 
     // instrument window
     if (show_instr_win) {
-        gui::begin_window();
+        gui::Box box = gui::begin_window({ 8 * 19 * 2, 16 * 32 + 24 + 24 });
 
-        ivec2 size = { 8 * 19 * 2, 16 * 32 + 24 + 24 };
-        ivec2 pos  = ivec2(app::CANVAS_WIDTH, app::canvas_height()) / 2 - size / 2;
-        dc.color(color::BUTTON_NORMAL);
-        dc.box({ pos - 4, size + 8 }, gui::BoxStyle::Window);
-        gui::cursor(pos);
         gui::align(gui::Align::Center);
-        gui::item_size({ size.x, 24 });
+        gui::item_size({ box.size.x, 24 });
         gui::text("SELECT INSTRUMENT");
 
         gui::align(gui::Align::Left);
@@ -142,7 +222,7 @@ bool draw_piano() {
                 show_instr_win = false;
             }
         }
-        gui::item_size({ size.x, 24 });
+        gui::item_size({ box.size.x, 24 });
         gui::align(gui::Align::Center);
         if (gui::button("CANCEL")) show_instr_win = false;
         gui::end_window();
@@ -279,10 +359,13 @@ void draw() {
         if (g_cursor_pattern_row >= 0) {
             assert(g_cursor_song_row == -1);
             int len = song.pattlen[g_cursor_chan];
-            assert(len > 0);
-            g_cursor_pattern_row = std::min(g_cursor_pattern_row, len - 1);
+            if (g_cursor_pattern_row >= len) g_cursor_pattern_row = -1;
         }
-
+        if (g_cursor_song_row >= 0) {
+            assert(g_cursor_pattern_row == -1);
+            int len = song.songlen[SONG_NR][g_cursor_chan];
+            if (g_cursor_song_row > len) g_cursor_song_row = -1;
+        }
     }
     g_song_scroll    = clamp(g_song_scroll, 0, max_song_len - g_song_page_length);
     g_pattern_scroll = clamp(g_pattern_scroll, 0, max_pattern_len - pattern_page_length);
@@ -341,13 +424,13 @@ void draw() {
                 sprintf(str, "GOTO %02X", song.songorder[SONG_NR][c][row + 1]);
             }
             else if (v >= gt::TRANSUP) {
-                sprintf(str, "TR +%X", v & 0xf);
+                sprintf(str, "TRANSP +%X", v & 0xf);
             }
             else if (v >= gt::TRANSDOWN) {
-                sprintf(str, "TR -%X", 16 - (v & 0xf));
+                sprintf(str, "TRANSP -%X", 16 - (v & 0xf));
             }
             else if (v >= gt::REPEAT) {
-                sprintf(str, "REP %X", v & 0xf);
+                sprintf(str, "REPEAT  %X", v & 0xf);
             }
             else {
                 sprintf(str, "%02X", v);
@@ -373,7 +456,7 @@ void draw() {
         if (gui::button(str, active)) {
             player.set_channel_active(c, !active);
         }
-        dc.color({ 0, 0, 0, 0xcc });
+        dc.color(color::BLACK);
         dc.fill({ p + ivec2(27, 7), { 50, 6 } });
         dc.color(color::WHITE);
         dc.fill({ p + ivec2(27, 7), ivec2(sid::chan_level(c) * 50.0f + 0.9f, 6) });
@@ -598,11 +681,7 @@ void draw() {
 
         if (gui::button(gui::Icon::Pen)) {
             if (pos < len) {
-                // TODO: order dialog
-                // + pattern
-                // + transpose
-                // + repeat
-                g_dialog = Dialog::OrderEdit;
+                init_order_edit();
             }
             else {
                 // TODO: loop dialog
@@ -620,68 +699,7 @@ void draw() {
     }
 
 
-
-    // dialogs
-    if (g_dialog == Dialog::OrderEdit) {
-        gui::begin_window();
-
-        ivec2 size = { 13 * 24, (16 + 3) * 24 };
-        ivec2 pos  = ivec2(app::CANVAS_WIDTH, app::canvas_height()) / 2 - size / 2;
-        dc.color(color::BUTTON_NORMAL);
-        dc.box({ pos - 4, size + 8 }, gui::BoxStyle::Window);
-        gui::cursor(pos);
-
-        uint8_t& v = song.songorder[SONG_NR][g_cursor_chan][g_cursor_song_row];
-        assert(v < gt::LOOPSONG);
-
-        gui::item_size(24);
-        for (int i = 0; i < gt::MAX_PATT; ++i) {
-            gui::same_line(i % 13 != 0);
-            int n = i % 13 * 16 + i / 13;
-            sprintf(str, "%02X", n);
-            if (gui::button(str, v == n)) {
-                g_dialog = Dialog::None;
-                v = n;
-            }
-        }
-
-
-        static int transpose = 0;
-        static int repeat    = 0;
-        bool       is_transpose = false;
-        bool       is_repeat    = false;
-
-        if (v >= gt::TRANSUP) {
-            is_transpose = true;
-            transpose    = v & 0x0f;
-        }
-        else if (v >= gt::TRANSDOWN) {
-            is_transpose = true;
-            transpose    = (v & 0x0f) - 16;
-        }
-        else if (v >= gt::REPEAT) {
-            is_repeat = true;
-            repeat    = v & 0x0f;
-        }
-
-        gui::item_size({ 48, 24 });
-        sprintf(str, "TR %c%X", "+-"[transpose < 0], abs(transpose));
-        if (gui::button(str, is_transpose)) {
-            // TODO
-        }
-        sprintf(str, "REP %X", repeat);
-        if (gui::button(str, is_repeat)) {
-            // TODO
-        }
-
-        gui::item_size({ size.x, 24 });
-        if (gui::button("CANCEL")) {
-            g_dialog = Dialog::None;
-        }
-
-        gui::end_window();
-    }
-
+    draw_order_edit();
 }
 
 } // namespace song_view
