@@ -21,30 +21,31 @@ size_t              g_max_window_index;
 size_t              g_last_max_window_count;
 
 
-gfx::Image  g_img;
-DrawContext g_dc;
+gfx::Image   g_img;
+DrawContext  g_dc;
 
-ivec2       g_cursor_min;
-ivec2       g_cursor_max;
-ivec2       g_item_size;
-bool        g_same_line;
-BoxStyle    g_button_style = BoxStyle::Normal;
-Align       g_align = Align::Left;
+ivec2        g_cursor_min;
+ivec2        g_cursor_max;
+ivec2        g_item_size;
+bool         g_same_line;
+BoxStyle     g_button_style = BoxStyle::Normal;
+Align        g_align = Align::Left;
 
 
-float       g_frame_time = 1.0f / 60.0f;
-float       g_hold_time;
-bool        g_hold;
-ivec2       g_touch_pos;
-ivec2       g_touch_prev_pos;
-bool        g_touch_pressed;
-bool        g_touch_prev_pressed;
-void const* g_id;
-void const* g_active_item;
-char*       g_input_text_str = nullptr;
-int         g_input_text_len;
-int         g_input_text_pos;
-float       g_input_cursor_blink;
+float        g_frame_time = 1.0f / 60.0f;
+float        g_hold_time;
+bool         g_hold;
+ivec2        g_touch_pos;
+ivec2        g_touch_prev_pos;
+bool         g_touch_pressed;
+bool         g_touch_prev_pressed;
+void const*  g_id;
+void const*  g_active_item;
+char*        g_input_text_str = nullptr;
+int          g_input_text_len;
+int          g_input_text_pos;
+float        g_input_cursor_blink;
+DragBarTheme g_drag_bar_theme;
 
 
 std::array<char, 256> g_text_buffer;
@@ -357,6 +358,9 @@ void input_text(char* str, int len) {
     }
 }
 
+void drag_bar_theme(DragBarTheme theme) {
+    g_drag_bar_theme = theme;
+}
 
 bool horizontal_drag_bar(int& value, int min, int max, int page) {
     Box box = item_box();
@@ -376,17 +380,21 @@ bool horizontal_drag_bar(int& value, int min, int max, int page) {
     int handle_x = range == 0 ? 0 : (value - min) * move_w / range;
 
     g_dc.color(color::DRAG_BG);
-    // g_dc.fill(box);
     g_dc.box(box, BoxStyle::Normal);
     if (move_w > 0) {
-        g_dc.color(is_active ? color::DRAG_HANDLE_ACTIVE : color::DRAG_HANDLE_NORMAL);
-        g_dc.box({box.pos + ivec2(handle_x, 0), {handle_w, box.size.y}}, BoxStyle::Normal);
-        g_dc.color(color::DRAG_ICON);
-        int i = int(Icon::HGrab);
-        g_dc.rect(box.pos + ivec2(handle_x, 0) + ivec2(handle_w, box.size.y) / 2 - 8, 16,
-                  { i % 8 * 16, i / 8 * 16 });
+        if (g_drag_bar_theme == DragBarTheme::Scrollbar) {
+            g_dc.color(is_active ? color::DRAG_HANDLE_ACTIVE : color::DRAG_HANDLE_NORMAL);
+            g_dc.box({ box.pos + ivec2(handle_x, 0), { handle_w, box.size.y } }, BoxStyle::Normal);
+            g_dc.color(color::DRAG_ICON);
+            int i = int(Icon::HGrab);
+            g_dc.rect(box.pos + ivec2(handle_x, 0) + ivec2(handle_w, box.size.y) / 2 - 8, 16,
+                    { i % 8 * 16, i / 8 * 16 });
+        }
+        else {
+            g_dc.color(is_active ? color::BUTTON_HELD : color::BUTTON_NORMAL);
+            g_dc.box({ box.pos + ivec2(handle_x, 0), { handle_w, box.size.y } }, BoxStyle::Normal);
+        }
     }
-
     return value != old_value;
 }
 
@@ -409,15 +417,20 @@ bool vertical_drag_bar(int& value, int min, int max, int page) {
     int handle_y = range == 0 ? 0 : (value - min) * move_h / range;
 
     g_dc.color(color::DRAG_BG);
-    // g_dc.fill(box);
     g_dc.box(box, BoxStyle::Normal);
     if (move_h > 0) {
-        g_dc.color(is_active ? color::DRAG_HANDLE_ACTIVE : color::DRAG_HANDLE_NORMAL);
-        g_dc.box({box.pos + ivec2(0, handle_y), {box.size.x, handle_h}}, BoxStyle::Normal);
-        g_dc.color(color::DRAG_ICON);
-        int i = int(Icon::VGrab);
-        g_dc.rect(box.pos + ivec2(0, handle_y) + ivec2(box.size.x, handle_h) / 2 - 8, 16,
-                  { i % 8 * 16, i / 8 * 16 });
+        if (g_drag_bar_theme == DragBarTheme::Scrollbar) {
+            g_dc.color(is_active ? color::DRAG_HANDLE_ACTIVE : color::DRAG_HANDLE_NORMAL);
+            g_dc.box({ box.pos + ivec2(0, handle_y), { box.size.x, handle_h } }, BoxStyle::Normal);
+            g_dc.color(color::DRAG_ICON);
+            int i = int(Icon::VGrab);
+            g_dc.rect(box.pos + ivec2(0, handle_y) + ivec2(box.size.x, handle_h) / 2 - 8, 16,
+                      { i % 8 * 16, i / 8 * 16 });
+        }
+        else {
+            g_dc.color(is_active ? color::BUTTON_HELD : color::BUTTON_NORMAL);
+            g_dc.box({ box.pos + ivec2(0, handle_y), { box.size.x, handle_h } }, BoxStyle::Normal);
+        }
     }
     return value != old_value;
 }
@@ -434,7 +447,6 @@ bool vertical_drag_button(int& value) {
     }
 
     g_dc.color(is_active ? color::DRAG_HANDLE_ACTIVE : color::DRAG_HANDLE_NORMAL);
-    // g_dc.box(box, g_button_style);
     g_dc.box(box, BoxStyle::Normal);
 
     g_dc.color(color::DRAG_ICON);

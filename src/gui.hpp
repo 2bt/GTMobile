@@ -168,6 +168,12 @@ enum class Icon {
 
 enum class Align { Left, Center };
 
+// enum class ButtonTheme {};
+enum class DragBarTheme {
+    Normal,
+    Scrollbar,
+};
+
 enum {
     KEYCODE_ENTER = 66,
     KEYCODE_DEL   = 67,
@@ -216,11 +222,12 @@ bool button(char const* label, bool active = false);
 
 void input_text(char* str, int len);
 template<class T>void input_text(T& t) { input_text(t.data(), t.size() - 1); }
+
+void drag_bar_theme(DragBarTheme theme);
 bool horizontal_drag_bar(int& value, int min, int max, int page);
 bool vertical_drag_bar(int& value, int min, int max, int page);
 
 bool vertical_drag_button(int& value);
-
 
 // low level functions
 enum class ButtonState { Normal, Pressed, Held, Released };

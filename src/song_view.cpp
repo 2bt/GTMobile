@@ -84,8 +84,8 @@ enum class Dialog {
 Dialog g_dialog = Dialog::None;
 
 
-int                            g_transpose;
-int                            g_repeat;
+int                            g_transpose = 0;
+int                            g_repeat    = 2;
 std::array<bool, gt::MAX_PATT> g_pattern_empty;
 
 void init_order_edit() {
@@ -94,7 +94,7 @@ void init_order_edit() {
     gt::Song const& song = app::song();
 
     uint8_t v = song.songorder[SONG_NR][g_cursor_chan][g_cursor_song_row];
-    assert(v < gt::LOOPSONG);
+    assert(v != gt::LOOPSONG);
     if      (v >= gt::TRANSUP)   g_transpose = v & 0x0f;
     else if (v >= gt::TRANSDOWN) g_transpose = (v & 0x0f) - 16;
     else if (v >= gt::REPEAT)    g_repeat = v & 0xf;
@@ -116,12 +116,14 @@ void init_order_edit() {
 void draw_order_edit() {
     if (g_dialog != Dialog::OrderEdit) return;
 
-    gui::Box box = gui::begin_window({ 13 * 24, (16 + 3) * 24 });
+    gui::Box box = gui::begin_window({ 13 * 24, (16 + 4) * 24 });
 
-    gt::Song& song = app::song();
-    uint8_t&  v    = song.songorder[SONG_NR][g_cursor_chan][g_cursor_song_row];
-    char      str[32];
+    gt::Song& song  = app::song();
+    auto&     order = song.songorder[SONG_NR][g_cursor_chan];
+    int       len   = song.songlen[SONG_NR][g_cursor_chan];
+    uint8_t&  v     = order[g_cursor_song_row];
 
+    char str[32];
     gui::item_size(24);
     for (int i = 0; i < gt::MAX_PATT; ++i) {
         gui::same_line(i % 13 != 0);
@@ -139,28 +141,33 @@ void draw_order_edit() {
     else if (v >= gt::TRANSDOWN) is_transpose = true;
     else if (v >= gt::REPEAT)    is_repeat    = true;
 
-    gui::item_size({ 24 * 4, 24 });
-    sprintf(str, "TRANSP %c%X", "+-"[g_transpose < 0], abs(g_transpose));
+    gui::item_size({ 24 * 3, 24 });
+    sprintf(str, "TRANS %c%X", "+-"[g_transpose < 0], abs(g_transpose));
     if (gui::button(str, is_transpose)) {
         g_dialog = Dialog::None;
         if (g_transpose < 0) v = gt::TRANSDOWN | (16 + g_transpose);
         else                 v = gt::TRANSUP | g_transpose;
     }
     gui::same_line();
-    gui::item_size({ 24 * 9, 24 });
+    gui::item_size({ 24 * 10, 24 });
+    gui::drag_bar_theme(gui::DragBarTheme::Normal);
     gui::horizontal_drag_bar(g_transpose, -0xf, 0xe, 0);
 
-    gui::item_size({ 24 * 4, 24 });
-    sprintf(str, "REPEAT  %X", g_repeat);
+    gui::item_size({ 24 * 3, 24 });
+    sprintf(str, "REPEAT %X", g_repeat);
     if (gui::button(str, is_repeat)) {
         g_dialog = Dialog::None;
         v = gt::REPEAT | g_repeat;
     }
     gui::same_line();
-    gui::item_size({ 24 * 9, 24 });
+    gui::item_size({ 24 * 10, 24 });
     gui::horizontal_drag_bar(g_repeat, 0, 0xf, 0);
 
     gui::item_size({ box.size.x, 24 });
+    if (gui::button("SET LOOP POINTER", order[len + 1] == g_cursor_song_row)) {
+        g_dialog = Dialog::None;
+        order[len + 1] = g_cursor_song_row;
+    }
     if (gui::button("CANCEL")) {
         g_dialog = Dialog::None;
     }
@@ -199,6 +206,7 @@ bool draw_piano() {
     // piano scroll bar
     gui::same_line();
     gui::item_size({ app::CANVAS_WIDTH - gui::cursor().x, app::SCROLLBAR_WIDTH });
+    gui::drag_bar_theme(gui::DragBarTheme::Scrollbar);
     gui::horizontal_drag_bar(g_piano_scroll, 0, PIANO_STEP_COUNT - PIANO_PAGE, PIANO_PAGE);
 
 
@@ -392,8 +400,11 @@ void draw() {
             gui::same_line();
             gui::Box box = gui::item_box();
 
-            if (row > song.songlen[SONG_NR][c]) continue; //  include LOOP
-            uint8_t v = song.songorder[SONG_NR][c][row];
+            auto const& order = song.songorder[SONG_NR][c];
+            int         len   = song.songlen[SONG_NR][c];
+
+            if (row >= len) continue;
+            uint8_t v = order[row];
 
             dc.color(color::BACKGROUND_ROW);
             if (v == g_pattern_nums[c]) dc.color(color::HIGHLIGHT_ROW);
@@ -420,24 +431,27 @@ void draw() {
                 dc.box(box, gui::BoxStyle::Cursor);
             }
 
-            if (v == gt::LOOPSONG) {
-                sprintf(str, "GOTO %02X", song.songorder[SONG_NR][c][row + 1]);
-            }
-            else if (v >= gt::TRANSUP) {
-                sprintf(str, "TRANSP +%X", v & 0xf);
+            assert(v != gt::LOOPSONG);
+            if (v >= gt::TRANSUP) {
+                sprintf(str, "TRANS +%X", v & 0xf);
             }
             else if (v >= gt::TRANSDOWN) {
-                sprintf(str, "TRANSP -%X", 16 - (v & 0xf));
+                sprintf(str, "TRANS -%X", 16 - (v & 0xf));
             }
             else if (v >= gt::REPEAT) {
-                sprintf(str, "REPEAT  %X", v & 0xf);
+                sprintf(str, "REPEAT %X", v & 0xf);
             }
             else {
                 sprintf(str, "%02X", v);
             }
-
             dc.color(color::WHITE);
             dc.text(box.pos + ivec2(6, text_offset), str);
+
+            // loop marker
+            if (row == order[len + 1]) {
+                dc.color(color::BUTTON_HELD);
+                dc.text(box.pos + ivec2(box.size.x - 8, text_offset), "\x05");
+            }
         }
 
     }
@@ -516,13 +530,13 @@ void draw() {
             dc.color(color::WHITE);
             if (note == gt::REST) {
                 dc.color(color::DARK_GREY);
-                dc.text(t, "...");
+                dc.text(t, "\x01\x01\x01");
             }
             else if (note == gt::KEYOFF) {
-                dc.text(t, "===");
+                dc.text(t, "\x02\x02\x02");
             }
             else if (note == gt::KEYON) {
-                dc.text(t, "+++");
+                dc.text(t, "\x03\x03\x03");
             }
             else {
                 sprintf(str, "%c%c%d", "CCDDEFFGGAAB"[note % 12],
@@ -550,6 +564,7 @@ void draw() {
 
     // scroll bars
     gui::cursor({ app::CANVAS_WIDTH - 80, 24 });
+    gui::drag_bar_theme(gui::DragBarTheme::Scrollbar);
     {
         int page = g_song_page_length;
         int max_scroll = std::max<int>(0, max_song_len - page);
@@ -639,12 +654,12 @@ void draw() {
             }
         }
 
-        if (gui::button("===")) {
-            p[0] = p[0] == gt::KEYOFF ? gt::KEYON : gt::KEYOFF;
+        if (gui::button("\x01\x01\x01")) {
+            p[0] = gt::REST;
             p[1] = 0;
         }
-        if (gui::button("...")) {
-            p[0] = gt::REST;
+        if (gui::button("\x02\x02\x02")) {
+            p[0] = p[0] == gt::KEYOFF ? gt::KEYON : gt::KEYOFF;
             p[1] = 0;
         }
     }
@@ -671,7 +686,7 @@ void draw() {
             }
         }
         if (gui::button(gui::Icon::DeleteRow)) {
-            if (len > 0 && pos < len) {
+            if (len > 1 && pos < len) {
                 memmove(order + pos, order + pos + 1, len - pos + 1);
                 order[len + 1] = 0;
                 // if (order[len] > pos) --order[len];
