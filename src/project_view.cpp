@@ -88,7 +88,7 @@ void draw_load_window() {
     gui::text("LOAD SONG");
 
     gui::align(gui::Align::Left);
-    gui::item_size({ size.x - 24, 16 });
+    gui::item_size({ size.x - app::SCROLLBAR_WIDTH, 16 });
 
     for (int i = 0; i < PAGE; ++i) {
         size_t row = scroll + i;
@@ -116,8 +116,8 @@ void draw_load_window() {
     }
 
     // scrollbar
-    gui::cursor(pos + ivec2(size.x - 24, 24));
-    gui::item_size({ 24, PAGE * 16 });
+    gui::cursor(pos + ivec2(size.x - app::SCROLLBAR_WIDTH, 24));
+    gui::item_size({ app::SCROLLBAR_WIDTH, PAGE * 16 });
     int max_scroll = std::max(0, int(g_file_names.size()) - PAGE);
     gui::vertical_drag_bar(scroll, 0, max_scroll, PAGE);
 
