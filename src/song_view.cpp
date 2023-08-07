@@ -40,7 +40,7 @@ namespace color {
 
     constexpr u8vec4 ROW_NUMBER     = color::rgb(0xaaaaaa);
     constexpr u8vec4 INSTRUMENT     = color::rgb(0xaabbdd);
-    constexpr u8vec4 HIGHLIGHT_ROW  = color::rgb(0x1c1c1c);
+    constexpr u8vec4 HIGHLIGHT_ROW  = color::rgb(0x1f1f1f);
     constexpr u8vec4 BACKGROUND_ROW = color::rgb(0x0c0c0c);
     constexpr u8vec4 PLAYER_ROW     = color::rgb(0x553311);
 

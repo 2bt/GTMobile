@@ -348,8 +348,7 @@ void input_text(char* str, int len) {
     bool active = g_input_text_str == str;
     button_color(state, active);
     g_dc.box(box, BoxStyle::Text);
-
-    ivec2 p = box.pos + 4;
+    ivec2 p = box.pos + ivec2(box.size.y / 2 - 4);
     g_dc.color(color::WHITE);
     g_dc.text(p, str);
     // cursor

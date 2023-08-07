@@ -125,7 +125,7 @@ void init() {
 void draw() {
 
     enum {
-        INPUT_WIDTH = 33 * 8,
+        INPUT_WIDTH = 32 * 8 + 12,
     };
 
 
@@ -135,22 +135,22 @@ void draw() {
     gui::item_box();
 
     gui::align(gui::Align::Left);
-    gui::item_size({ app::CANVAS_WIDTH - INPUT_WIDTH, 16 });
+    gui::item_size({ app::CANVAS_WIDTH - INPUT_WIDTH, 20 });
     gui::text("NAME");
     gui::same_line();
-    gui::item_size({ INPUT_WIDTH, 16 });
+    gui::item_size({ INPUT_WIDTH, 20 });
     gui::input_text(song.songname);
 
-    gui::item_size({ app::CANVAS_WIDTH - INPUT_WIDTH, 16 });
+    gui::item_size({ app::CANVAS_WIDTH - INPUT_WIDTH, 20 });
     gui::text("AUTHOR");
     gui::same_line();
-    gui::item_size({ INPUT_WIDTH, 16 });
+    gui::item_size({ INPUT_WIDTH, 20 });
     gui::input_text(song.authorname);
 
-    gui::item_size({ app::CANVAS_WIDTH - INPUT_WIDTH, 16 });
+    gui::item_size({ app::CANVAS_WIDTH - INPUT_WIDTH, 20 });
     gui::text("COPYRIGHT");
     gui::same_line();
-    gui::item_size({ INPUT_WIDTH, 16 });
+    gui::item_size({ INPUT_WIDTH, 20 });
     gui::input_text(song.copyrightname);
 
 
