@@ -9,8 +9,9 @@ namespace {
 
 int  g_instrument = 1;
 int  g_scroll     = 14 * 3; // show octave 3 and 4
-bool g_gate       = false;
+bool g_gate;
 int  g_note;
+bool g_instrument_select;
 
 }
 
@@ -21,7 +22,9 @@ int instrument() {
 int note() {
     return g_note;
 }
-
+void show_instrument_select() {
+    g_instrument_select = true;
+}
 
 bool draw() {
     bool note_on = false;
@@ -37,45 +40,47 @@ bool draw() {
     gui::DrawContext& dc = gui::draw_context();
     char str[32];
 
-    gui::cursor({ 0, piano_y - app::SCROLLBAR_WIDTH });
+    gui::cursor({ 0, piano_y - app::BUTTON_WIDTH });
 
     // instrument button
-    static bool show_instr_win = false;
-    gui::item_size({ 8 * 18 + 12, app::SCROLLBAR_WIDTH });
+    gui::item_size({ 8 * 18 + 12, app::BUTTON_WIDTH });
     gui::align(gui::Align::Left);
     sprintf(str, "%02X %s", g_instrument, song.instr[g_instrument].name.data());
-    if (gui::button(str, show_instr_win)) show_instr_win = true;
+    if (gui::button(str)) show_instrument_select();
 
     // piano scroll bar
     gui::same_line();
-    gui::item_size({ app::CANVAS_WIDTH - gui::cursor().x, app::SCROLLBAR_WIDTH });
+    gui::item_size({ app::CANVAS_WIDTH - gui::cursor().x, app::BUTTON_WIDTH });
     gui::drag_bar_theme(gui::DragBarTheme::Scrollbar);
     gui::horizontal_drag_bar(g_scroll, 0, PIANO_STEP_COUNT - PIANO_PAGE, PIANO_PAGE);
 
 
     // instrument window
-    if (show_instr_win) {
-        gui::Box box = gui::begin_window({ 8 * 19 * 2, 16 * 32 + 24 + 24 });
+    if (g_instrument_select) {
+        gui::Box box = gui::begin_window({ 8 * 19 * 2, 16 * 32 + app::BUTTON_WIDTH * 2 });
 
         gui::align(gui::Align::Center);
-        gui::item_size({ box.size.x, 24 });
+        gui::item_size({ box.size.x, app::BUTTON_WIDTH });
         gui::text("SELECT INSTRUMENT");
 
         gui::align(gui::Align::Left);
         gui::item_size({8 * 19, 16});
         for (int n = 0; n < gt::MAX_INSTR; ++n) {
             gui::same_line(n % 2 == 1);
-
+            if (n == 0) {
+                gui::item_box();
+                continue;
+            }
             int i = n % 2 * 32 + n / 2;
             sprintf(str, "%02X %s", i, song.instr[i].name.data());
             if (gui::button(str, i == g_instrument)) {
                 g_instrument = i;
-                show_instr_win = false;
+                g_instrument_select = false;
             }
         }
-        gui::item_size({ box.size.x, 24 });
+        gui::item_size({ box.size.x, app::BUTTON_WIDTH });
         gui::align(gui::Align::Center);
-        if (gui::button("CANCEL")) show_instr_win = false;
+        if (gui::button("CANCEL")) g_instrument_select = false;
         gui::end_window();
     }
 

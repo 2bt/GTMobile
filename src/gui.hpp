@@ -37,6 +37,41 @@ namespace color {
     constexpr u8vec4 BUTTON_HELD        = mix(color::ORANGE, color::YELLOW, 0.3f);
     constexpr u8vec4 BUTTON_RELEASED    = color::YELLOW;
 
+    constexpr u8vec4 CMDS[16] = {
+        mix(color::rgb(0x000000), color::WHITE, 0.2f),
+
+        mix(color::rgb(0xff77a8), color::WHITE, 0.2f), // 1 portamento up
+        mix(color::rgb(0xff77a8), color::WHITE, 0.2f), // 2 portamento down
+        mix(color::rgb(0xff77a8), color::WHITE, 0.2f), // 3 tone portamento
+
+        mix(color::rgb(0xff2030), color::WHITE, 0.2f), // 4 vibrato
+
+        mix(color::rgb(0x00e436), color::WHITE, 0.2f), // 5 attack/decay
+        mix(color::rgb(0x00e436), color::WHITE, 0.2f), // 6 sustain/release
+
+        mix(color::rgb(0xffa300), color::WHITE, 0.2f), // 7 waveform reg
+        mix(color::rgb(0xffa300), color::WHITE, 0.2f), // 8 wavetable ptr
+        mix(color::rgb(0xffa300), color::WHITE, 0.2f), // 9 pulsetable ptr
+
+        mix(color::rgb(0x29adff), color::WHITE, 0.2f), // A filtertable ptr
+        mix(color::rgb(0x29adff), color::WHITE, 0.2f), // B filter control
+        mix(color::rgb(0x29adff), color::WHITE, 0.2f), // C filter cutoff
+
+        mix(color::rgb(0x00e436), color::WHITE, 0.2f), // D master volume
+
+        mix(color::rgb(0xffec27), color::WHITE, 0.2f), // E funk tempo
+        mix(color::rgb(0xffec27), color::WHITE, 0.2f), // F tempo
+
+    };
+
+    constexpr u8vec4 ROW_NUMBER     = color::rgb(0xaaaaaa);
+    constexpr u8vec4 INSTRUMENT     = color::rgb(0xaabbdd);
+    constexpr u8vec4 HIGHLIGHT_ROW  = color::rgb(0x1f1f1f);
+    constexpr u8vec4 BACKGROUND_ROW = color::rgb(0x0c0c0c);
+    constexpr u8vec4 PLAYER_ROW     = color::rgb(0x553311);
+
+
+
 } // namespace color
 
 

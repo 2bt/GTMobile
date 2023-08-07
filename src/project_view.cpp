@@ -20,16 +20,16 @@ ConfirmCallback g_confirm_callback;
 std::string     g_confirm_msg;
 void draw_confirm() {
     if (g_confirm_msg.empty()) return;
-    gui::Box box = gui::begin_window({ app::CANVAS_WIDTH - 24 * 2, 24 * 2 });
+    gui::Box box = gui::begin_window({ app::CANVAS_WIDTH - 24 * 2, app::BUTTON_WIDTH * 2 });
 
-    gui::item_size({ box.size.x, 24 });
+    gui::item_size({ box.size.x, app::BUTTON_WIDTH });
     gui::align(gui::Align::Center);
     gui::text(g_confirm_msg.c_str());
     if (!g_confirm_callback) {
         if (gui::button("OK")) g_confirm_msg.clear();
         return;
     }
-    gui::item_size({ box.size.x / 2, 24 });
+    gui::item_size({ box.size.x / 2, app::BUTTON_WIDTH });
     if (gui::button("CANCEL")) {
         g_confirm_msg.clear();
         g_confirm_callback(false);
@@ -67,14 +67,14 @@ void draw_load_window() {
     };
     static int scroll = 0;
 
-    gui::Box box = gui::begin_window({ app::CANVAS_WIDTH - 24 * 2, PAGE * 16 + 24 * 2  });
+    gui::Box box = gui::begin_window({ app::CANVAS_WIDTH - 24 * 2, PAGE * 16 + app::BUTTON_WIDTH * 2  });
 
-    gui::item_size({ box.size.x, 24 });
+    gui::item_size({ box.size.x, app::BUTTON_WIDTH });
     gui::align(gui::Align::Center);
     gui::text("LOAD SONG");
 
     gui::align(gui::Align::Left);
-    gui::item_size({ box.size.x - app::SCROLLBAR_WIDTH, 16 });
+    gui::item_size({ box.size.x - app::BUTTON_WIDTH, 16 });
 
     for (int i = 0; i < PAGE; ++i) {
         size_t row = scroll + i;
@@ -89,7 +89,7 @@ void draw_load_window() {
     }
 
     gui::align(gui::Align::Center);
-    gui::item_size({ box.size.x / 2, 24 });
+    gui::item_size({ box.size.x / 2, app::BUTTON_WIDTH });
     if (gui::button("CANCEL")) g_dialog = Dialog::None;
     gui::same_line();
     if (gui::button("LOAD")) {
@@ -102,8 +102,8 @@ void draw_load_window() {
     }
 
     // scrollbar
-    gui::cursor(box.pos + ivec2(box.size.x - app::SCROLLBAR_WIDTH, 24));
-    gui::item_size({ app::SCROLLBAR_WIDTH, PAGE * 16 });
+    gui::cursor(box.pos + ivec2(box.size.x - app::BUTTON_WIDTH, app::BUTTON_WIDTH));
+    gui::item_size({ app::BUTTON_WIDTH, PAGE * 16 });
     int max_scroll = std::max(0, int(g_file_names.size()) - PAGE);
     gui::drag_bar_theme(gui::DragBarTheme::Scrollbar);
     gui::vertical_drag_bar(scroll, 0, max_scroll, PAGE);
@@ -131,34 +131,34 @@ void draw() {
 
     gt::Song& song = app::song();
 
-    gui::item_size(16);
+    gui::item_size(app::BUTTON_WIDTH);
     gui::item_box();
 
     gui::align(gui::Align::Left);
-    gui::item_size({ app::CANVAS_WIDTH - INPUT_WIDTH, 20 });
+    gui::item_size({ app::CANVAS_WIDTH - INPUT_WIDTH, app::BUTTON_WIDTH });
     gui::text("NAME");
     gui::same_line();
-    gui::item_size({ INPUT_WIDTH, 20 });
+    gui::item_size({ INPUT_WIDTH, app::BUTTON_WIDTH });
     gui::input_text(song.songname);
 
-    gui::item_size({ app::CANVAS_WIDTH - INPUT_WIDTH, 20 });
+    gui::item_size({ app::CANVAS_WIDTH - INPUT_WIDTH, app::BUTTON_WIDTH });
     gui::text("AUTHOR");
     gui::same_line();
-    gui::item_size({ INPUT_WIDTH, 20 });
+    gui::item_size({ INPUT_WIDTH, app::BUTTON_WIDTH });
     gui::input_text(song.authorname);
 
-    gui::item_size({ app::CANVAS_WIDTH - INPUT_WIDTH, 20 });
+    gui::item_size({ app::CANVAS_WIDTH - INPUT_WIDTH, app::BUTTON_WIDTH });
     gui::text("COPYRIGHT");
     gui::same_line();
-    gui::item_size({ INPUT_WIDTH, 20 });
+    gui::item_size({ INPUT_WIDTH, app::BUTTON_WIDTH });
     gui::input_text(song.copyrightname);
 
 
-    gui::item_size(16);
+    gui::item_size(app::BUTTON_WIDTH);
     gui::item_box();
 
     gui::align(gui::Align::Center);
-    gui::item_size({ app::CANVAS_WIDTH, 24 });
+    gui::item_size({ app::CANVAS_WIDTH, app::BUTTON_WIDTH });
     if (gui::button("RESET")) {
         app::player().init_song(0, gt::Player::PLAY_STOP);
         confirm("LOSE CHANGES TO THE CURRENT SONG?", [](bool ok) {
@@ -167,7 +167,7 @@ void draw() {
             }
         });
     }
-    if (gui::button("LOAD", g_dialog == Dialog::Load)) {
+    if (gui::button("LOAD")) {
         g_dialog = Dialog::Load;
 
         app::player().init_song(0, gt::Player::PLAY_STOP);
