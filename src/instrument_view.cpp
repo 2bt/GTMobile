@@ -124,12 +124,11 @@ void draw() {
                 dc.box(box, gui::BoxStyle::Cursor);
             }
 
-
+            // chose colors
             u8vec4 colors[2] = {
                 color::WHITE,
                 color::WHITE,
             };
-
             if (t == gt::WTBL) {
 
                 // wave table
@@ -146,27 +145,22 @@ void draw() {
                 // + 80    no change
                 // + 81-DD absolute notes C#0 - B-7
 
-                if (lval >= 0x10 && lval <= 0xDE) {
+                if (lval >= 0x10 && lval <= 0xef) {
                     colors[0] = color::CMDS[7]; // color like waveform command
                 }
 
-
                 if (lval >= 0xf0 && lval <= 0xfe) {
                     // pattern command
+                    int cmd = lval & 0xf;
                     constexpr bool valid_command[] = {
                         0, 1, 1, 1,
                         1, 1, 1, 1,
                         0, 1, 1, 1,
                         1, 1, 0,
                     };
-                    int cmd = lval & 0xf;
                     if (valid_command[cmd]) {
                         colors[0] = color::CMDS[cmd];
                         colors[1] = color::CMDS[cmd];
-                    }
-                    else {
-                        colors[0] = color::DARK_GREY;
-                        colors[1] = color::DARK_GREY;
                     }
                 }
                 else if (lval != 0xff) {
@@ -176,6 +170,31 @@ void draw() {
                     if (rval > 0x80 && rval <= 0xdf) { // absolute pitch
                         colors[1] = color::CMDS[10]; // blue
                     }
+                }
+            }
+            else if (t == gt::PTBL) {
+                // 01-7F pulse mod step time/speed
+                // 8X-FX set pulsewidth XYY
+                // FF    jump
+                if (lval > 0 && lval <= 0x7f) { // mod step
+                    colors[0] = colors[1] = color::CMDS[5]; // green
+                }
+                if (lval >= 0x80 && lval < 0xff) { // set
+                    colors[0] = colors[1] = color::CMDS[10]; // blue
+                }
+            }
+            else if (t == gt::FTBL) {
+                // 00    set cutoff
+                // 01-7F filter mod step time/speed
+                // 80-70 set params
+                if (lval == 0 && rval > 0) { // set
+                    colors[0] = colors[1] = color::CMDS[10]; // blue
+                }
+                if (lval >= 0x01 && lval <= 0x7f) { // mod
+                    colors[0] = colors[1] = color::CMDS[5]; // green
+                }
+                if (lval >= 0x80 && lval < 0xff) { // params
+                    colors[0] = colors[1] = color::CMDS[4];
                 }
             }
 
