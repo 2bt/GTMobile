@@ -1,11 +1,11 @@
 #include "instrument_view.hpp"
+#include "piano.hpp"
 
 
 namespace instrument_view {
 namespace {
 
 
-int g_instrument = 1;
 
 } // namespace
 
@@ -13,6 +13,7 @@ int g_instrument = 1;
 void draw() {
 
 
+    piano::draw();
 }
 
 
