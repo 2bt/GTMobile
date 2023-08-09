@@ -49,6 +49,7 @@ gt::Player& player() { return g_player; }
 int         canvas_height() { return g_canvas_height; }
 
 void set_view(View view) {
+    if (view == View::Instrument) instrument_view::init();
     g_view = view;
 }
 

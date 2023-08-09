@@ -15,7 +15,62 @@ int g_table_scroll[4];
 int g_cursor_table = 0;
 int g_cursor_row   = 0;
 
+using TagTable = std::array<bool, gt::MAX_TABLELEN>;
+std::array<TagTable, gt::MAX_TABLES> g_used_in_patterns;
+
+
+void tag_used(int table, TagTable& tag, int pos) {
+    gt::Song const& song = app::song();
+    auto& ltable = song.ltable[table];
+    auto& rtable = song.rtable[table];
+    while (pos >= 0 && pos < gt::MAX_TABLELEN && !tag[pos]) {
+        tag[pos] = true;
+        if (table == gt::STBL) break;
+        if (ltable[pos] == 0xff) {
+            pos = rtable[pos] - 1;
+        }
+        else ++pos;
+    }
+}
+
+
 } // namespace
+
+
+void init() {
+    gt::Song const& song = app::song();
+
+    g_used_in_patterns = {};
+    for (int p = 0; p < gt::MAX_PATT; ++p) {
+        auto& pattern = song.pattern[p];
+        int   len     = song.pattlen[p];
+
+        for (int i = 0; i < len; ++i) {
+            uint8_t cmd = pattern[i * 4 + 2];
+            uint8_t val = pattern[i * 4 + 3];
+            if (val == 0) continue;
+            switch (cmd) {
+            case gt::CMD_SETWAVEPTR:
+                tag_used(gt::WTBL, g_used_in_patterns[gt::WTBL], val - 1);
+                break;
+            case gt::CMD_SETPULSEPTR:
+                tag_used(gt::PTBL, g_used_in_patterns[gt::PTBL], val - 1);
+                break;
+            case gt::CMD_SETFILTERPTR:
+                tag_used(gt::FTBL, g_used_in_patterns[gt::FTBL], val - 1);
+                break;
+            case gt::CMD_PORTAUP:
+            case gt::CMD_PORTADOWN:
+            case gt::CMD_TONEPORTA:
+            case gt::CMD_VIBRATO:
+            case gt::CMD_FUNKTEMPO:
+                tag_used(gt::STBL, g_used_in_patterns[gt::STBL], val - 1);
+                break;
+            default: break;
+            }
+        }
+    }
+}
 
 
 void draw() {
@@ -73,19 +128,12 @@ void draw() {
         auto& ltable = song.ltable[t];
         auto& rtable = song.rtable[t];
 
-        bool used[gt::MAX_TABLELEN] = {};
+        TagTable used = {};
         int pos = instr.ptr[t] - 1;
-        while (pos >= 0 && pos < gt::MAX_TABLELEN && !used[pos]) {
-            used[pos] = true;
-            if (t == 3) break;
-            if (ltable[pos] == 0xff) {
-                pos = rtable[pos] - 1;
-            }
-            else ++pos;
-        }
+        tag_used(t, used, pos);
 
         gui::cursor({ 90 * t, cursor.y });
-        gui::item_size({ 70, g_row_height });
+        gui::item_size({ 72, g_row_height });
 
         int& scroll = g_table_scroll[t];
         for (int i = 0; i < table_page; ++i) {
@@ -95,19 +143,21 @@ void draw() {
 
             gui::Box box = gui::item_box();
 
-            ivec2 p = box.pos + ivec2(6, text_offset);
             dc.color(color::ROW_NUMBER);
+            if (row == pos) {
+                dc.color(color::BUTTON_ACTIVE);
+                dc.fill({ box.pos + ivec2(1, 0), ivec2(26, g_row_height) });
+                dc.color(color::WHITE);
+            }
+            // row number
+            ivec2 p = box.pos + ivec2(6, text_offset);
             sprintf(str, "%02X", row + 1);
             dc.text(p, str);
-            p.x += 24;
+            p.x += 28;
 
-            box.pos.x += 26;
-            box.size.x -= 26;
-            dc.color(color::BACKGROUND_ROW);
-            if (used[row]) {
-                dc.color(color::HIGHLIGHT_ROW);
-            }
-            dc.fill({ box.pos + ivec2(1, 0), box.size - ivec2(2, 0) });
+            dc.color(used[row] ? color::HIGHLIGHT_ROW : color::BACKGROUND_ROW);
+            dc.fill({ box.pos + ivec2(29, 0), ivec2(42, g_row_height) });
+
 
 
             gui::ButtonState state = gui::button_state(box);
@@ -186,7 +236,7 @@ void draw() {
             else if (t == gt::FTBL) {
                 // 00    set cutoff
                 // 01-7F filter mod step time/speed
-                // 80-70 set params
+                // 80-F0 set params
                 if (lval == 0 && rval > 0) { // set
                     colors[0] = colors[1] = color::CMDS[10]; // blue
                 }
@@ -197,11 +247,17 @@ void draw() {
                     colors[0] = colors[1] = color::CMDS[4];
                 }
             }
+            else if (t == gt::STBL) {
+                if (lval | rval) {
+                    colors[0] = colors[1] = color::CMDS[5]; // green
+                }
+            }
+
 
             // fade colors
             if (!used[row]) {
-                colors[0] = mix(colors[0], color::BLACK, 0.4f);
-                colors[1] = mix(colors[1], color::BLACK, 0.4f);
+                // colors[0] = mix(colors[0], color::BLACK, 0.3f);
+                // colors[1] = mix(colors[1], color::BLACK, 0.3f);
             }
 
             if (lval == 0xff) {
@@ -212,15 +268,14 @@ void draw() {
             }
             dc.color(colors[0]);
             dc.text(p, str);
-            p.x += 20;
+            p.x += 16;
             sprintf(str, "%02X", rval);
             dc.color(colors[1]);
             dc.text(p, str);
-
         }
 
-        gui::cursor({ 90 * t + 70, cursor.y });
-        gui::item_size({ app::BUTTON_WIDTH, g_row_height * table_page });
+        gui::cursor({ 90 * t + 72, cursor.y });
+        gui::item_size({ 18, g_row_height * table_page });
         gui::vertical_drag_bar(scroll, 0, gt::MAX_TABLELEN - table_page, table_page);
 
     }
