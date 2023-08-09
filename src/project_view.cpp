@@ -105,7 +105,7 @@ void draw_load_window() {
     gui::cursor(box.pos + ivec2(box.size.x - app::BUTTON_WIDTH, app::BUTTON_WIDTH));
     gui::item_size({ app::BUTTON_WIDTH, PAGE * 16 });
     int max_scroll = std::max(0, int(g_file_names.size()) - PAGE);
-    gui::drag_bar_theme(gui::DragBarTheme::Scrollbar);
+    gui::drag_bar_style(gui::DragBarStyle::Scrollbar);
     gui::vertical_drag_bar(scroll, 0, max_scroll, PAGE);
 
     gui::end_window();

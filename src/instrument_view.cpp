@@ -7,13 +7,28 @@
 namespace instrument_view {
 namespace {
 
+enum class CursorSelect {
+    WaveTable,
+    PulseTable,
+    FilterTable,
+    SpeedTable,
+
+    Attack,
+    Decay,
+    Sustain,
+    Release,
+    VibDelay,
+    GateTimer,
+    FirstWave,
+};
+
 
 int g_row_height = 13; // 9-16, default: 13
-
 int g_table_scroll[4];
 
-int g_cursor_table = 0;
-int g_cursor_row   = 0;
+
+CursorSelect g_cursor_select = CursorSelect::WaveTable;
+int          g_cursor_row    = 0;
 
 using TagTable = std::array<bool, gt::MAX_TABLELEN>;
 std::array<TagTable, gt::MAX_TABLES> g_used_in_patterns;
@@ -91,49 +106,73 @@ void draw() {
     gui::input_text(instr.name);
 
 
-
-    gui::same_line();
+    gui::button_style(gui::ButtonStyle::TableCell);
     gui::item_size(app::BUTTON_WIDTH);
-    sprintf(str, "%X", instr.ad >> 4);
-    gui::button(str);
-    sprintf(str, "%X", instr.ad & 0xf);
-    gui::same_line();
-    gui::button(str);
+    uint8_t adsr[] = {
+        uint8_t(instr.ad >> 4),
+        uint8_t(instr.ad & 0xf),
+        uint8_t(instr.sr >> 4),
+        uint8_t(instr.sr & 0xf),
+    };
+    for (int i = 0; i < 4; ++i) {
+        sprintf(str, "%X", adsr[i]);
+        gui::same_line();
+        CursorSelect x = CursorSelect(i + int(CursorSelect::Attack));
+        if (gui::button(str, g_cursor_select == x)) {
+            g_cursor_select = x;
+        }
+    }
+    uint8_t data[] = {
+        instr.vibdelay,
+        instr.gatetimer,
+        instr.firstwave,
+    };
+    gui::item_size({ app::BUTTON_WIDTH + 8, app::BUTTON_WIDTH });
+    for (int i = 0; i < 3; ++i) {
+        sprintf(str, "%02X", data[i]);
+        gui::same_line();
+        CursorSelect x = CursorSelect(i + int(CursorSelect::VibDelay));
+        if (gui::button(str, g_cursor_select == x)) {
+            g_cursor_select = x;
+        }
+    }
+    gui::button_style(gui::ButtonStyle::Normal);
 
-    sprintf(str, "%X", instr.sr >> 4);
-    gui::same_line();
-    gui::button(str);
-    sprintf(str, "%X", instr.sr & 0xf);
-    gui::same_line();
-    gui::button(str);
-
-
-
-    // TODO
-    // + wave ptr
-    // + pulse ptr
-    // + filter ptr
-    // + vibrato ptr
-    // + vibrato delay
-    // + gate timer
-    // + first wave
 
     gui::DrawContext& dc = gui::draw_context();
 
     ivec2 cursor = gui::cursor();
-    int table_page = (app::canvas_height() - cursor.y - 68) / g_row_height;
+    int table_page = (app::canvas_height() - cursor.y - 68 - app::BUTTON_WIDTH * 2) / g_row_height;
     int text_offset = (g_row_height - 7) / 2;
 
     for (int t = 0; t < 4; ++t) {
-        auto& ltable = song.ltable[t];
-        auto& rtable = song.rtable[t];
+        gui::cursor({ 90 * t, cursor.y });
+
+        // table pointers
+        gui::item_size({ 72, app::BUTTON_WIDTH });
+        sprintf(str, "%02X", instr.ptr[t]);
+        if (gui::button(str)) {
+            if (g_cursor_select == CursorSelect(t)) {
+                if (instr.ptr[t] != g_cursor_row + 1) {
+                    instr.ptr[t] = g_cursor_row + 1;
+                }
+                else {
+                    instr.ptr[t] = 0;
+                }
+            }
+            else {
+                instr.ptr[t] = 0;
+            }
+        }
 
         TagTable used = {};
         int pos = instr.ptr[t] - 1;
         tag_used(t, used, pos);
 
-        gui::cursor({ 90 * t, cursor.y });
         gui::item_size({ 72, g_row_height });
+
+        auto& ltable = song.ltable[t];
+        auto& rtable = song.rtable[t];
 
         int& scroll = g_table_scroll[t];
         for (int i = 0; i < table_page; ++i) {
@@ -142,34 +181,35 @@ void draw() {
             uint8_t& rval = rtable[row];
 
             gui::Box box = gui::item_box();
+            gui::ButtonState state = gui::button_state(box);
+            box.pos.x += 1;
+            box.size.x -= 2;
 
             dc.color(color::ROW_NUMBER);
             if (row == pos) {
                 dc.color(color::BUTTON_ACTIVE);
-                dc.fill({ box.pos + ivec2(1, 0), ivec2(26, g_row_height) });
+                dc.fill({ box.pos, ivec2(26, g_row_height) });
                 dc.color(color::WHITE);
             }
             // row number
-            ivec2 p = box.pos + ivec2(6, text_offset);
+            ivec2 p = box.pos + ivec2(5, text_offset);
             sprintf(str, "%02X", row + 1);
             dc.text(p, str);
             p.x += 28;
 
             dc.color(used[row] ? color::HIGHLIGHT_ROW : color::BACKGROUND_ROW);
-            dc.fill({ box.pos + ivec2(29, 0), ivec2(42, g_row_height) });
+            dc.fill({ box.pos + ivec2(28, 0), ivec2(42, g_row_height) });
 
 
-
-            gui::ButtonState state = gui::button_state(box);
             if (state == gui::ButtonState::Released) {
-                g_cursor_table = t;
-                g_cursor_row   = row;
+                g_cursor_select = CursorSelect(t);
+                g_cursor_row    = row;
             }
             if (state != gui::ButtonState::Normal) {
                 dc.color(color::BUTTON_HELD);
                 dc.box(box, gui::BoxStyle::Cursor);
             }
-            if (t == g_cursor_table && row == g_cursor_row) {
+            if (CursorSelect(t) == g_cursor_select && row == g_cursor_row) {
                 dc.color(color::BUTTON_ACTIVE);
                 dc.box(box, gui::BoxStyle::Cursor);
             }
@@ -275,9 +315,51 @@ void draw() {
         }
 
         gui::cursor({ 90 * t + 72, cursor.y });
-        gui::item_size({ 18, g_row_height * table_page });
+        gui::item_size({ 18, g_row_height * table_page + app::BUTTON_WIDTH });
+        gui::drag_bar_style(gui::DragBarStyle::Scrollbar);
         gui::vertical_drag_bar(scroll, 0, gt::MAX_TABLELEN - table_page, table_page);
+    }
 
+    gui::cursor({ 0, cursor.y + g_row_height * table_page + app::BUTTON_WIDTH });
+
+    switch (g_cursor_select) {
+    case CursorSelect::Attack:
+    case CursorSelect::Decay:
+    case CursorSelect::Sustain:
+    case CursorSelect::Release: {
+        int i = int(g_cursor_select) - int(CursorSelect::Attack);
+        constexpr char const* labels[] = {
+            "ATTACK",
+            "DECAY",
+            "SUSTAIN",
+            "RELEASE",
+        };
+        gui::item_size({ 12 + 7 * 8, app::BUTTON_WIDTH });
+        gui::text(labels[i]);
+        gui::same_line();
+        gui::item_size({ app::CANVAS_WIDTH - gui::cursor().x, app::BUTTON_WIDTH });
+        int v = adsr[i];
+        gui::drag_bar_style(gui::DragBarStyle::Normal);
+        if (gui::horizontal_drag_bar(v, 0, 0xf, 1)) {
+            adsr[i] = v;
+            instr.ad = (adsr[0] << 4) | adsr[1];
+            instr.sr = (adsr[2] << 4) | adsr[3];
+        }
+        break;
+    }
+
+
+    case CursorSelect::WaveTable: {
+
+
+        break;
+    }
+
+
+    default:
+        gui::item_size({ app::CANVAS_WIDTH, app::BUTTON_WIDTH });
+        gui::button("FOOBAR");
+        break;
     }
 
 

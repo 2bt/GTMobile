@@ -154,7 +154,7 @@ void draw() {
 
     gui::item_size({ 120, 24 });
     gui::align(gui::Align::Center);
-    gui::button_style(gui::BoxStyle::Tab);
+    gui::button_style(gui::ButtonStyle::Tab);
     for (size_t i = 0; i < VIEW_NAMES.size(); ++i) {
         if (gui::button(VIEW_NAMES[i], i == size_t(g_view))) {
             set_view(View(i));
@@ -162,7 +162,7 @@ void draw() {
         gui::same_line();
     }
     gui::same_line(false);
-    gui::button_style(gui::BoxStyle::Normal);
+    gui::button_style(gui::ButtonStyle::Normal);
 
     VIEW_FUNCS[size_t(g_view)]();
 

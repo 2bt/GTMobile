@@ -107,7 +107,7 @@ void draw_order_edit() {
     }
     gui::same_line();
     gui::item_size({ 26 * 10, app::BUTTON_WIDTH });
-    gui::drag_bar_theme(gui::DragBarTheme::Normal);
+    gui::drag_bar_style(gui::DragBarStyle::Normal);
     gui::horizontal_drag_bar(g_transpose, -0xf, 0xe, 0);
 
     gui::item_size({ 26 * 3, app::BUTTON_WIDTH });
@@ -229,6 +229,9 @@ void draw() {
         for (int c = 0; c < 3; ++c) {
             gui::same_line();
             gui::Box box = gui::item_box();
+            gui::ButtonState state = gui::button_state(box);
+            box.pos.x += 1;
+            box.size.x -= 2;
 
             auto const& order = song.songorder[SONG_NR][c];
             int         len   = song.songlen[SONG_NR][c];
@@ -239,9 +242,8 @@ void draw() {
             dc.color(color::BACKGROUND_ROW);
             if (v == g_pattern_nums[c]) dc.color(color::HIGHLIGHT_ROW);
             if (is_playing && row == player_song_rows[c]) dc.color(color::PLAYER_ROW);
-            dc.fill({ box.pos + ivec2(1, 0), box.size - ivec2(2, 0) });
+            dc.fill(box);
 
-            gui::ButtonState state = gui::button_state(box);
             if (state == gui::ButtonState::Released) {
                 g_follow = false;
                 if (v < gt::MAX_PATT) {
@@ -275,7 +277,7 @@ void draw() {
                 sprintf(str, "%02X", v);
             }
             dc.color(color::WHITE);
-            dc.text(box.pos + ivec2(6, text_offset), str);
+            dc.text(box.pos + ivec2(5, text_offset), str);
 
             // loop marker
             if (row == order[len + 1]) {
@@ -322,6 +324,9 @@ void draw() {
         for (int c = 0; c < 3; ++c) {
             gui::same_line();
             gui::Box box = gui::item_box();
+            gui::ButtonState state = gui::button_state(box);
+            box.pos.x += 1;
+            box.size.x -= 2;
 
             if (row >= song.pattlen[g_pattern_nums[c]]) continue;
 
@@ -330,9 +335,8 @@ void draw() {
             if (is_playing && g_pattern_nums[c] == player_pattern_nums[c] && row == player_pattern_rows[c]) {
                 dc.color(color::PLAYER_ROW);
             }
-            dc.fill({ box.pos + ivec2(1, 0), box.size - ivec2(2, 0) });
+            dc.fill(box);
 
-            gui::ButtonState state = gui::button_state(box);
             if (state == gui::ButtonState::Released) {
                 g_follow = false;
                 g_cursor_chan        = c;
@@ -355,7 +359,7 @@ void draw() {
             int cmd   = p[2];
             int arg   = p[3];
 
-            ivec2 t = box.pos + ivec2(6, text_offset);
+            ivec2 t = box.pos + ivec2(5, text_offset);
 
             dc.color(color::WHITE);
             if (note == gt::REST) {
@@ -394,7 +398,7 @@ void draw() {
 
     // scroll bars
     gui::cursor({ app::CANVAS_WIDTH - 80, 24 });
-    gui::drag_bar_theme(gui::DragBarTheme::Scrollbar);
+    gui::drag_bar_style(gui::DragBarStyle::Scrollbar);
     {
         int page = g_song_page;
         int max_scroll = std::max<int>(0, max_song_len - page);

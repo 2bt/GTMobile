@@ -203,8 +203,12 @@ enum class Icon {
 
 enum class Align { Left, Center };
 
-// enum class ButtonTheme {};
-enum class DragBarTheme {
+enum class ButtonStyle {
+    Normal,
+    Tab,
+    TableCell,
+};
+enum class DragBarStyle {
     Normal,
     Scrollbar,
 };
@@ -238,7 +242,6 @@ void begin_window();
 Box  begin_window(ivec2 size);
 void end_window();
 
-
 void id(void const* addr);
 void cursor(ivec2 pos);
 ivec2 cursor();
@@ -246,22 +249,17 @@ void item_size(ivec2 size);
 void same_line(bool same_line = true);
 bool has_active_item();
 void align(Align a);
+void button_style(ButtonStyle style);
+void drag_bar_style(DragBarStyle style);
+
 bool hold();
-
 void text(char const* fmt, ...);
-void button_style(BoxStyle style);
-
-
 bool button(Icon icon, bool active = false);
 bool button(char const* label, bool active = false);
-
 void input_text(char* str, int len);
 template<class T>void input_text(T& t) { input_text(t.data(), t.size() - 1); }
-
-void drag_bar_theme(DragBarTheme theme);
 bool horizontal_drag_bar(int& value, int min, int max, int page);
 bool vertical_drag_bar(int& value, int min, int max, int page);
-
 bool vertical_drag_button(int& value);
 
 // low level functions

@@ -28,8 +28,9 @@ ivec2        g_cursor_min;
 ivec2        g_cursor_max;
 ivec2        g_item_size;
 bool         g_same_line;
-BoxStyle     g_button_style = BoxStyle::Normal;
-Align        g_align = Align::Left;
+Align        g_align;
+ButtonStyle  g_button_style;
+DragBarStyle g_drag_bar_style;
 
 
 float        g_frame_time = 1.0f / 60.0f;
@@ -45,7 +46,7 @@ char*        g_input_text_str = nullptr;
 int          g_input_text_len;
 int          g_input_text_pos;
 float        g_input_cursor_blink;
-DragBarTheme g_drag_bar_theme;
+
 
 
 std::array<char, 256> g_text_buffer;
@@ -291,8 +292,11 @@ void same_line(bool same_line) {
 void id(void const* addr) {
     if (!g_id) g_id = addr;
 }
-void button_style(BoxStyle style) {
+void button_style(ButtonStyle style) {
     g_button_style = style;
+}
+void drag_bar_style(DragBarStyle style) {
+    g_drag_bar_style = style;
 }
 bool has_active_item() {
     return g_active_item != nullptr;
@@ -304,11 +308,20 @@ bool hold() {
     return g_hold;
 }
 
+
+inline BoxStyle box_style(ButtonStyle s) {
+    switch (s) {
+        case ButtonStyle::Tab: return BoxStyle::Tab;
+        default:
+        case ButtonStyle::Normal: return BoxStyle::Normal;
+    }
+}
+
 bool button(Icon icon, bool active) {
     Box box = item_box();
     ButtonState state = button_state(box);
     button_color(state, active);
-    g_dc.box(box, g_button_style);
+    g_dc.box(box, box_style(g_button_style));
 
     int i = int(icon);
     g_dc.color(color::WHITE);
@@ -318,8 +331,21 @@ bool button(Icon icon, bool active) {
 bool button(char const* label, bool active) {
     Box box = item_box();
     ButtonState state = button_state(box);
-    button_color(state, active);
-    g_dc.box(box, g_button_style);
+
+
+    if (g_button_style == ButtonStyle::TableCell) {
+        g_dc.color(color::HIGHLIGHT_ROW);
+        g_dc.fill({ box.pos + 1, box.size - 2 });
+
+        if (active || state != ButtonState::Normal) {
+            button_color(state, active);
+            g_dc.box(box, BoxStyle::Cursor);
+        }
+    }
+    else {
+        button_color(state, active);
+        g_dc.box(box, box_style(g_button_style));
+    }
 
     g_dc.color(color::WHITE);
     g_dc.text(text_pos(box, label), label);
@@ -357,10 +383,6 @@ void input_text(char* str, int len) {
     }
 }
 
-void drag_bar_theme(DragBarTheme theme) {
-    g_drag_bar_theme = theme;
-}
-
 bool horizontal_drag_bar(int& value, int min, int max, int page) {
     Box box = item_box();
     ButtonState state = button_state(box, &value);
@@ -381,7 +403,7 @@ bool horizontal_drag_bar(int& value, int min, int max, int page) {
     g_dc.color(color::DRAG_BG);
     g_dc.box(box, BoxStyle::Normal);
     if (move_w > 0) {
-        if (g_drag_bar_theme == DragBarTheme::Scrollbar) {
+        if (g_drag_bar_style == DragBarStyle::Scrollbar) {
             g_dc.color(is_active ? color::DRAG_HANDLE_ACTIVE : color::DRAG_HANDLE_NORMAL);
             g_dc.box({ box.pos + ivec2(handle_x, 0), { handle_w, box.size.y } }, BoxStyle::Normal);
             g_dc.color(color::DRAG_ICON);
@@ -418,7 +440,7 @@ bool vertical_drag_bar(int& value, int min, int max, int page) {
     g_dc.color(color::DRAG_BG);
     g_dc.box(box, BoxStyle::Normal);
     if (move_h > 0) {
-        if (g_drag_bar_theme == DragBarTheme::Scrollbar) {
+        if (g_drag_bar_style == DragBarStyle::Scrollbar) {
             g_dc.color(is_active ? color::DRAG_HANDLE_ACTIVE : color::DRAG_HANDLE_NORMAL);
             g_dc.box({ box.pos + ivec2(0, handle_y), { box.size.x, handle_h } }, BoxStyle::Normal);
             g_dc.color(color::DRAG_ICON);

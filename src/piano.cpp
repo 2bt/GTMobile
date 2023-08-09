@@ -51,7 +51,7 @@ bool draw() {
     // piano scroll bar
     gui::same_line();
     gui::item_size({ app::CANVAS_WIDTH - gui::cursor().x, app::BUTTON_WIDTH });
-    gui::drag_bar_theme(gui::DragBarTheme::Scrollbar);
+    gui::drag_bar_style(gui::DragBarStyle::Scrollbar);
     gui::horizontal_drag_bar(g_scroll, 0, PIANO_STEP_COUNT - PIANO_PAGE, PIANO_PAGE);
 
 
