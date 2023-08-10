@@ -75,6 +75,7 @@ void draw_load_window() {
 
     gui::align(gui::Align::Left);
     gui::item_size({ box.size.x - app::BUTTON_WIDTH, 16 });
+    bool file_selected = false;
 
     for (int i = 0; i < PAGE; ++i) {
         size_t row = scroll + i;
@@ -83,7 +84,10 @@ void draw_load_window() {
             continue;
         }
         char const* s = g_file_names[row].c_str();
-        if (gui::button(s, strcmp(s, g_file_name.data()) == 0)) {
+
+        bool selected = strcmp(s, g_file_name.data()) == 0;
+        file_selected |= selected;
+        if (gui::button(s, selected)) {
             strncpy(g_file_name.data(), s, g_file_name.size() - 1);
         }
     }
@@ -92,13 +96,13 @@ void draw_load_window() {
     gui::item_size({ box.size.x / 2, app::BUTTON_WIDTH });
     if (gui::button("CANCEL")) g_dialog = Dialog::None;
     gui::same_line();
-    if (gui::button("LOAD")) {
-        g_dialog = Dialog::None;
+    if (gui::button("LOAD") && file_selected) {
         app::player().init_song(0, gt::Player::PLAY_STOP);
-
         std::vector<uint8_t> buffer;
-        platform::load_asset((std::string("songs/") + g_file_name.data()).c_str(), buffer);
-        app::song().load(buffer.data(), buffer.size());
+        if (platform::load_asset((std::string("songs/") + g_file_name.data()).c_str(), buffer)) {
+            app::song().load(buffer.data(), buffer.size());
+            g_dialog = Dialog::None;
+        }
     }
 
     // scrollbar
@@ -136,7 +140,7 @@ void draw() {
 
     gui::align(gui::Align::Left);
     gui::item_size({ app::CANVAS_WIDTH - INPUT_WIDTH, app::BUTTON_WIDTH });
-    gui::text("NAME");
+    gui::text("TITLE");
     gui::same_line();
     gui::item_size({ INPUT_WIDTH, app::BUTTON_WIDTH });
     gui::input_text(song.songname);
@@ -148,7 +152,7 @@ void draw() {
     gui::input_text(song.authorname);
 
     gui::item_size({ app::CANVAS_WIDTH - INPUT_WIDTH, app::BUTTON_WIDTH });
-    gui::text("COPYRIGHT");
+    gui::text("RELEASED");
     gui::same_line();
     gui::item_size({ INPUT_WIDTH, app::BUTTON_WIDTH });
     gui::input_text(song.copyrightname);
@@ -162,9 +166,7 @@ void draw() {
     if (gui::button("RESET")) {
         app::player().init_song(0, gt::Player::PLAY_STOP);
         confirm("LOSE CHANGES TO THE CURRENT SONG?", [](bool ok) {
-            if (ok) {
-                app::song().clear();
-            }
+            if (ok) app::song().clear();
         });
     }
     if (gui::button("LOAD")) {
@@ -172,6 +174,9 @@ void draw() {
 
         app::player().init_song(0, gt::Player::PLAY_STOP);
         platform::list_assets("songs", g_file_names);
+    }
+    if (gui::button("SAVE")) {
+
     }
 
 

@@ -66,8 +66,8 @@ namespace color {
 
     constexpr u8vec4 ROW_NUMBER     = color::rgb(0xaaaaaa);
     constexpr u8vec4 INSTRUMENT     = color::rgb(0xaabbdd);
-    constexpr u8vec4 HIGHLIGHT_ROW  = color::rgb(0x1f1f1f);
-    constexpr u8vec4 BACKGROUND_ROW = color::rgb(0x0c0c0c);
+    constexpr u8vec4 HIGHLIGHT_ROW  = color::rgb(0x333333);
+    constexpr u8vec4 BACKGROUND_ROW = color::rgb(0x171717);
     constexpr u8vec4 PLAYER_ROW     = color::rgb(0x553311);
 
 
@@ -162,19 +162,21 @@ private:
 
 
 enum class Icon {
-    VGrab = 16,
+    Left = 16,
+    Right,
+    Up,
+    Down,
+    VGrab,
     HGrab,
+    Off,
+    On,
 
     AddRowAbove = 24,
     AddRowBelow,
     DeleteRow,
     Pen,
     Trash,
-
-    Left = 32,
-    Right,
-    Up,
-    Down,
+    Settings,
 
     Loop = 40,
     Stop,
@@ -190,11 +192,11 @@ enum class Icon {
     Noise = 56,
     Pulse,
     Saw,
-    Tri,
+    Triangle,
+    Test,
     Ring,
     Sync,
-    VGate,
-    HGate,
+    Gate,
 
     Lowpass = 64,
     Bandpass,
@@ -261,6 +263,16 @@ template<class T>void input_text(T& t) { input_text(t.data(), t.size() - 1); }
 bool horizontal_drag_bar(int& value, int min, int max, int page);
 bool vertical_drag_bar(int& value, int min, int max, int page);
 bool vertical_drag_button(int& value);
+
+template<class T>
+bool horizontal_drag_bar(T& value, int min, int max, int page = 0) {
+    int v = value;
+    id(&value);
+    bool b = horizontal_drag_bar(v, min, max, page);
+    if (b) value = v;
+    return b;
+}
+
 
 // low level functions
 enum class ButtonState { Normal, Pressed, Held, Released };

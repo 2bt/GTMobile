@@ -2,6 +2,7 @@
 #include "piano.hpp"
 #include "app.hpp"
 #include "gui.hpp"
+#include <cassert>
 
 
 namespace instrument_view {
@@ -23,15 +24,12 @@ enum class CursorSelect {
 };
 
 
-int g_row_height = 13; // 9-16, default: 13
-int g_table_scroll[4];
-
-
 CursorSelect g_cursor_select = CursorSelect::WaveTable;
 int          g_cursor_row    = 0;
+int          g_table_scroll[4];
+
 
 using TagTable = std::array<bool, gt::MAX_TABLELEN>;
-std::array<TagTable, gt::MAX_TABLES> g_used_in_patterns;
 
 
 void tag_used(int table, TagTable& tag, int pos) {
@@ -52,47 +50,12 @@ void tag_used(int table, TagTable& tag, int pos) {
 } // namespace
 
 
-void init() {
-    gt::Song const& song = app::song();
-
-    g_used_in_patterns = {};
-    for (int p = 0; p < gt::MAX_PATT; ++p) {
-        auto& pattern = song.pattern[p];
-        int   len     = song.pattlen[p];
-
-        for (int i = 0; i < len; ++i) {
-            uint8_t cmd = pattern[i * 4 + 2];
-            uint8_t val = pattern[i * 4 + 3];
-            if (val == 0) continue;
-            switch (cmd) {
-            case gt::CMD_SETWAVEPTR:
-                tag_used(gt::WTBL, g_used_in_patterns[gt::WTBL], val - 1);
-                break;
-            case gt::CMD_SETPULSEPTR:
-                tag_used(gt::PTBL, g_used_in_patterns[gt::PTBL], val - 1);
-                break;
-            case gt::CMD_SETFILTERPTR:
-                tag_used(gt::FTBL, g_used_in_patterns[gt::FTBL], val - 1);
-                break;
-            case gt::CMD_PORTAUP:
-            case gt::CMD_PORTADOWN:
-            case gt::CMD_TONEPORTA:
-            case gt::CMD_VIBRATO:
-            case gt::CMD_FUNKTEMPO:
-                tag_used(gt::STBL, g_used_in_patterns[gt::STBL], val - 1);
-                break;
-            default: break;
-            }
-        }
-    }
-}
-
-
 void draw() {
 
     int        instr_nr = piano::instrument();
     gt::Song&  song     = app::song();
     gt::Instr& instr    = song.instr[instr_nr];
+    app::Settings const& settings = app::settings();
 
     gui::align(gui::Align::Left);
     gui::item_size({ 2 * 8 + 12, app::BUTTON_WIDTH });
@@ -142,8 +105,8 @@ void draw() {
     gui::DrawContext& dc = gui::draw_context();
 
     ivec2 cursor = gui::cursor();
-    int table_page = (app::canvas_height() - cursor.y - 68 - app::BUTTON_WIDTH * 2) / g_row_height;
-    int text_offset = (g_row_height - 7) / 2;
+    int table_page = (app::canvas_height() - cursor.y - 68 - app::BUTTON_WIDTH * 3) / settings.row_height;
+    int text_offset = (settings.row_height - 7) / 2;
 
     for (int t = 0; t < 4; ++t) {
         gui::cursor({ 90 * t, cursor.y });
@@ -152,13 +115,8 @@ void draw() {
         gui::item_size({ 72, app::BUTTON_WIDTH });
         sprintf(str, "%02X", instr.ptr[t]);
         if (gui::button(str)) {
-            if (g_cursor_select == CursorSelect(t)) {
-                if (instr.ptr[t] != g_cursor_row + 1) {
-                    instr.ptr[t] = g_cursor_row + 1;
-                }
-                else {
-                    instr.ptr[t] = 0;
-                }
+            if (g_cursor_select == CursorSelect(t) && instr.ptr[t] != g_cursor_row + 1) {
+                instr.ptr[t] = g_cursor_row + 1;
             }
             else {
                 instr.ptr[t] = 0;
@@ -169,7 +127,7 @@ void draw() {
         int pos = instr.ptr[t] - 1;
         tag_used(t, used, pos);
 
-        gui::item_size({ 72, g_row_height });
+        gui::item_size({ 72, settings.row_height });
 
         auto& ltable = song.ltable[t];
         auto& rtable = song.rtable[t];
@@ -188,7 +146,7 @@ void draw() {
             dc.color(color::ROW_NUMBER);
             if (row == pos) {
                 dc.color(color::BUTTON_ACTIVE);
-                dc.fill({ box.pos, ivec2(26, g_row_height) });
+                dc.fill({ box.pos, ivec2(26, settings.row_height) });
                 dc.color(color::WHITE);
             }
             // row number
@@ -198,7 +156,7 @@ void draw() {
             p.x += 28;
 
             dc.color(used[row] ? color::HIGHLIGHT_ROW : color::BACKGROUND_ROW);
-            dc.fill({ box.pos + ivec2(28, 0), ivec2(42, g_row_height) });
+            dc.fill({ box.pos + ivec2(28, 0), ivec2(42, settings.row_height) });
 
 
             if (state == gui::ButtonState::Released) {
@@ -315,12 +273,12 @@ void draw() {
         }
 
         gui::cursor({ 90 * t + 72, cursor.y });
-        gui::item_size({ 18, g_row_height * table_page + app::BUTTON_WIDTH });
+        gui::item_size({ 18, settings.row_height * table_page + app::BUTTON_WIDTH });
         gui::drag_bar_style(gui::DragBarStyle::Scrollbar);
         gui::vertical_drag_bar(scroll, 0, gt::MAX_TABLELEN - table_page, table_page);
     }
 
-    gui::cursor({ 0, cursor.y + g_row_height * table_page + app::BUTTON_WIDTH });
+    gui::cursor({ 0, cursor.y + settings.row_height * table_page + app::BUTTON_WIDTH });
 
     switch (g_cursor_select) {
     case CursorSelect::Attack:
@@ -334,29 +292,93 @@ void draw() {
             "SUSTAIN",
             "RELEASE",
         };
-        gui::item_size({ 12 + 7 * 8, app::BUTTON_WIDTH });
+        int v = adsr[i];
+        gui::item_size({ 12 + 8 * 8, app::BUTTON_WIDTH });
         gui::text(labels[i]);
+        gui::item_size(app::BUTTON_WIDTH);
+        gui::same_line();
+        if (gui::button(gui::Icon::Left) && v > 0) --v;
+        gui::same_line();
+        if (gui::button(gui::Icon::Right) && v < 0xf) ++v;
         gui::same_line();
         gui::item_size({ app::CANVAS_WIDTH - gui::cursor().x, app::BUTTON_WIDTH });
-        int v = adsr[i];
         gui::drag_bar_style(gui::DragBarStyle::Normal);
-        if (gui::horizontal_drag_bar(v, 0, 0xf, 1)) {
-            adsr[i] = v;
-            instr.ad = (adsr[0] << 4) | adsr[1];
-            instr.sr = (adsr[2] << 4) | adsr[3];
+        gui::horizontal_drag_bar(v, 0, 0xf, 1);
+        adsr[i] = v;
+        instr.ad = (adsr[0] << 4) | adsr[1];
+        instr.sr = (adsr[2] << 4) | adsr[3];
+        break;
+    }
+
+    case CursorSelect::VibDelay:
+    case CursorSelect::GateTimer: {
+        char const* label = g_cursor_select == CursorSelect::VibDelay ? "VIBDELAY" : "HR TIMER";
+        uint8_t&    v     = g_cursor_select == CursorSelect::VibDelay ? instr.vibdelay : instr.gatetimer;
+        gui::item_size({ 12 + 8 * 8, app::BUTTON_WIDTH });
+        gui::text(label);
+        gui::item_size(app::BUTTON_WIDTH);
+        gui::same_line();
+        if (gui::button(gui::Icon::Left) && v > 0) --v;
+        gui::same_line();
+        if (gui::button(gui::Icon::Right) && v < 0xff) ++v;
+        gui::same_line();
+        gui::item_size({ app::CANVAS_WIDTH - gui::cursor().x, app::BUTTON_WIDTH });
+        gui::drag_bar_style(gui::DragBarStyle::Normal);
+        gui::horizontal_drag_bar(v, 0, 0xff, 1);
+        break;
+    }
+
+    case CursorSelect::FirstWave: {
+        gui::item_size({ 12 + 8 * 8, app::BUTTON_WIDTH });
+        gui::text("1ST WAVE");
+        uint8_t& v = instr.firstwave;
+        gui::item_size({ 35, app::BUTTON_WIDTH });
+        gui::same_line();
+        if (gui::button(gui::Icon::Noise, v & 0x80)) v ^= 0x80;
+        gui::same_line();
+        if (gui::button(gui::Icon::Pulse, v & 0x40)) v ^= 0x40;
+        gui::same_line();
+        if (gui::button(gui::Icon::Saw, v & 0x20)) v ^= 0x20;
+        gui::same_line();
+        if (gui::button(gui::Icon::Triangle, v & 0x10)) v ^= 0x10;
+        gui::same_line();
+        if (gui::button(gui::Icon::Test, v & 0x08)) v ^= 0x08;
+        gui::same_line();
+        if (gui::button(gui::Icon::Ring, v & 0x04)) v ^= 0x04;
+        gui::same_line();
+        if (gui::button(gui::Icon::Sync, v & 0x02)) v ^= 0x02;
+        gui::same_line();
+        if (gui::button(gui::Icon::Gate, v & 0x01)) v ^= 0x01;
+    }
+
+    case CursorSelect::WaveTable:
+    case CursorSelect::PulseTable:
+    case CursorSelect::FilterTable:
+    case CursorSelect::SpeedTable: {
+        gui::align(gui::Align::Center);
+        int t = int(g_cursor_select);
+        uint8_t* data[] = {
+            &song.ltable[t][g_cursor_row],
+            &song.rtable[t][g_cursor_row],
+        };
+
+        for (int n = 0; n < 2; ++ n) {
+            for (int i = 0; i < 16; ++i) {
+                gui::item_size({ 22 + (i % 2), app::BUTTON_WIDTH });
+                gui::same_line(i > 0);
+                sprintf(str, "%X", i);
+                if (gui::button(str)) {
+                    *data[n] <<= 4;
+                    *data[n] |= i;
+                }
+            }
         }
-        break;
-    }
-
-
-    case CursorSelect::WaveTable: {
-
 
         break;
     }
 
 
-    default:
+    default: assert(false);
         gui::item_size({ app::CANVAS_WIDTH, app::BUTTON_WIDTH });
         gui::button("FOOBAR");
         break;

@@ -66,6 +66,7 @@ void stop_audio() {
     g_stream = nullptr;
 }
 
+
 } // namespace
 
 
@@ -111,6 +112,8 @@ void show_keyboard(bool enabled) {
 }
 
 
+
+
 } // namespace platform
 
 
@@ -141,12 +144,45 @@ extern "C" {
         g_env = env;
         app::key(key, unicode);
     }
-    JNIEXPORT void JNICALL Java_com_twobit_gtmobile_Native_startAudio(JNIEnv * env, jobject thiz) {
+    JNIEXPORT void JNICALL Java_com_twobit_gtmobile_Native_startAudio(JNIEnv* env, jobject thiz) {
         g_env = env;
         start_audio();
     }
-    JNIEXPORT void JNICALL Java_com_twobit_gtmobile_Native_stopAudio(JNIEnv * env, jobject thiz) {
+    JNIEXPORT void JNICALL Java_com_twobit_gtmobile_Native_stopAudio(JNIEnv* env, jobject thiz) {
         g_env = env;
-        stop_audio();
+        if (!app::settings().play_in_background) {
+            stop_audio();
+        }
+    }
+
+
+    enum {
+        #define X(_, n) SETTING_##n,
+        SETTINGS(X)
+        #undef X
+    };
+    JNIEXPORT jstring JNICALL Java_com_twobit_gtmobile_Native_getValueName(JNIEnv* env, jobject thiz, jint i) {
+        switch (i) {
+        #define X(_, n) case SETTING_##n: return env->NewStringUTF(#n);
+        SETTINGS(X)
+        #undef X
+        default: return nullptr;
+        }
+    }
+    JNIEXPORT jint JNICALL Java_com_twobit_gtmobile_Native_getValue(JNIEnv* env, jobject thiz, jint i) {
+        switch (i) {
+        #define X(_, n) case SETTING_##n: return app::settings().n;
+        SETTINGS(X)
+        #undef X
+        default: return 0;
+        }
+    }
+    JNIEXPORT void JNICALL Java_com_twobit_gtmobile_Native_setValue(JNIEnv* env, jobject thiz, jint i, jint v) {
+        switch (i) {
+        #define X(_, n) case SETTING_##n: app::mutable_settings().n = v; break;
+        SETTINGS(X)
+        #undef X
+        default: break;
+        }
     }
 }

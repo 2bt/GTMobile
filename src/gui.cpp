@@ -334,7 +334,8 @@ bool button(char const* label, bool active) {
 
 
     if (g_button_style == ButtonStyle::TableCell) {
-        g_dc.color(color::HIGHLIGHT_ROW);
+        // g_dc.color(color::HIGHLIGHT_ROW);
+        g_dc.color(color::BACKGROUND_ROW);
         g_dc.fill({ box.pos + 1, box.size - 2 });
 
         if (active || state != ButtonState::Normal) {

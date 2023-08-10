@@ -19,10 +19,6 @@ enum {
     SONG_NR = 0,
 };
 
-// settings
-int                g_row_height         = 13; // 9-16, default: 13
-int                g_row_highlight_step = 8;
-
 std::array<int, 3> g_pattern_nums       = { 0, 1, 2 };
 int                g_song_page          = 8;
 int                g_song_scroll        = 0;
@@ -146,6 +142,7 @@ void draw() {
 
     gt::Player& player = app::player();
     gt::Song&   song   = app::song();
+    app::Settings const& settings = app::settings();
 
     gui::DrawContext& dc = gui::draw_context();
 
@@ -179,7 +176,7 @@ void draw() {
     gui::cursor({ 0, 24 });
 
     int height_left = app::canvas_height() - (gui::cursor().y + 48 + 20 + 20);
-    int total_rows = height_left / g_row_height;
+    int total_rows = height_left / settings.row_height;
     g_song_page = clamp(g_song_page, 0, total_rows);
     int pattern_page = total_rows - g_song_page;
 
@@ -211,21 +208,21 @@ void draw() {
 
 
     // put text in the center of the row
-    int text_offset = (g_row_height - 7) / 2;
+    int text_offset = (settings.row_height - 7) / 2;
     char str[32];
 
     // song table
     for (int i = 0; i < g_song_page; ++i) {
         int row = g_song_scroll + i;
 
-        gui::item_size({ 28, g_row_height });
+        gui::item_size({ 28, settings.row_height });
         gui::Box box = gui::item_box();
 
         sprintf(str, "%02X", row);
         dc.color(color::ROW_NUMBER);
         dc.text(box.pos + ivec2(6, text_offset), str);
 
-        gui::item_size({ 84, g_row_height });
+        gui::item_size({ 84, settings.row_height });
         for (int c = 0; c < 3; ++c) {
             gui::same_line();
             gui::Box box = gui::item_box();
@@ -290,7 +287,7 @@ void draw() {
 
 
     // pattern bar
-    gui::item_size({ 28, g_row_height });
+    gui::item_size({ 28, settings.row_height });
     gui::item_box();
     gui::item_size({ 84, 20 });
     for (int c = 0; c < 3; ++c) {
@@ -313,14 +310,14 @@ void draw() {
     for (int i = 0; i < pattern_page; ++i) {
         int row = g_pattern_scroll + i;
 
-        gui::item_size({ 28, g_row_height });
+        gui::item_size({ 28, settings.row_height });
         gui::Box box = gui::item_box();
 
         sprintf(str, "%02X", row);
         dc.color(color::ROW_NUMBER);
         dc.text(box.pos + ivec2(6, text_offset), str);
 
-        gui::item_size({ 84, g_row_height });
+        gui::item_size({ 84, settings.row_height });
         for (int c = 0; c < 3; ++c) {
             gui::same_line();
             gui::Box box = gui::item_box();
@@ -331,7 +328,7 @@ void draw() {
             if (row >= song.pattlen[g_pattern_nums[c]]) continue;
 
             dc.color(color::BACKGROUND_ROW);
-            if (row % g_row_highlight_step == 0) dc.color(color::HIGHLIGHT_ROW);
+            if (row % settings.row_highlight == 0) dc.color(color::HIGHLIGHT_ROW);
             if (is_playing && g_pattern_nums[c] == player_pattern_nums[c] && row == player_pattern_rows[c]) {
                 dc.color(color::PLAYER_ROW);
             }
@@ -402,7 +399,7 @@ void draw() {
     {
         int page = g_song_page;
         int max_scroll = std::max<int>(0, max_song_len - page);
-        gui::item_size({ app::BUTTON_WIDTH, page * g_row_height });
+        gui::item_size({ app::BUTTON_WIDTH, page * settings.row_height });
         if (gui::vertical_drag_bar(g_song_scroll, 0, max_scroll, page)) {
             if (is_playing) g_follow = false;
         }
@@ -417,7 +414,7 @@ void draw() {
     {
         int page = pattern_page;
         int max_scroll = std::max<int>(0, max_pattern_len - page);
-        gui::item_size({ app::BUTTON_WIDTH, page * g_row_height });
+        gui::item_size({ app::BUTTON_WIDTH, page * settings.row_height });
         if (gui::vertical_drag_bar(g_pattern_scroll, 0, max_scroll, page)) {
             if (is_playing) g_follow = false;
         }

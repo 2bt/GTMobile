@@ -14,4 +14,8 @@ class Native {
     public static native void key(int key, int unicode);
     public static native void startAudio();
     public static native void stopAudio();
+
+    public static native String getValueName(int i);
+    public static native int getValue(int i);
+    public static native void setValue(int i, int v);
 }
