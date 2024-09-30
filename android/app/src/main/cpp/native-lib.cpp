@@ -1,6 +1,7 @@
 #include "log.hpp"
 #include "app.hpp"
 #include "gui.hpp"
+#include "project_view.hpp"
 #include "settings_view.hpp"
 
 #include <vector>
@@ -32,7 +33,7 @@ bool start_audio() {
 
     oboe::AudioStreamBuilder builder;
     builder.setDirection(oboe::Direction::Output);
-    builder.setPerformanceMode(oboe::PerformanceMode::LowLatency);
+//    builder.setPerformanceMode(oboe::PerformanceMode::LowLatency);
     builder.setSharingMode(oboe::SharingMode::Exclusive);
     builder.setSampleRate(app::MIXRATE);
     builder.setFormat(oboe::AudioFormat::I16);
@@ -74,37 +75,36 @@ void stop_audio() {
 namespace platform {
 
 
-bool load_asset(char const* name, std::vector<uint8_t>& buf) {
-    AAsset* ad = AAssetManager_open(g_asset_manager, name, AASSET_MODE_BUFFER);
+bool load_asset(std::string const& name, std::vector<uint8_t>& buf) {
+    AAsset* ad = AAssetManager_open(g_asset_manager, name.c_str(), AASSET_MODE_BUFFER);
     if (!ad) {
-        LOGE("load_asset: could not open %s", name);
+        LOGE("load_asset: could not open %s", name.c_str());
         return false;
     }
     buf.resize(AAsset_getLength(ad));
     int len = AAsset_read(ad, buf.data(), buf.size());
     AAsset_close(ad);
     if (len != buf.size()) {
-        LOGE("load_asset: could not open %s", name);
+        LOGE("load_asset: could not open %s", name.c_str());
         return false;
     }
 
     return true;
 }
 
-bool list_assets(char const* dir, std::vector<std::string>& list) {
-    list.clear();
-    AAssetDir* ad = AAssetManager_openDir(g_asset_manager, dir);
+std::vector<std::string> list_assets(std::string const& dir) {
+    AAssetDir* ad = AAssetManager_openDir(g_asset_manager, dir.c_str());
     if (!ad) {
-        LOGE("list_assets: could not open %s", dir);
-        return false;
+        LOGE("list_assets: could not open %s", dir.c_str());
+        return {};
     }
+    std::vector<std::string> list;
     while (char const* s = AAssetDir_getNextFileName(ad)) {
-        list.push_back(s);
+        list.emplace_back(s);
     }
     AAssetDir_close(ad);
-    return true;
+    return list;
 }
-
 
 void show_keyboard(bool enabled) {
     jclass clazz = g_env->FindClass("com/twobit/gtmobile/MainActivity");
@@ -112,16 +112,22 @@ void show_keyboard(bool enabled) {
     g_env->CallStaticVoidMethod(clazz, method, enabled);
 }
 
-
-
-
 } // namespace platform
 
 
 extern "C" {
-    JNIEXPORT void JNICALL Java_com_twobit_gtmobile_Native_init(JNIEnv* env, jobject thiz, jobject asset_manager, jfloat refresh_rate) {
+    JNIEXPORT void JNICALL Java_com_twobit_gtmobile_Native_init(
+            JNIEnv* env,
+            jobject thiz,
+            jobject asset_manager,
+            jstring jstorage_dir,
+            jfloat refresh_rate)
+    {
         g_asset_manager = AAssetManager_fromJava(env, asset_manager);
         g_env = env;
+        char const* storage_dir = env->GetStringUTFChars(jstorage_dir, nullptr);
+        project_view::set_storage_dir(storage_dir);
+        env->ReleaseStringUTFChars(jstorage_dir, storage_dir);
         app::init();
         gui::set_refresh_rate(refresh_rate);
     }

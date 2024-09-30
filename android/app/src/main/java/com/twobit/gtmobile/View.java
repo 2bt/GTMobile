@@ -14,7 +14,8 @@ import javax.microedition.khronos.opengles.GL10;
 public class View extends GLSurfaceView {
     static final String TAG = "View";
 
-    float mRefreshRate = 60.0f;
+    float  mRefreshRate = 60.0f;
+    String mStorageDir  = null;
 
     public View(Context context) {
         super(context);
@@ -25,13 +26,16 @@ public class View extends GLSurfaceView {
             mRefreshRate = display.getRefreshRate();
         }
 
+
+        mStorageDir = context.getExternalFilesDir(null).getAbsolutePath();
+
         setPreserveEGLContextOnPause(true);
         setEGLContextClientVersion(2);
         setEGLConfigChooser(8, 8, 8, 0, 0, 0);
         setRenderer(new GLSurfaceView.Renderer() {
             @Override
             public void onSurfaceCreated(GL10 gl, EGLConfig config) {
-                Native.init(getResources().getAssets(), mRefreshRate);
+                Native.init(getResources().getAssets(), mStorageDir, mRefreshRate);
             }
             @Override
             public void onSurfaceChanged(GL10 gl, int width, int height) {

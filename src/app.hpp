@@ -15,10 +15,10 @@ namespace app {
     };
 
     enum class View {
-        Project,
-        Song,
-        Instrument,
-        Settings,
+        project,
+        song,
+        instrument,
+        settings,
     };
 
 

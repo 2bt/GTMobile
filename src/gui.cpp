@@ -57,9 +57,11 @@ char const* print_to_text_buffer(const char* fmt, va_list args) {
 
 ivec2 text_pos(Box const& box, char const* text) {
     switch (g_align) {
-    case Align::Left:   return box.pos + ivec2(box.size.y / 2 - 4);
+    case Align::Left:
+        return box.pos + ivec2(box.size.y / 2 - 4);
     case Align::Center:
-    default:            return box.pos + ivec2(box.size.x / 2 - strlen(text) * 4, box.size.y / 2 - 4);
+    default:
+        return box.pos + ivec2(box.size.x / 2 - strlen(text) * 4, box.size.y / 2 - 4);
     }
 }
 
@@ -206,6 +208,7 @@ void set_refresh_rate(float refresh_rate) {
     g_frame_time = 1.0f / refresh_rate;
 }
 
+float get_frame_time() { return g_frame_time; }
 
 void begin_frame() {
 
@@ -265,7 +268,7 @@ Box begin_window(ivec2 size) {
     begin_window();
     ivec2 pos  = ivec2(app::CANVAS_WIDTH, app::canvas_height()) / 2 - size / 2;
     g_dc.color(color::BUTTON_NORMAL);
-    g_dc.box({ pos - 4, size + 8 }, BoxStyle::Window);
+    g_dc.box({ pos - 6, size + 12 }, BoxStyle::Window);
     cursor(pos);
     return { pos, size };
 }

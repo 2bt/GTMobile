@@ -37,10 +37,10 @@ void stop_audio() {
 
 namespace platform {
 
-bool load_asset(char const* name, std::vector<uint8_t>& buf) {
-    std::ifstream f("assets/" + std::string(name), std::ios::in | std::ios::binary);
+bool load_asset(std::string const& name, std::vector<uint8_t>& buf) {
+    std::ifstream f("assets/" + name, std::ios::in | std::ios::binary);
     if (!f.is_open()) {
-        LOGE("load_asset: could not open %s", name);
+        LOGE("load_asset: could not open %s", name.c_str());
         return false;
     }
     buf = std::vector<uint8_t>((std::istreambuf_iterator<char>(f)),
@@ -48,17 +48,16 @@ bool load_asset(char const* name, std::vector<uint8_t>& buf) {
     return true;
 }
 
-bool list_assets(char const* dir, std::vector<std::string>& list) {
+std::vector<std::string> list_assets(std::string const& dir) {
     namespace fs = std::filesystem;
-    list.clear();
-    for (auto const& entry : fs::directory_iterator("assets/" + std::string(dir))) {
+    std::vector<std::string> list;
+    for (auto const& entry : fs::directory_iterator("assets/" + dir)) {
         if (!entry.is_regular_file()) continue;
         list.emplace_back(entry.path().filename().string());
     }
     std::sort(list.begin(), list.end());
-    return false;
+    return list;
 }
-
 
 void show_keyboard(bool enabled) {
     // do nothing

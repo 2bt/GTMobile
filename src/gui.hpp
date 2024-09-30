@@ -125,11 +125,32 @@ public:
         rect(pos, m_char_size, uv);
     }
 
-    void text(ivec2 pos, const char* text) {
+    ivec2 text_size(char const* text) {
+        int y = 1;
+        int x = 0;
+        int mx = 0;
+        while (uint8_t c = *text++) {
+            if (c == '\n') {
+                ++y;
+                x = 0;
+            }
+            else {
+                mx = std::max(mx, ++x);
+            }
+        }
+        return {x * m_char_size.x, y * m_char_size.y};
+    }
+    void text(ivec2 pos, char const* text) {
         ivec2 p = pos;
         while (uint8_t c = *text++) {
             if (c < 128) character(p, c);
-            p.x += m_char_size.x;
+            if (c == '\n') {
+                p.x = pos.x;
+                p.y += m_char_size.y;
+            }
+            else {
+                p.x += m_char_size.x;
+            }
         }
     }
 
@@ -226,6 +247,7 @@ void free();
 void touch_event(int x, int y, bool pressed);
 void key_event(int key, int unicode);
 void set_refresh_rate(float refresh_rate);
+float get_frame_time();
 
 
 namespace touch {
@@ -259,7 +281,7 @@ void text(char const* fmt, ...);
 bool button(Icon icon, bool active = false);
 bool button(char const* label, bool active = false);
 void input_text(char* str, int len);
-template<class T>void input_text(T& t) { input_text(t.data(), t.size() - 1); }
+template<size_t L>void input_text(std::array<char, L>& t) { input_text(t.data(), L - 1); }
 bool horizontal_drag_bar(int& value, int min, int max, int page);
 bool vertical_drag_bar(int& value, int min, int max, int page);
 bool vertical_drag_button(int& value);

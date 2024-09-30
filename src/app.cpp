@@ -18,23 +18,14 @@ namespace app {
 namespace {
 
 
-
-
 const std::array<const char*, 3> VIEW_NAMES = {
     "PROJECT",
     "SONG",
     "INSTRUMENT",
 };
 
-const std::array<void(*)(), 4> VIEW_FUNCS = {
-    project_view::draw,
-    song_view::draw,
-    instrument_view::draw,
-    settings_view::draw,
-};
 
-View        g_view = View::Project;
-
+View        g_view = View::project;
 gt::Song    g_song;
 gt::Player  g_player(g_song);
 
@@ -55,8 +46,11 @@ int             canvas_height() { return g_canvas_height; }
 
 void set_view(View view) {
     g_view = view;
+    switch (view) {
+    case View::project: project_view::init(); break;
+    default: break;
+    }
 }
-
 
 void audio_callback(int16_t* buffer, int length) {
     if (!g_initialized) {
@@ -89,7 +83,7 @@ void init() {
     gfx::init();
     gui::init();
 
-    set_view(View::Project);
+    set_view(View::project);
 
     g_song.clear();
 
@@ -166,12 +160,17 @@ void draw() {
         gui::same_line();
     }
     gui::item_size(24);
-    if (gui::button(gui::Icon::Settings, g_view == View::Settings)) {
-        set_view(View::Settings);
+    if (gui::button(gui::Icon::Settings, g_view == View::settings)) {
+        set_view(View::settings);
     }
     gui::button_style(gui::ButtonStyle::Normal);
 
-    VIEW_FUNCS[size_t(g_view)]();
+    switch (g_view) {
+    case View::project: project_view::draw(); break;
+    case View::song: song_view::draw(); break;
+    case View::instrument: instrument_view::draw(); break;
+    case View::settings: settings_view::draw(); break;
+    }
 
 
     gui::end_frame();

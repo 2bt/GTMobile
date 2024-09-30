@@ -6,6 +6,7 @@
 #include <array>
 #include <filesystem>
 #include <cstring>
+#include <fstream>
 
 
 namespace fs = std::filesystem;
@@ -48,24 +49,45 @@ void confirm(std::string msg, ConfirmCallback cb) {
 
 
 
-enum Dialog {
-    None,
-    Load,
+enum class Dialog {
+    none,
+    load,
+    save,
 };
 
-Dialog                   g_dialog = Dialog::None;
+enum { PAGE = 20, };
+
+Dialog                   g_dialog = Dialog::none;
+std::string              g_songs_dir;
 std::array<char, 32>     g_file_name;
 std::vector<std::string> g_file_names;
+int                      g_file_scroll = 0;
+std::string              g_status_msg;
+float                    g_status_age = 0.0f;
 
+
+#define FILE_SUFFIX ".sng"
+
+
+void status(std::string const& msg) {
+    g_status_msg = msg;
+    g_status_msg = msg.substr(0, 20);
+    if (msg.size() > 20) g_status_msg += "\n" + msg.substr(20);
+    g_status_age = 0.0f;
+}
+
+
+bool ends_with(std::string const& str, char const* suffix) {
+    size_t l = std::strlen(suffix);
+    if (l > str.size()) {
+        return false;
+    }
+    return std::equal(suffix, suffix + l, str.end() - l);
+}
 
 
 void draw_load_window() {
-    if (g_dialog != Dialog::Load) return;
-
-    enum {
-        PAGE = 20,
-    };
-    static int scroll = 0;
+    if (g_dialog != Dialog::load) return;
 
     gui::Box box = gui::begin_window({ app::CANVAS_WIDTH - 24 * 2, PAGE * 16 + app::BUTTON_WIDTH * 2  });
 
@@ -78,7 +100,7 @@ void draw_load_window() {
     bool file_selected = false;
 
     for (int i = 0; i < PAGE; ++i) {
-        size_t row = scroll + i;
+        size_t row = g_file_scroll + i;
         if (row >= g_file_names.size()) {
             gui::item_box();
             continue;
@@ -94,15 +116,17 @@ void draw_load_window() {
 
     gui::align(gui::Align::Center);
     gui::item_size({ box.size.x / 2, app::BUTTON_WIDTH });
-    if (gui::button("CANCEL")) g_dialog = Dialog::None;
+    if (gui::button("CANCEL")) g_dialog = Dialog::none;
     gui::same_line();
     if (gui::button("LOAD") && file_selected) {
         app::player().init_song(0, gt::Player::PLAY_STOP);
-        std::vector<uint8_t> buffer;
-        if (platform::load_asset((std::string("songs/") + g_file_name.data()).c_str(), buffer)) {
-            app::song().load(buffer.data(), buffer.size());
-            g_dialog = Dialog::None;
+        if (app::song().load(("songs/" + std::string(g_file_name.data()) + FILE_SUFFIX).c_str())) {
+            status("SONG WAS LOADED");
         }
+        else {
+            status("LOAD ERROR: WRONG FORMAT");
+        }
+        g_dialog = Dialog::none;
     }
 
     // scrollbar
@@ -110,7 +134,7 @@ void draw_load_window() {
     gui::item_size({ app::BUTTON_WIDTH, PAGE * 16 });
     int max_scroll = std::max(0, int(g_file_names.size()) - PAGE);
     gui::drag_bar_style(gui::DragBarStyle::Scrollbar);
-    gui::vertical_drag_bar(scroll, 0, max_scroll, PAGE);
+    gui::vertical_drag_bar(g_file_scroll, 0, max_scroll, PAGE);
 
     gui::end_window();
 }
@@ -120,8 +144,43 @@ void draw_load_window() {
 } // namespace
 
 
-void init() {
+void set_storage_dir(std::string const& storage_dir) {
+    g_songs_dir = storage_dir + "/songs/";
+}
 
+
+void init() {
+    static bool init_dirs_done = false;
+    if (!init_dirs_done) {
+        init_dirs_done = true;
+        if (g_songs_dir.empty()) {
+            set_storage_dir(".");
+        }
+
+        // copy demo songs
+        fs::create_directories(g_songs_dir);
+        for (std::string const& s : platform::list_assets("songs")) {
+            if (!ends_with(s, FILE_SUFFIX)) continue;
+            std::string dst_name = g_songs_dir + s;
+            if (fs::exists(dst_name)) continue;
+            std::vector<uint8_t> buffer;
+            if (!platform::load_asset("songs/" + s, buffer)) continue;
+            std::ofstream f(dst_name, std::ios::binary);
+            f.write((char const*)buffer.data(), buffer.size());
+            f.close();
+        }
+    }
+
+
+    g_file_names.clear();
+    for (auto const& entry : fs::directory_iterator(g_songs_dir)) {
+        if (!entry.is_regular_file()) continue;
+        if (entry.path().extension().string() != FILE_SUFFIX) continue;
+        g_file_names.emplace_back(entry.path().stem().string());
+    }
+    std::sort(g_file_names.begin(), g_file_names.end());
+
+    g_status_msg = "";
 
 }
 
@@ -170,15 +229,19 @@ void draw() {
         });
     }
     if (gui::button("LOAD")) {
-        g_dialog = Dialog::Load;
+        g_dialog = Dialog::load;
 
         app::player().init_song(0, gt::Player::PLAY_STOP);
-        platform::list_assets("songs", g_file_names);
     }
     if (gui::button("SAVE")) {
-
     }
 
+    gui::align(gui::Align::Left);
+    gui::text("%s", g_status_msg.c_str());
+    g_status_age += gui::get_frame_time();
+    if (g_status_age > 2.0f) {
+        g_status_msg = "";
+    }
 
     draw_load_window();
     draw_confirm();
