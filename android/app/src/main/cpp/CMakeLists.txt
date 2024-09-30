@@ -16,6 +16,7 @@ add_library(
     src/project_view.cpp
     src/song_view.cpp
     src/instrument_view.cpp
+    src/settings_view.cpp
 )
 
 target_include_directories(
@@ -32,12 +33,11 @@ target_compile_options(
     -Wall
 )
 
-# disable -Wall for resid code
 set_source_files_properties(
     src/sid.cpp
     PROPERTIES
-    COMPILE_OPTIONS
-    -Wno-all
+    COMPILE_FLAGS
+    "-Wno-parentheses -Ofast"
 )
 
 find_package (

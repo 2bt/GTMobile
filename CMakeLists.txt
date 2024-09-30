@@ -4,33 +4,56 @@ project(gtmobile)
 
 add_executable(
     gtmobile
-    src/platform.cpp
-    src/gtplayer.cpp
-    src/gtsong.cpp
-    src/sid.cpp
-    src/gfx.cpp
-    src/gui.cpp
     src/app.cpp
-    src/piano.cpp
-    src/project_view.cpp
-    src/song_view.cpp
+    src/app.hpp
+    src/gfx.cpp
+    src/gfx.hpp
+    src/gtplayer.cpp
+    src/gtplayer.hpp
+    src/gtsong.cpp
+    src/gtsong.hpp
+    src/gui.cpp
+    src/gui.hpp
     src/instrument_view.cpp
+    src/instrument_view.hpp
+    src/log.hpp
+    src/piano.cpp
+    src/piano.hpp
+    src/platform.cpp
+    src/platform.hpp
+    src/project_view.cpp
+    src/project_view.hpp
+    src/resid
+    src/sid.cpp
+    src/sid.hpp
+    src/song_view.cpp
+    src/song_view.hpp
+    src/stb_image.h
+    src/vec.hpp
+    src/settings_view.cpp
+    src/settings_view.hpp
 )
 
 target_compile_options(
     gtmobile
     PRIVATE
-    -O3
+    -O2
     -Wall
 )
 
-# disable -Wall for resid code
 set_source_files_properties(
     src/sid.cpp
     PROPERTIES
-    COMPILE_OPTIONS
-    -Wno-all
+    COMPILE_FLAGS
+    "-Wno-parentheses -Ofast"
 )
+set_source_files_properties(
+    src/gfx.cpp
+    PROPERTIES
+    COMPILE_FLAGS
+    "-Wno-unused-function"
+)
+
 
 find_package(PkgConfig REQUIRED)
 pkg_search_module(GLEW REQUIRED glew)

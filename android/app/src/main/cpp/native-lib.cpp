@@ -1,6 +1,7 @@
 #include "log.hpp"
 #include "app.hpp"
 #include "gui.hpp"
+#include "settings_view.hpp"
 
 #include <vector>
 
@@ -150,20 +151,20 @@ extern "C" {
     }
     JNIEXPORT void JNICALL Java_com_twobit_gtmobile_Native_stopAudio(JNIEnv* env, jobject thiz) {
         g_env = env;
-        if (!app::settings().play_in_background) {
+        if (!settings_view::settings().play_in_background) {
             stop_audio();
         }
     }
 
 
     enum {
-        #define X(_, n) SETTING_##n,
+        #define X(n, ...) SETTING_##n,
         SETTINGS(X)
         #undef X
     };
     JNIEXPORT jstring JNICALL Java_com_twobit_gtmobile_Native_getValueName(JNIEnv* env, jobject thiz, jint i) {
         switch (i) {
-        #define X(_, n) case SETTING_##n: return env->NewStringUTF(#n);
+        #define X(n, ...) case SETTING_##n: return env->NewStringUTF(#n);
         SETTINGS(X)
         #undef X
         default: return nullptr;
@@ -171,7 +172,7 @@ extern "C" {
     }
     JNIEXPORT jint JNICALL Java_com_twobit_gtmobile_Native_getValue(JNIEnv* env, jobject thiz, jint i) {
         switch (i) {
-        #define X(_, n) case SETTING_##n: return app::settings().n;
+        #define X(n, ...) case SETTING_##n: return settings_view::settings().n;
         SETTINGS(X)
         #undef X
         default: return 0;
@@ -179,7 +180,7 @@ extern "C" {
     }
     JNIEXPORT void JNICALL Java_com_twobit_gtmobile_Native_setValue(JNIEnv* env, jobject thiz, jint i, jint v) {
         switch (i) {
-        #define X(_, n) case SETTING_##n: app::mutable_settings().n = v; break;
+        #define X(n, ...) case SETTING_##n: settings_view::mutable_settings().n = v; break;
         SETTINGS(X)
         #undef X
         default: break;

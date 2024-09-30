@@ -1,4 +1,5 @@
 #include "instrument_view.hpp"
+#include "settings_view.hpp"
 #include "piano.hpp"
 #include "app.hpp"
 #include "gui.hpp"
@@ -55,7 +56,7 @@ void draw() {
     int        instr_nr = piano::instrument();
     gt::Song&  song     = app::song();
     gt::Instr& instr    = song.instr[instr_nr];
-    app::Settings const& settings = app::settings();
+    settings_view::Settings const& settings = settings_view::settings();
 
     gui::align(gui::Align::Left);
     gui::item_size({ 2 * 8 + 12, app::BUTTON_WIDTH });
@@ -355,13 +356,13 @@ void draw() {
     case CursorSelect::PulseTable:
     case CursorSelect::FilterTable:
     case CursorSelect::SpeedTable: {
-        gui::align(gui::Align::Center);
         int t = int(g_cursor_select);
         uint8_t* data[] = {
             &song.ltable[t][g_cursor_row],
             &song.rtable[t][g_cursor_row],
         };
 
+        gui::align(gui::Align::Center);
         for (int n = 0; n < 2; ++ n) {
             for (int i = 0; i < 16; ++i) {
                 gui::item_size({ 22 + (i % 2), app::BUTTON_WIDTH });
@@ -377,13 +378,8 @@ void draw() {
         break;
     }
 
-
     default: assert(false);
-        gui::item_size({ app::CANVAS_WIDTH, app::BUTTON_WIDTH });
-        gui::button("FOOBAR");
-        break;
     }
-
 
     piano::draw();
 }

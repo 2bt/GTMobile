@@ -5,20 +5,7 @@
 #include "gtsong.hpp"
 
 
-
-#define SETTINGS(X) \
-    X(bool, play_in_background) \
-    X(int,  row_highlight) \
-    X(int,  row_height)
-
-
 namespace app {
-
-    struct Settings {
-        #define X(t, n) t n;
-        SETTINGS(X)
-        #undef X
-    };
 
     enum {
         MIXRATE           = 44100,
@@ -41,11 +28,8 @@ namespace app {
     void        set_view(View view);
 
 
-    Settings const& settings();
-    Settings& mutable_settings();
     void init();
     void free();
-    void set_refresh_rate(float refresh_rate);
     void resize(int w, int h);
     void touch(int x, int y, bool pressed);
     void key(int key, int unicode);

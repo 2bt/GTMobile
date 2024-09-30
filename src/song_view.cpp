@@ -1,4 +1,5 @@
 #include "song_view.hpp"
+#include "settings_view.hpp"
 #include "gtplayer.hpp"
 #include "log.hpp"
 #include "gui.hpp"
@@ -142,7 +143,7 @@ void draw() {
 
     gt::Player& player = app::player();
     gt::Song&   song   = app::song();
-    app::Settings const& settings = app::settings();
+    settings_view::Settings const& settings = settings_view::settings();
 
     gui::DrawContext& dc = gui::draw_context();
 
