@@ -29,7 +29,8 @@ namespace {
 
 void init(int mixrate) {
     g_sid.set_chip_model(MOS8580);
-    g_sid.set_sampling_parameters(PALCLOCKRATE, SAMPLE_RESAMPLE_INTERPOLATE, mixrate);
+    // g_sid.set_sampling_parameters(PALCLOCKRATE, SAMPLE_RESAMPLE_INTERPOLATE, mixrate);
+    g_sid.set_sampling_parameters(PALCLOCKRATE, SAMPLE_FAST, mixrate);
 }
 
 void write(int reg, uint8_t value) {

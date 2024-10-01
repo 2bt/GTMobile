@@ -58,7 +58,7 @@ void init_order_edit() {
         auto const& pattern = song.pattern[i];
         int         len     = song.pattlen[i];
         for (int r = 0; r < len; ++r) {
-            uint8_t const* p = pattern + r * 4;
+            uint8_t const* p = pattern.data() + r * 4;
             if (p[0] || p[1] || p[2]) {
                 g_pattern_empty[i] = false;
                 break;
@@ -351,7 +351,7 @@ void draw() {
             }
 
 
-            uint8_t const* p = song.pattern[g_pattern_nums[c]] + row * 4;
+            uint8_t const* p = song.pattern[g_pattern_nums[c]].data() + row * 4;
             int note  = p[0];
             int instr = p[1];
             int cmd   = p[2];
@@ -426,7 +426,7 @@ void draw() {
     if (piano::draw() && g_recording) {
         int      pat_nr  = g_pattern_nums[g_cursor_chan];
         auto&    pattern = song.pattern[pat_nr];
-        uint8_t* p       = pattern + g_cursor_pattern_row * 4;
+        uint8_t* p       = pattern.data() + g_cursor_pattern_row * 4;
         p[0] = gt::FIRSTNOTE + piano::note();
         p[1] = piano::instrument();
     }
@@ -455,12 +455,12 @@ void draw() {
         auto&    pattern = song.pattern[pat_nr];
         int&     len     = song.pattlen[pat_nr];
         int&     pos     = g_cursor_pattern_row;
-        uint8_t* p       = pattern + pos * 4;
+        uint8_t* p       = pattern.data() + pos * 4;
 
         if (gui::button(gui::Icon::AddRowAbove)) {
             if (len < gt::MAX_PATTROWS) {
                 ++len;
-                memmove(pattern + pos*4 + 4, pattern + pos*4, (len-pos) * 4);
+                memmove(pattern.data() + pos*4 + 4, pattern.data() + pos*4, (len-pos) * 4);
                 pattern[pos*4+0] = gt::REST;
                 pattern[pos*4+1] = 0;
                 pattern[pos*4+2] = 0;
@@ -471,7 +471,7 @@ void draw() {
         if (gui::button(gui::Icon::AddRowBelow)) {
             if (len < gt::MAX_PATTROWS) {
                 ++len;
-                memmove(pattern + pos*4 + 8, pattern + pos*4 + 4, (len-pos) * 4 - 4);
+                memmove(pattern.data() + pos*4 + 8, pattern.data() + pos*4 + 4, (len-pos) * 4 - 4);
                 pattern[pos*4+4] = gt::REST;
                 pattern[pos*4+5] = 0;
                 pattern[pos*4+6] = 0;
@@ -481,7 +481,7 @@ void draw() {
         if (gui::button(gui::Icon::DeleteRow)) {
             if (len > 1) {
                 --len;
-                memmove(pattern + pos*4, pattern + pos*4 + 4, (len-pos) * 4 + 4);
+                memmove(pattern.data() + pos*4, pattern.data() + pos*4 + 4, (len-pos) * 4 + 4);
                 if (pos >= len) pos = len - 1;
             }
         }
@@ -504,7 +504,7 @@ void draw() {
 
         if (gui::button(gui::Icon::AddRowAbove)) {
             if (len < gt::MAX_SONGLEN && pos <= len) {
-                memmove(order + pos + 1, order + pos, len - pos + 2);
+                memmove(order.data() + pos + 1, order.data() + pos, len - pos + 2);
                 order[pos] = 0;
                 ++len;
                 ++pos;
@@ -512,14 +512,14 @@ void draw() {
         }
         if (gui::button(gui::Icon::AddRowBelow)) {
             if (len < gt::MAX_SONGLEN && pos < len) {
-                memmove(order + pos + 2, order + pos + 1, len - pos + 1);
+                memmove(order.data() + pos + 2, order.data() + pos + 1, len - pos + 1);
                 order[pos + 1] = 0;
                 ++len;
             }
         }
         if (gui::button(gui::Icon::DeleteRow)) {
             if (len > 1 && pos < len) {
-                memmove(order + pos, order + pos + 1, len - pos + 1);
+                memmove(order.data() + pos, order.data() + pos + 1, len - pos + 1);
                 order[len + 1] = 0;
                 // if (order[len] > pos) --order[len];
                 --len;

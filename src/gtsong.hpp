@@ -75,21 +75,26 @@ struct Instr {
 };
 
 
+template<class T, size_t L1, size_t L2>
+using Array2 = std::array<std::array<T, L2>, L1>;
+template<class T, size_t L1, size_t L2, size_t L3>
+using Array3 = std::array<std::array<std::array<T, L3>, L2>, L1>;
+
 struct Song {
-    Instr   instr[MAX_INSTR];
-    uint8_t ltable[MAX_TABLES][MAX_TABLELEN];
-    uint8_t rtable[MAX_TABLES][MAX_TABLELEN];
-    uint8_t songorder[MAX_SONGS][MAX_CHN][MAX_SONGLEN + 2];
-    uint8_t pattern[MAX_PATT][MAX_PATTROWS * 4 + 4];
+    std::array<Instr, MAX_INSTR> instr;
+    Array2<uint8_t, MAX_TABLES, MAX_TABLELEN> ltable;
+    Array2<uint8_t, MAX_TABLES, MAX_TABLELEN> rtable;
+    Array3<uint8_t, MAX_SONGS, MAX_CHN, MAX_SONGLEN + 2> songorder;
+    Array2<uint8_t, MAX_PATT, MAX_PATTROWS * 4 + 4> pattern;
 
     std::array<char, MAX_STR> songname;
     std::array<char, MAX_STR> authorname;
     std::array<char, MAX_STR> copyrightname;
 
-    int     pattlen[MAX_PATT];
-    int     songlen[MAX_SONGS][MAX_CHN];
-    int     highestusedpattern;
-    int     highestusedinstr;
+    std::array<int, MAX_PATT> pattlen;
+    std::array<std::array<int, MAX_CHN>, MAX_SONGS> songlen;
+    int highestusedpattern;
+    int highestusedinstr;
 
     void count_pattern_lengths();
     bool load(char const* filename);

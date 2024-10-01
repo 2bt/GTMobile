@@ -120,7 +120,7 @@ void draw_load_window() {
     gui::disabled(!file_selected);
     if (gui::button("LOAD")) {
         app::player().init_song(0, gt::Player::PLAY_STOP);
-        bool ok = app::song().load(("songs/" + std::string(g_file_name.data()) + FILE_SUFFIX).c_str());
+        bool ok = app::song().load((g_songs_dir + g_file_name.data() + FILE_SUFFIX).c_str());
         if (ok) status("SONG WAS LOADED");
         else status("LOAD ERROR");
         g_dialog = Dialog::none;
@@ -138,7 +138,7 @@ void draw_load_window() {
 }
 
 void save() {
-    bool ok = app::song().save(("songs/" + std::string(g_file_name.data()) + FILE_SUFFIX).c_str());
+    bool ok = app::song().save((g_songs_dir + g_file_name.data() + FILE_SUFFIX).c_str());
     init();
     if (ok) status("SONG WAS SAVED");
     else status("SAVE ERROR");

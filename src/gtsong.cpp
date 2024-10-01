@@ -41,7 +41,7 @@ void Song::count_pattern_lengths() {
             {
                 highestusedpattern = c;
             }
-            if (pattern[c][d * 4 + 1] > highestusedinstr) highestusedinstr = pattern[c][d * 4 + 1];
+            highestusedinstr = std::max(highestusedinstr, int(pattern[c][d * 4 + 1]));
         }
         pattlen[c] = d;
     }
@@ -51,10 +51,9 @@ void Song::count_pattern_lengths() {
             int d;
             for (d = 0; d < MAX_SONGLEN; d++) {
                 if (songorder[e][c][d] >= LOOPSONG) break;
-                if (songorder[e][c][d] < REPEAT &&
-                    songorder[e][c][d] > highestusedpattern)
+                if (songorder[e][c][d] < REPEAT)
                 {
-                    highestusedpattern = songorder[e][c][d];
+                    highestusedpattern = std::max(highestusedpattern, int(songorder[e][c][d]));
                 }
             }
             songlen[e][c] = d;
@@ -63,13 +62,13 @@ void Song::count_pattern_lengths() {
 }
 
 void Song::clear_pattern(int p) {
-    memset(pattern[p], 0, MAX_PATTROWS * 4);
+    pattern[p] = {};
     for (int c = 0; c < 32; c++) pattern[p][c * 4] = REST;
     for (int c = 32; c <= MAX_PATTROWS; c++) pattern[p][c * 4] = ENDPATT;
 }
 
 void Song::clear_instr(int num) {
-    memset(&instr[num], 0, sizeof(Instr));
+    instr[num] = {};
     if (num) {
         //if (multiplier) instr[num].gatetimer = 2 * multiplier;
         //else instr[num].gatetimer = 1;
@@ -79,9 +78,9 @@ void Song::clear_instr(int num) {
 }
 
 void Song::clear() {
+    songorder = {};
     for (int c = 0; c < MAX_CHN; c++) {
         for (int d = 0; d < MAX_SONGS; d++) {
-            memset(&songorder[d][c][0], 0, MAX_SONGLEN + 2);
             if (d == 0) {
                 songorder[d][c][0] = c;
                 songorder[d][c][1] = LOOPSONG;
@@ -96,10 +95,8 @@ void Song::clear() {
     copyrightname = {};
     for (int c = 0; c < MAX_PATT; c++) clear_pattern(c);
     for (int c = 0; c < MAX_INSTR; c++) clear_instr(c);
-    for (int c = MAX_TABLES - 1; c >= 0; c--) {
-        memset(ltable[c], 0, MAX_TABLELEN);
-        memset(rtable[c], 0, MAX_TABLELEN);
-    }
+    ltable = {};
+    rtable = {};
     count_pattern_lengths();
 }
 
@@ -136,7 +133,7 @@ bool Song::load(std::istream& stream) {
     for (int d = 0; d < amount; d++) {
         for (int c = 0; c < MAX_CHN; c++) {
             int loadsize = read8(stream) + 1;
-            stream.read((char*) songorder[d][c], loadsize);
+            stream.read((char*) songorder[d][c].data(), loadsize);
         }
     }
     // read instruments
@@ -156,14 +153,14 @@ bool Song::load(std::istream& stream) {
     // read tables
     for (int c = 0; c < MAX_TABLES; c++) {
         int loadsize = read8(stream);
-        stream.read((char*) ltable[c], loadsize);
-        stream.read((char*) rtable[c], loadsize);
+        stream.read((char*) ltable[c].data(), loadsize);
+        stream.read((char*) rtable[c].data(), loadsize);
     }
     // read patterns
     amount = read8(stream);
     for (int c = 0; c < amount; c++) {
         int length = read8(stream) * 4;
-        stream.read((char*) pattern[c], length);
+        stream.read((char*) pattern[c].data(), length);
     }
 
     count_pattern_lengths();
@@ -186,7 +183,7 @@ bool Song::save(std::ostream& stream) {
         if (instr[c].ad || instr[c].sr || instr[c].ptr[0] || instr[c].ptr[1] ||
             instr[c].ptr[2] || instr[c].ptr[3] || instr[c].vibdelay)
         {
-            if (c > highestusedinstr) highestusedinstr = c;
+            highestusedinstr = std::max(highestusedinstr, c);
         }
     }
 
@@ -209,7 +206,7 @@ bool Song::save(std::ostream& stream) {
             int length = songlen[d][c] + 1;
             write<uint8_t>(stream, length);
             int writebytes = length + 1;
-            stream.write((char const*) songorder[d][c], writebytes);
+            stream.write((char const*) songorder[d][c].data(), writebytes);
         }
     }
     // instruments
@@ -230,8 +227,8 @@ bool Song::save(std::ostream& stream) {
     for (int c = 0; c < MAX_TABLES; c++) {
         int writebytes = gettablelen(c);
         write<uint8_t>(stream, writebytes);
-        stream.write((char const*) ltable[c], writebytes);
-        stream.write((char const*) rtable[c], writebytes);
+        stream.write((char const*) ltable[c].data(), writebytes);
+        stream.write((char const*) rtable[c].data(), writebytes);
     }
     // Write patterns
     amount = highestusedpattern + 1;
@@ -239,7 +236,7 @@ bool Song::save(std::ostream& stream) {
     for (int c = 0; c < amount; c++) {
         int length = pattlen[c] + 1;
         write<uint8_t>(stream, length);
-        stream.write((char const*) pattern[c], length * 4);
+        stream.write((char const*) pattern[c].data(), length * 4);
     }
 
     return true;

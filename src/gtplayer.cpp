@@ -148,7 +148,7 @@ void Player::sequencer(int c) {
         stop_song();
         chan.pattnum = 0;
     }
-    if (chan.pattptr >= (song.pattlen[chan.pattnum] * 4)) chan.pattptr = 0;
+    if (chan.pattptr >= uint32_t(song.pattlen[chan.pattnum] * 4)) chan.pattptr = 0;
 
     // check for playback endpos
     if (m_lastsonginit != PLAY_BEGINNING &&
@@ -223,7 +223,7 @@ void Player::play_routine() {
                 chan.advance = 0;
                 chan.pattptr = m_startpattpos * 4;
                 chan.pattnum = m_epnum[c];
-                if (chan.pattptr >= song.pattlen[chan.pattnum] * 4) chan.pattptr = 0;
+                if (chan.pattptr >= uint32_t(song.pattlen[chan.pattnum] * 4)) chan.pattptr = 0;
                 break;
 
             case PLAY_POS:
