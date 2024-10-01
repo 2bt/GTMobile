@@ -144,11 +144,11 @@ void draw() {
             box.pos.x += 1;
             box.size.x -= 2;
 
-            dc.color(color::ROW_NUMBER);
+            dc.rgb(color::ROW_NUMBER);
             if (row == pos) {
-                dc.color(color::BUTTON_ACTIVE);
+                dc.rgb(color::BUTTON_ACTIVE);
                 dc.fill({ box.pos, ivec2(26, settings.row_height) });
-                dc.color(color::WHITE);
+                dc.rgb(color::WHITE);
             }
             // row number
             ivec2 p = box.pos + ivec2(5, text_offset);
@@ -156,7 +156,7 @@ void draw() {
             dc.text(p, str);
             p.x += 28;
 
-            dc.color(used[row] ? color::HIGHLIGHT_ROW : color::BACKGROUND_ROW);
+            dc.rgb(used[row] ? color::HIGHLIGHT_ROW : color::BACKGROUND_ROW);
             dc.fill({ box.pos + ivec2(28, 0), ivec2(42, settings.row_height) });
 
 
@@ -165,16 +165,16 @@ void draw() {
                 g_cursor_row    = row;
             }
             if (state != gui::ButtonState::Normal) {
-                dc.color(color::BUTTON_HELD);
+                dc.rgb(color::BUTTON_HELD);
                 dc.box(box, gui::BoxStyle::Cursor);
             }
             if (CursorSelect(t) == g_cursor_select && row == g_cursor_row) {
-                dc.color(color::BUTTON_ACTIVE);
+                dc.rgb(color::BUTTON_ACTIVE);
                 dc.box(box, gui::BoxStyle::Cursor);
             }
 
             // chose colors
-            u8vec4 colors[2] = {
+            uint32_t colors[2] = {
                 color::WHITE,
                 color::WHITE,
             };
@@ -265,11 +265,11 @@ void draw() {
             else {
                 sprintf(str, "%02X", lval);
             }
-            dc.color(colors[0]);
+            dc.rgb(colors[0]);
             dc.text(p, str);
             p.x += 16;
             sprintf(str, "%02X", rval);
-            dc.color(colors[1]);
+            dc.rgb(colors[1]);
             dc.text(p, str);
         }
 

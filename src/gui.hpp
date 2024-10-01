@@ -4,73 +4,74 @@
 
 namespace color {
 
-    constexpr u8vec4 rgb(uint32_t c, uint8_t a = 255) {
-        return { uint8_t(c >> 16), uint8_t(c >> 8), uint8_t(c), a };
+    constexpr uint32_t mix(uint32_t c1, uint32_t c2, float x) {
+        float y = 1.0f - x;
+        return uint8_t(uint8_t(c1 >> 16) * y + uint8_t(c2 >> 16) * x) << 16 |
+               uint8_t(uint8_t(c1 >> 8) * y + uint8_t(c2 >> 8) * x) << 8 |
+               uint8_t(uint8_t(c1) * y + uint8_t(c2) * x);
     }
 
-    constexpr u8vec4 BLACK       = rgb(0x000000);
-    constexpr u8vec4 DARK_BLUE   = rgb(0x1D2B53);
-    constexpr u8vec4 DARK_PURPLE = rgb(0x7E2553);
-    constexpr u8vec4 DARK_GREEN  = rgb(0x008751);
-    constexpr u8vec4 BROWN       = rgb(0xAB5236);
-    constexpr u8vec4 DARK_GREY   = rgb(0x5F574F);
-    constexpr u8vec4 LIGHT_GREY  = rgb(0xC2C3C7);
-    constexpr u8vec4 WHITE       = rgb(0xffffff);
-    constexpr u8vec4 RED         = rgb(0xFF004D);
-    constexpr u8vec4 ORANGE      = rgb(0xFFA300);
-    constexpr u8vec4 YELLOW      = rgb(0xFFEC27);
-    constexpr u8vec4 GREEN       = rgb(0x00E436);
-    constexpr u8vec4 BLUE        = rgb(0x29ADFF);
-    constexpr u8vec4 LAVENDER    = rgb(0x83769C);
-    constexpr u8vec4 PINK        = rgb(0xFF77A8);
-    constexpr u8vec4 LIGHT_PEACH = rgb(0xFFCCAA);
+    constexpr uint32_t BLACK       = 0x000000;
+    constexpr uint32_t DARK_BLUE   = 0x1D2B53;
+    constexpr uint32_t DARK_PURPLE = 0x7E2553;
+    constexpr uint32_t DARK_GREEN  = 0x008751;
+    constexpr uint32_t BROWN       = 0xAB5236;
+    constexpr uint32_t DARK_GREY   = 0x5F574F;
+    constexpr uint32_t LIGHT_GREY  = 0xC2C3C7;
+    constexpr uint32_t WHITE       = 0xffffff;
+    constexpr uint32_t RED         = 0xFF004D;
+    constexpr uint32_t ORANGE      = 0xFFA300;
+    constexpr uint32_t YELLOW      = 0xFFEC27;
+    constexpr uint32_t GREEN       = 0x00E436;
+    constexpr uint32_t BLUE        = 0x29ADFF;
+    constexpr uint32_t LAVENDER    = 0x83769C;
+    constexpr uint32_t PINK        = 0xFF77A8;
+    constexpr uint32_t LIGHT_PEACH = 0xFFCCAA;
 
 
-    constexpr u8vec4 DRAG_BG            = rgb(0x222222);
-    constexpr u8vec4 DRAG_HANDLE_NORMAL = rgb(0x444444);
-    constexpr u8vec4 DRAG_HANDLE_ACTIVE = rgb(0x666666);
-    constexpr u8vec4 DRAG_ICON          = rgb(0x777777);
+    constexpr uint32_t DRAG_BG            = 0x222222;
+    constexpr uint32_t DRAG_HANDLE_NORMAL = 0x444444;
+    constexpr uint32_t DRAG_HANDLE_ACTIVE = 0x666666;
+    constexpr uint32_t DRAG_ICON          = 0x777777;
 
-    constexpr u8vec4 BUTTON_NORMAL      = DARK_GREY;
-    constexpr u8vec4 BUTTON_ACTIVE      = mix(color::ORANGE, color::BLACK, 0.3f);
-    constexpr u8vec4 BUTTON_PRESSED     = mix(color::ORANGE, color::YELLOW, 0.3f);
-    constexpr u8vec4 BUTTON_HELD        = mix(color::ORANGE, color::YELLOW, 0.3f);
-    constexpr u8vec4 BUTTON_RELEASED    = color::YELLOW;
+    constexpr uint32_t BUTTON_NORMAL      = DARK_GREY;
+    constexpr uint32_t BUTTON_ACTIVE      = mix(ORANGE, BLACK, 0.3f);
+    constexpr uint32_t BUTTON_PRESSED     = mix(ORANGE, YELLOW, 0.3f);
+    constexpr uint32_t BUTTON_HELD        = mix(ORANGE, YELLOW, 0.3f);
+    constexpr uint32_t BUTTON_RELEASED    = YELLOW;
 
-    constexpr u8vec4 CMDS[16] = {
-        mix(color::rgb(0x000000), color::WHITE, 0.2f),
+    constexpr uint32_t CMDS[16] = {
+        mix(0x000000, WHITE, 0.2f),
 
-        mix(color::rgb(0xff77a8), color::WHITE, 0.2f), // 1 portamento up
-        mix(color::rgb(0xff77a8), color::WHITE, 0.2f), // 2 portamento down
-        mix(color::rgb(0xff77a8), color::WHITE, 0.2f), // 3 tone portamento
+        mix(0xff77a8, WHITE, 0.2f), // 1 portamento up
+        mix(0xff77a8, WHITE, 0.2f), // 2 portamento down
+        mix(0xff77a8, WHITE, 0.2f), // 3 tone portamento
 
-        mix(color::rgb(0xff2030), color::WHITE, 0.2f), // 4 vibrato
+        mix(0xff2030, WHITE, 0.2f), // 4 vibrato
 
-        mix(color::rgb(0x00e436), color::WHITE, 0.2f), // 5 attack/decay
-        mix(color::rgb(0x00e436), color::WHITE, 0.2f), // 6 sustain/release
+        mix(0x00e436, WHITE, 0.2f), // 5 attack/decay
+        mix(0x00e436, WHITE, 0.2f), // 6 sustain/release
 
-        mix(color::rgb(0xffa300), color::WHITE, 0.2f), // 7 waveform reg
-        mix(color::rgb(0xffa300), color::WHITE, 0.2f), // 8 wavetable ptr
-        mix(color::rgb(0xffa300), color::WHITE, 0.2f), // 9 pulsetable ptr
+        mix(0xffa300, WHITE, 0.2f), // 7 waveform reg
+        mix(0xffa300, WHITE, 0.2f), // 8 wavetable ptr
+        mix(0xffa300, WHITE, 0.2f), // 9 pulsetable ptr
 
-        mix(color::rgb(0x29adff), color::WHITE, 0.2f), // A filtertable ptr
-        mix(color::rgb(0x29adff), color::WHITE, 0.2f), // B filter control
-        mix(color::rgb(0x29adff), color::WHITE, 0.2f), // C filter cutoff
+        mix(0x29adff, WHITE, 0.2f), // A filtertable ptr
+        mix(0x29adff, WHITE, 0.2f), // B filter control
+        mix(0x29adff, WHITE, 0.2f), // C filter cutoff
 
-        mix(color::rgb(0x00e436), color::WHITE, 0.2f), // D master volume
+        mix(0x00e436, WHITE, 0.2f), // D master volume
 
-        mix(color::rgb(0xffec27), color::WHITE, 0.2f), // E funk tempo
-        mix(color::rgb(0xffec27), color::WHITE, 0.2f), // F tempo
+        mix(0xffec27, WHITE, 0.2f), // E funk tempo
+        mix(0xffec27, WHITE, 0.2f), // F tempo
 
     };
 
-    constexpr u8vec4 ROW_NUMBER     = color::rgb(0xaaaaaa);
-    constexpr u8vec4 INSTRUMENT     = color::rgb(0xaabbdd);
-    constexpr u8vec4 HIGHLIGHT_ROW  = color::rgb(0x333333);
-    constexpr u8vec4 BACKGROUND_ROW = color::rgb(0x171717);
-    constexpr u8vec4 PLAYER_ROW     = color::rgb(0x553311);
-
-
+    constexpr uint32_t ROW_NUMBER     = 0xaaaaaa;
+    constexpr uint32_t INSTRUMENT     = 0xaabbdd;
+    constexpr uint32_t HIGHLIGHT_ROW  = 0x333333;
+    constexpr uint32_t BACKGROUND_ROW = 0x171717;
+    constexpr uint32_t PLAYER_ROW     = 0x553311;
 
 } // namespace color
 
@@ -105,18 +106,18 @@ public:
 
     void fill(Box const& box) {
         i16vec2 uv(8, 8); // a white pixel
-        auto i0 = add_vertex({ box.pos, uv, m_color });
-        auto i1 = add_vertex({ box.pos + box.size.xo(), uv, m_color });
-        auto i2 = add_vertex({ box.pos + box.size, uv, m_color });
-        auto i3 = add_vertex({ box.pos + box.size.oy(), uv, m_color });
+        auto i0 = add_vertex(box.pos, uv);
+        auto i1 = add_vertex(box.pos + box.size.xo(), uv);
+        auto i2 = add_vertex(box.pos + box.size, uv);
+        auto i3 = add_vertex(box.pos + box.size.oy(), uv);
         m_mesh->indices.insert(m_mesh->indices.end(), { i0, i1, i2, i0, i2, i3 });
     }
 
     void rect(ivec2 pos, ivec2 size, ivec2 uv) {
-        uint16_t i0 = add_vertex({ pos, uv, m_color });
-        uint16_t i1 = add_vertex({ pos + ivec2(size.x, 0), uv + ivec2(size.x, 0), m_color });
-        uint16_t i2 = add_vertex({ pos + size, uv + size, m_color });
-        uint16_t i3 = add_vertex({ pos + ivec2(0, size.y), uv + ivec2(0, size.y), m_color });
+        uint16_t i0 = add_vertex(pos, uv);
+        uint16_t i1 = add_vertex(pos + ivec2(size.x, 0), uv + ivec2(size.x, 0));
+        uint16_t i2 = add_vertex(pos + size, uv + size);
+        uint16_t i3 = add_vertex(pos + ivec2(0, size.y), uv + ivec2(0, size.y));
         m_mesh->indices.insert(m_mesh->indices.end(), { i0, i1, i2, i0, i2, i3 });
     }
 
@@ -159,18 +160,22 @@ public:
     void mesh(gfx::Mesh& mesh) {
         m_mesh = &mesh;
     }
-    void color(u8vec4 color) {
-        m_color = color;
+    void rgb(uint32_t c) {
+        m_color.x = uint8_t(c >> 16);
+        m_color.y = uint8_t(c >> 8);
+        m_color.z = uint8_t(c);
+    }
+    void alpha(uint8_t alpha) {
+        m_color.w = alpha;
     }
     void font(int i) {
         m_font_offset = 256 + 64 * i;
     }
 
 private:
-
-    uint16_t add_vertex(gfx::Vertex v) {
+    uint16_t add_vertex(i16vec2 pos, i16vec2 uv) {
         uint16_t index = m_mesh->vertices.size();
-        m_mesh->vertices.emplace_back(v);
+        m_mesh->vertices.push_back({ pos, uv, m_color });
         return index;
     }
 
@@ -261,6 +266,8 @@ namespace touch {
 
 void begin_frame();
 void end_frame();
+
+void disabled(bool disabled);
 
 void begin_window();
 Box  begin_window(ivec2 size);

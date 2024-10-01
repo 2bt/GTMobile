@@ -126,9 +126,9 @@ bool draw() {
     // draw white keys
     loop_keys([&](int i, int n, int note) {
         if (n % 2 == 0) {
-            dc.color(color::rgb(0xbbbbbb));
+            dc.rgb(0xbbbbbb);
             if (g_gate && g_note == note) {
-                dc.color(color::BUTTON_ACTIVE);
+                dc.rgb(color::BUTTON_ACTIVE);
             }
             gui::Box b = {
                 { i * KEY_HALF_WIDTH, piano_y },
@@ -137,7 +137,7 @@ bool draw() {
             dc.box(b, gui::BoxStyle::PianoKey);
             if (note % 12 == 0) {
                 char str[] = { char('0' + note / 12), '\0' };
-                dc.color(color::DARK_GREY);
+                dc.rgb(color::DARK_GREY);
                 dc.text({b.pos.x + KEY_HALF_WIDTH - 4, piano_y + 33}, str);
             }
         }
@@ -145,9 +145,9 @@ bool draw() {
     // draw black keys
     loop_keys([&](int i, int n, int note) {
         if (n % 2 == 1) {
-            dc.color(color::rgb(0x333333));
+            dc.rgb(0x333333);
             if (g_gate && g_note == note) {
-                dc.color(color::BUTTON_ACTIVE);
+                dc.rgb(color::BUTTON_ACTIVE);
             }
             gui::Box b = {
                 { i * KEY_HALF_WIDTH, piano_y },

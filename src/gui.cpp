@@ -46,6 +46,7 @@ char*        g_input_text_str = nullptr;
 int          g_input_text_len;
 int          g_input_text_pos;
 float        g_input_cursor_blink;
+bool         g_disabled;
 
 
 
@@ -74,11 +75,11 @@ void const* get_id(void const* addr) {
 }
 
 void button_color(ButtonState state, bool active) {
-    g_dc.color(state == ButtonState::Normal && !active ? color::BUTTON_NORMAL :
-               state == ButtonState::Normal && active  ? color::BUTTON_ACTIVE :
-               state == ButtonState::Pressed           ? color::BUTTON_PRESSED :
-               state == ButtonState::Held              ? color::BUTTON_HELD :
-             /*state == ButtonState::Released*/          color::BUTTON_RELEASED);
+    g_dc.rgb(state == ButtonState::Normal && !active ? color::BUTTON_NORMAL :
+             state == ButtonState::Normal && active  ? color::BUTTON_ACTIVE :
+             state == ButtonState::Pressed           ? color::BUTTON_PRESSED :
+             state == ButtonState::Held              ? color::BUTTON_HELD :
+           /*state == ButtonState::Released*/          color::BUTTON_RELEASED);
 }
 
 
@@ -105,6 +106,7 @@ Box item_box() {
 }
 
 ButtonState button_state(Box const& box, void const* addr) {
+    if (g_disabled) return ButtonState::Normal;
     g_hold = false;
     void const* id = get_id(addr);
     if (id) {
@@ -226,11 +228,10 @@ void begin_frame() {
 
     g_input_cursor_blink += g_frame_time * 2.0f;
     g_input_cursor_blink -= (int) g_input_cursor_blink;
-    if (touch::just_pressed() && g_input_text_str) {
+    if (g_touch_pressed && !g_touch_prev_pressed && g_input_text_str) {
         g_input_text_str = nullptr;
         platform::show_keyboard(false);
     }
-
 }
 
 void end_frame() {
@@ -241,8 +242,10 @@ void end_frame() {
 
         if (i == n - 1) {
             g_dc.mesh(w.mesh);
-            g_dc.color({ 0, 0, 0, 150 });
+            g_dc.rgb(0);
+            g_dc.alpha(150);
             g_dc.fill({ {}, { app::CANVAS_WIDTH, app::canvas_height() } });
+            g_dc.alpha(255);
         }
 
         gfx::draw(w.mesh, g_img);
@@ -267,7 +270,7 @@ void begin_window() {
 Box begin_window(ivec2 size) {
     begin_window();
     ivec2 pos  = ivec2(app::CANVAS_WIDTH, app::canvas_height()) / 2 - size / 2;
-    g_dc.color(color::BUTTON_NORMAL);
+    g_dc.rgb(color::BUTTON_NORMAL);
     g_dc.box({ pos - 6, size + 12 }, BoxStyle::Window);
     cursor(pos);
     return { pos, size };
@@ -310,7 +313,10 @@ void align(Align a) {
 bool hold() {
     return g_hold;
 }
-
+void disabled(bool disabled) {
+    g_disabled = disabled;
+    g_dc.alpha(disabled ? 100 : 255);
+}
 
 inline BoxStyle box_style(ButtonStyle s) {
     switch (s) {
@@ -327,7 +333,7 @@ bool button(Icon icon, bool active) {
     g_dc.box(box, box_style(g_button_style));
 
     int i = int(icon);
-    g_dc.color(color::WHITE);
+    g_dc.rgb(color::WHITE);
     g_dc.rect(box.pos + box.size / 2 - 8, 16, { i % 8 * 16, i / 8 * 16 });
     return state == ButtonState::Released;
 }
@@ -335,10 +341,8 @@ bool button(char const* label, bool active) {
     Box box = item_box();
     ButtonState state = button_state(box);
 
-
     if (g_button_style == ButtonStyle::TableCell) {
-        // g_dc.color(color::HIGHLIGHT_ROW);
-        g_dc.color(color::BACKGROUND_ROW);
+        g_dc.rgb(color::BACKGROUND_ROW);
         g_dc.fill({ box.pos + 1, box.size - 2 });
 
         if (active || state != ButtonState::Normal) {
@@ -351,7 +355,7 @@ bool button(char const* label, bool active) {
         g_dc.box(box, box_style(g_button_style));
     }
 
-    g_dc.color(color::WHITE);
+    g_dc.rgb(color::WHITE);
     g_dc.text(text_pos(box, label), label);
     return state == ButtonState::Released;
 }
@@ -362,7 +366,7 @@ void text(char const* fmt, ...) {
     char const* str = print_to_text_buffer(fmt, args);
     va_end(args);
     Box box = item_box();
-    g_dc.color(color::WHITE);
+    g_dc.rgb(color::WHITE);
     g_dc.text(text_pos(box, str), str);
 }
 void input_text(char* str, int len) {
@@ -370,6 +374,7 @@ void input_text(char* str, int len) {
     ButtonState state = button_state(box);
     if (state == ButtonState::Released) {
         platform::show_keyboard(true);
+        g_input_cursor_blink = 0;
         g_input_text_str = str;
         g_input_text_len = len;
         g_input_text_pos = strlen(g_input_text_str);
@@ -379,7 +384,7 @@ void input_text(char* str, int len) {
     button_color(state, active);
     g_dc.box(box, BoxStyle::Text);
     ivec2 p = box.pos + ivec2(box.size.y / 2 - 4);
-    g_dc.color(color::WHITE);
+    g_dc.rgb(color::WHITE);
     g_dc.text(p, str);
     // cursor
     if (g_input_text_str == str && g_input_cursor_blink < 0.5f) {
@@ -404,19 +409,19 @@ bool horizontal_drag_bar(int& value, int min, int max, int page) {
     }
     int handle_x = range == 0 ? 0 : (value - min) * move_w / range;
 
-    g_dc.color(color::DRAG_BG);
+    g_dc.rgb(color::DRAG_BG);
     g_dc.box(box, BoxStyle::Normal);
     if (move_w > 0) {
         if (g_drag_bar_style == DragBarStyle::Scrollbar) {
-            g_dc.color(is_active ? color::DRAG_HANDLE_ACTIVE : color::DRAG_HANDLE_NORMAL);
+            g_dc.rgb(is_active ? color::DRAG_HANDLE_ACTIVE : color::DRAG_HANDLE_NORMAL);
             g_dc.box({ box.pos + ivec2(handle_x, 0), { handle_w, box.size.y } }, BoxStyle::Normal);
-            g_dc.color(color::DRAG_ICON);
+            g_dc.rgb(color::DRAG_ICON);
             int i = int(Icon::HGrab);
             g_dc.rect(box.pos + ivec2(handle_x, 0) + ivec2(handle_w, box.size.y) / 2 - 8, 16,
                     { i % 8 * 16, i / 8 * 16 });
         }
         else {
-            g_dc.color(is_active ? color::BUTTON_HELD : color::BUTTON_NORMAL);
+            g_dc.rgb(is_active ? color::BUTTON_HELD : color::BUTTON_NORMAL);
             g_dc.box({ box.pos + ivec2(handle_x, 0), { handle_w, box.size.y } }, BoxStyle::Normal);
         }
     }
@@ -441,19 +446,19 @@ bool vertical_drag_bar(int& value, int min, int max, int page) {
     }
     int handle_y = range == 0 ? 0 : (value - min) * move_h / range;
 
-    g_dc.color(color::DRAG_BG);
+    g_dc.rgb(color::DRAG_BG);
     g_dc.box(box, BoxStyle::Normal);
     if (move_h > 0) {
         if (g_drag_bar_style == DragBarStyle::Scrollbar) {
-            g_dc.color(is_active ? color::DRAG_HANDLE_ACTIVE : color::DRAG_HANDLE_NORMAL);
+            g_dc.rgb(is_active ? color::DRAG_HANDLE_ACTIVE : color::DRAG_HANDLE_NORMAL);
             g_dc.box({ box.pos + ivec2(0, handle_y), { box.size.x, handle_h } }, BoxStyle::Normal);
-            g_dc.color(color::DRAG_ICON);
+            g_dc.rgb(color::DRAG_ICON);
             int i = int(Icon::VGrab);
             g_dc.rect(box.pos + ivec2(0, handle_y) + ivec2(box.size.x, handle_h) / 2 - 8, 16,
                       { i % 8 * 16, i / 8 * 16 });
         }
         else {
-            g_dc.color(is_active ? color::BUTTON_HELD : color::BUTTON_NORMAL);
+            g_dc.rgb(is_active ? color::BUTTON_HELD : color::BUTTON_NORMAL);
             g_dc.box({ box.pos + ivec2(0, handle_y), { box.size.x, handle_h } }, BoxStyle::Normal);
         }
     }
@@ -471,10 +476,10 @@ bool vertical_drag_button(int& value) {
         value -= dy < 0;
     }
 
-    g_dc.color(is_active ? color::DRAG_HANDLE_ACTIVE : color::DRAG_HANDLE_NORMAL);
+    g_dc.rgb(is_active ? color::DRAG_HANDLE_ACTIVE : color::DRAG_HANDLE_NORMAL);
     g_dc.box(box, BoxStyle::Normal);
 
-    g_dc.color(color::DRAG_ICON);
+    g_dc.rgb(color::DRAG_ICON);
     int i = int(Icon::VGrab);
     g_dc.rect(box.pos + box.size / 2 - 8, 16, { i % 8 * 16, i / 8 * 16 });
     return value != old_value;
@@ -494,22 +499,22 @@ void DrawContext::box(Box const& box, BoxStyle style) {
     i16vec2 t1 = t0 + 8;
     i16vec2 t2 = t1;
     i16vec2 t3 = t2 + 8;
-    auto i0  = add_vertex({ { p0.x, p0.y }, { t0.x, t0.y }, m_color });
-    auto i1  = add_vertex({ { p1.x, p0.y }, { t1.x, t0.y }, m_color });
-    auto i2  = add_vertex({ { p2.x, p0.y }, { t2.x, t0.y }, m_color });
-    auto i3  = add_vertex({ { p3.x, p0.y }, { t3.x, t0.y }, m_color });
-    auto i4  = add_vertex({ { p0.x, p1.y }, { t0.x, t1.y }, m_color });
-    auto i5  = add_vertex({ { p1.x, p1.y }, { t1.x, t1.y }, m_color });
-    auto i6  = add_vertex({ { p2.x, p1.y }, { t2.x, t1.y }, m_color });
-    auto i7  = add_vertex({ { p3.x, p1.y }, { t3.x, t1.y }, m_color });
-    auto i8  = add_vertex({ { p0.x, p2.y }, { t0.x, t2.y }, m_color });
-    auto i9  = add_vertex({ { p1.x, p2.y }, { t1.x, t2.y }, m_color });
-    auto i10 = add_vertex({ { p2.x, p2.y }, { t2.x, t2.y }, m_color });
-    auto i11 = add_vertex({ { p3.x, p2.y }, { t3.x, t2.y }, m_color });
-    auto i12 = add_vertex({ { p0.x, p3.y }, { t0.x, t3.y }, m_color });
-    auto i13 = add_vertex({ { p1.x, p3.y }, { t1.x, t3.y }, m_color });
-    auto i14 = add_vertex({ { p2.x, p3.y }, { t2.x, t3.y }, m_color });
-    auto i15 = add_vertex({ { p3.x, p3.y }, { t3.x, t3.y }, m_color });
+    auto i0  = add_vertex({ p0.x, p0.y }, { t0.x, t0.y });
+    auto i1  = add_vertex({ p1.x, p0.y }, { t1.x, t0.y });
+    auto i2  = add_vertex({ p2.x, p0.y }, { t2.x, t0.y });
+    auto i3  = add_vertex({ p3.x, p0.y }, { t3.x, t0.y });
+    auto i4  = add_vertex({ p0.x, p1.y }, { t0.x, t1.y });
+    auto i5  = add_vertex({ p1.x, p1.y }, { t1.x, t1.y });
+    auto i6  = add_vertex({ p2.x, p1.y }, { t2.x, t1.y });
+    auto i7  = add_vertex({ p3.x, p1.y }, { t3.x, t1.y });
+    auto i8  = add_vertex({ p0.x, p2.y }, { t0.x, t2.y });
+    auto i9  = add_vertex({ p1.x, p2.y }, { t1.x, t2.y });
+    auto i10 = add_vertex({ p2.x, p2.y }, { t2.x, t2.y });
+    auto i11 = add_vertex({ p3.x, p2.y }, { t3.x, t2.y });
+    auto i12 = add_vertex({ p0.x, p3.y }, { t0.x, t3.y });
+    auto i13 = add_vertex({ p1.x, p3.y }, { t1.x, t3.y });
+    auto i14 = add_vertex({ p2.x, p3.y }, { t2.x, t3.y });
+    auto i15 = add_vertex({ p3.x, p3.y }, { t3.x, t3.y });
     m_mesh->indices.insert(m_mesh->indices.end(), {
         i0,  i1,  i5,  i0,  i5,  i4,
         i1,  i2,  i6,  i1,  i6,  i5,

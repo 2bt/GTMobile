@@ -220,7 +220,7 @@ void draw() {
         gui::Box box = gui::item_box();
 
         sprintf(str, "%02X", row);
-        dc.color(color::ROW_NUMBER);
+        dc.rgb(color::ROW_NUMBER);
         dc.text(box.pos + ivec2(6, text_offset), str);
 
         gui::item_size({ 84, settings.row_height });
@@ -237,9 +237,9 @@ void draw() {
             if (row >= len) continue;
             uint8_t v = order[row];
 
-            dc.color(color::BACKGROUND_ROW);
-            if (v == g_pattern_nums[c]) dc.color(color::HIGHLIGHT_ROW);
-            if (is_playing && row == player_song_rows[c]) dc.color(color::PLAYER_ROW);
+            dc.rgb(color::BACKGROUND_ROW);
+            if (v == g_pattern_nums[c]) dc.rgb(color::HIGHLIGHT_ROW);
+            if (is_playing && row == player_song_rows[c]) dc.rgb(color::PLAYER_ROW);
             dc.fill(box);
 
             if (state == gui::ButtonState::Released) {
@@ -253,11 +253,11 @@ void draw() {
             }
 
             if (state != gui::ButtonState::Normal) {
-                dc.color(color::BUTTON_HELD);
+                dc.rgb(color::BUTTON_HELD);
                 dc.box(box, gui::BoxStyle::Cursor);
             }
             if (c == g_cursor_chan && row == g_cursor_song_row) {
-                dc.color(color::BUTTON_ACTIVE);
+                dc.rgb(color::BUTTON_ACTIVE);
                 dc.box(box, gui::BoxStyle::Cursor);
             }
 
@@ -274,12 +274,12 @@ void draw() {
             else {
                 sprintf(str, "%02X", v);
             }
-            dc.color(color::WHITE);
+            dc.rgb(color::WHITE);
             dc.text(box.pos + ivec2(5, text_offset), str);
 
             // loop marker
             if (row == order[len + 1]) {
-                dc.color(color::BUTTON_HELD);
+                dc.rgb(color::BUTTON_HELD);
                 dc.text(box.pos + ivec2(box.size.x - 8, text_offset), "\x05");
             }
         }
@@ -300,9 +300,9 @@ void draw() {
         if (gui::button(str, active)) {
             player.set_channel_active(c, !active);
         }
-        dc.color(color::BLACK);
+        dc.rgb(color::BLACK);
         dc.fill({ p + ivec2(27, 7), { 50, 6 } });
-        dc.color(color::WHITE);
+        dc.rgb(color::WHITE);
         dc.fill({ p + ivec2(27, 7), ivec2(sid::chan_level(c) * 50.0f + 0.9f, 6) });
     }
 
@@ -315,7 +315,7 @@ void draw() {
         gui::Box box = gui::item_box();
 
         sprintf(str, "%02X", row);
-        dc.color(color::ROW_NUMBER);
+        dc.rgb(color::ROW_NUMBER);
         dc.text(box.pos + ivec2(6, text_offset), str);
 
         gui::item_size({ 84, settings.row_height });
@@ -328,10 +328,10 @@ void draw() {
 
             if (row >= song.pattlen[g_pattern_nums[c]]) continue;
 
-            dc.color(color::BACKGROUND_ROW);
-            if (row % settings.row_highlight == 0) dc.color(color::HIGHLIGHT_ROW);
+            dc.rgb(color::BACKGROUND_ROW);
+            if (row % settings.row_highlight == 0) dc.rgb(color::HIGHLIGHT_ROW);
             if (is_playing && g_pattern_nums[c] == player_pattern_nums[c] && row == player_pattern_rows[c]) {
-                dc.color(color::PLAYER_ROW);
+                dc.rgb(color::PLAYER_ROW);
             }
             dc.fill(box);
 
@@ -342,11 +342,11 @@ void draw() {
                 g_cursor_song_row    = -1;
             }
             if (state != gui::ButtonState::Normal) {
-                dc.color(color::BUTTON_HELD);
+                dc.rgb(color::BUTTON_HELD);
                 dc.box(box, gui::BoxStyle::Cursor);
             }
             if (c == g_cursor_chan && row == g_cursor_pattern_row) {
-                dc.color(color::BUTTON_ACTIVE);
+                dc.rgb(color::BUTTON_ACTIVE);
                 dc.box(box, gui::BoxStyle::Cursor);
             }
 
@@ -359,9 +359,9 @@ void draw() {
 
             ivec2 t = box.pos + ivec2(5, text_offset);
 
-            dc.color(color::WHITE);
+            dc.rgb(color::WHITE);
             if (note == gt::REST) {
-                dc.color(color::DARK_GREY);
+                dc.rgb(color::DARK_GREY);
                 dc.text(t, "\x01\x01\x01");
             }
             else if (note == gt::KEYOFF) {
@@ -380,13 +380,13 @@ void draw() {
 
             if (instr > 0) {
                 sprintf(str, "%02X", instr);
-                dc.color(color::INSTRUMENT);
+                dc.rgb(color::INSTRUMENT);
                 dc.text(t, str);
             }
             t.x += 20;
 
             if (cmd > 0) {
-                dc.color(color::CMDS[cmd]);
+                dc.rgb(color::CMDS[cmd]);
                 sprintf(str, "%X%02X", cmd, arg);
                 dc.text(t, str);
             }

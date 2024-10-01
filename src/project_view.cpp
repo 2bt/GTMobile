@@ -87,9 +87,7 @@ bool ends_with(std::string const& str, char const* suffix) {
 
 
 void draw_load_window() {
-    if (g_dialog != Dialog::load) return;
-
-    gui::Box box = gui::begin_window({ app::CANVAS_WIDTH - 24 * 2, PAGE * 16 + app::BUTTON_WIDTH * 2  });
+    gui::Box box = gui::begin_window({ app::CANVAS_WIDTH - 24 * 2, PAGE * 16 + app::BUTTON_WIDTH * 2 });
 
     gui::item_size({ box.size.x, app::BUTTON_WIDTH });
     gui::align(gui::Align::Center);
@@ -106,11 +104,11 @@ void draw_load_window() {
             continue;
         }
         char const* s = g_file_names[row].c_str();
-
         bool selected = strcmp(s, g_file_name.data()) == 0;
         file_selected |= selected;
         if (gui::button(s, selected)) {
             strncpy(g_file_name.data(), s, g_file_name.size() - 1);
+            file_selected = true;
         }
     }
 
@@ -118,16 +116,16 @@ void draw_load_window() {
     gui::item_size({ box.size.x / 2, app::BUTTON_WIDTH });
     if (gui::button("CANCEL")) g_dialog = Dialog::none;
     gui::same_line();
-    if (gui::button("LOAD") && file_selected) {
+
+    gui::disabled(!file_selected);
+    if (gui::button("LOAD")) {
         app::player().init_song(0, gt::Player::PLAY_STOP);
-        if (app::song().load(("songs/" + std::string(g_file_name.data()) + FILE_SUFFIX).c_str())) {
-            status("SONG WAS LOADED");
-        }
-        else {
-            status("LOAD ERROR: WRONG FORMAT");
-        }
+        bool ok = app::song().load(("songs/" + std::string(g_file_name.data()) + FILE_SUFFIX).c_str());
+        if (ok) status("SONG WAS LOADED");
+        else status("LOAD ERROR");
         g_dialog = Dialog::none;
     }
+    gui::disabled(false);
 
     // scrollbar
     gui::cursor(box.pos + ivec2(box.size.x - app::BUTTON_WIDTH, app::BUTTON_WIDTH));
@@ -139,6 +137,71 @@ void draw_load_window() {
     gui::end_window();
 }
 
+void save() {
+    bool ok = app::song().save(("songs/" + std::string(g_file_name.data()) + FILE_SUFFIX).c_str());
+    init();
+    if (ok) status("SONG WAS SAVED");
+    else status("SAVE ERROR");
+    g_dialog = Dialog::none;
+}
+
+void draw_save_window() {
+    gui::Box box = gui::begin_window({ app::CANVAS_WIDTH - 24 * 2, PAGE * 16 + app::BUTTON_WIDTH * 3 });
+
+    gui::item_size({ box.size.x, app::BUTTON_WIDTH });
+    gui::align(gui::Align::Center);
+    gui::text("SAVE SONG");
+
+    gui::align(gui::Align::Left);
+    gui::item_size({ box.size.x - app::BUTTON_WIDTH, 16 });
+    bool file_selected = false;
+
+    for (int i = 0; i < PAGE; ++i) {
+        size_t row = g_file_scroll + i;
+        if (row >= g_file_names.size()) {
+            gui::item_box();
+            continue;
+        }
+        char const* s = g_file_names[row].c_str();
+        bool selected = strcmp(s, g_file_name.data()) == 0;
+        file_selected |= selected;
+        if (gui::button(s, selected)) {
+            strncpy(g_file_name.data(), s, g_file_name.size() - 1);
+        }
+    }
+
+
+    gui::item_size({ box.size.x, app::BUTTON_WIDTH });
+    gui::input_text(g_file_name);
+
+    gui::align(gui::Align::Center);
+    gui::item_size({ box.size.x / 2, app::BUTTON_WIDTH });
+    if (gui::button("CANCEL")) g_dialog = Dialog::none;
+    gui::same_line();
+
+    gui::disabled(g_file_name[0] == '\0');
+    if (gui::button("SAVE")) {
+        if (file_selected) {
+            confirm("OVERWRITE THE EXISTING SONG?", [](bool ok) {
+                if (ok) save();
+            });
+        }
+        else {
+            save();
+        }
+    }
+    gui::disabled(false);
+
+    // scrollbar
+    gui::cursor(box.pos + ivec2(box.size.x - app::BUTTON_WIDTH, app::BUTTON_WIDTH));
+    gui::item_size({ app::BUTTON_WIDTH, PAGE * 16 });
+    int max_scroll = std::max(0, int(g_file_names.size()) - PAGE);
+    gui::drag_bar_style(gui::DragBarStyle::Scrollbar);
+    gui::vertical_drag_bar(g_file_scroll, 0, max_scroll, PAGE);
+
+    draw_confirm();
+    gui::end_window();
+}
 
 
 } // namespace
@@ -171,7 +234,6 @@ void init() {
         }
     }
 
-
     g_file_names.clear();
     for (auto const& entry : fs::directory_iterator(g_songs_dir)) {
         if (!entry.is_regular_file()) continue;
@@ -179,9 +241,7 @@ void init() {
         g_file_names.emplace_back(entry.path().stem().string());
     }
     std::sort(g_file_names.begin(), g_file_names.end());
-
     g_status_msg = "";
-
 }
 
 
@@ -230,10 +290,9 @@ void draw() {
     }
     if (gui::button("LOAD")) {
         g_dialog = Dialog::load;
-
-        app::player().init_song(0, gt::Player::PLAY_STOP);
     }
     if (gui::button("SAVE")) {
+        g_dialog = Dialog::save;
     }
 
     gui::align(gui::Align::Left);
@@ -243,8 +302,9 @@ void draw() {
         g_status_msg = "";
     }
 
-    draw_load_window();
-    draw_confirm();
+    if (g_dialog == Dialog::load) draw_load_window();
+    else if (g_dialog == Dialog::save) draw_save_window();
+    else draw_confirm();
 }
 
 } // namespace project_view
