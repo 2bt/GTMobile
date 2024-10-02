@@ -65,10 +65,10 @@ Player::Player(Song const& song) : song(song) {
     init_song(0, PLAY_STOP);
 }
 
-void Player::init_song(int num, Mode mode, int pattpos) {
+void Player::init_song(int num, Mode mode) {
     m_psnum        = num;
     m_songinit     = mode;
-    m_startpattpos = pattpos;
+    m_startpattpos = 0;
 }
 
 void Player::stop_song() {
@@ -163,8 +163,6 @@ void Player::sequencer(int c) {
 
 
 void Player::play_routine() {
-
-    //if (songinit == PLAY_STOP) followplay = 0;
 
     if (m_songinit > 0 && m_songinit < PLAY_STOPPED) {
         m_lastsonginit = m_songinit;

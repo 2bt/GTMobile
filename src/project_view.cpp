@@ -3,6 +3,7 @@
 #include "app.hpp"
 #include "log.hpp"
 #include "platform.hpp"
+#include "piano.hpp"
 #include <array>
 #include <filesystem>
 #include <cstring>
@@ -283,9 +284,11 @@ void draw() {
     gui::align(gui::Align::Center);
     gui::item_size({ app::CANVAS_WIDTH, app::BUTTON_WIDTH });
     if (gui::button("RESET")) {
-        app::player().init_song(0, gt::Player::PLAY_STOP);
         confirm("LOSE CHANGES TO THE CURRENT SONG?", [](bool ok) {
-            if (ok) app::song().clear();
+            if (ok) {
+                app::player().init_song(0, gt::Player::PLAY_STOP);
+                app::song().clear();
+            }
         });
     }
     if (gui::button("LOAD")) {
@@ -305,6 +308,8 @@ void draw() {
     if (g_dialog == Dialog::load) draw_load_window();
     else if (g_dialog == Dialog::save) draw_save_window();
     else draw_confirm();
+
+    piano::draw();
 }
 
 } // namespace project_view

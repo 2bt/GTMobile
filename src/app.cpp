@@ -87,6 +87,13 @@ void init() {
 
     g_song.clear();
 
+    // simple beep instrument
+    strcpy(g_song.instr[1].name.data(), "BEEP");
+    g_song.instr[1].sr = 0xf3;
+    g_song.instr[1].ptr[0] = 1;
+    g_song.ltable[0][0] = 0x11;
+    g_song.ltable[0][1] = 0xff;
+
     g_initialized = true;
 }
 
@@ -150,7 +157,7 @@ void draw() {
 
     gui::begin_frame();
 
-    gui::item_size({ 112, 24 });
+    gui::item_size({ (CANVAS_WIDTH - TAB_WIDTH) / 3 , TAB_WIDTH });
     gui::align(gui::Align::Center);
     gui::button_style(gui::ButtonStyle::Tab);
     for (size_t i = 0; i < VIEW_NAMES.size(); ++i) {
@@ -159,7 +166,7 @@ void draw() {
         }
         gui::same_line();
     }
-    gui::item_size(24);
+    gui::item_size({ CANVAS_WIDTH - gui::cursor().x, TAB_WIDTH });
     if (gui::button(gui::Icon::Settings, g_view == View::settings)) {
         set_view(View::settings);
     }

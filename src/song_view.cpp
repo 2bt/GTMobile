@@ -71,6 +71,8 @@ void draw_order_edit() {
     if (g_dialog != Dialog::OrderEdit) return;
 
     gui::Box box = gui::begin_window({ 13 * 26, (16 + 4) * app::BUTTON_WIDTH });
+    gui::item_size({ box.size.x, app::BUTTON_WIDTH });
+    gui::text("EDIT ORDER LIST");
 
     gt::Song& song  = app::song();
     auto&     order = song.songorder[SONG_NR][g_cursor_chan];
@@ -117,11 +119,12 @@ void draw_order_edit() {
     gui::item_size({ 26 * 10, app::BUTTON_WIDTH });
     gui::horizontal_drag_bar(g_repeat, 0, 0xf, 0);
 
-    gui::item_size({ box.size.x, app::BUTTON_WIDTH });
+    gui::item_size({ box.size.x / 2, app::BUTTON_WIDTH });
     if (gui::button("SET LOOP POINTER", order[len + 1] == g_cursor_song_row)) {
         g_dialog = Dialog::None;
         order[len + 1] = g_cursor_song_row;
     }
+    gui::same_line();
     if (gui::button("CANCEL")) {
         g_dialog = Dialog::None;
     }
@@ -174,9 +177,9 @@ void draw() {
     max_pattern_len = std::max(max_pattern_len, song.pattlen[g_pattern_nums[2]]);
 
 
-    gui::cursor({ 0, 24 });
+    gui::cursor({ 0, app::TAB_WIDTH });
 
-    int height_left = app::canvas_height() - (gui::cursor().y + 48 + 20 + 20);
+    int height_left = app::canvas_height() - gui::cursor().y - piano::HEIGHT - app::BUTTON_WIDTH;
     int total_rows = height_left / settings.row_height;
     g_song_page = clamp(g_song_page, 0, total_rows);
     int pattern_page = total_rows - g_song_page;
@@ -395,7 +398,7 @@ void draw() {
 
 
     // scroll bars
-    gui::cursor({ app::CANVAS_WIDTH - 80, 24 });
+    gui::cursor({ app::CANVAS_WIDTH - 80, app::TAB_WIDTH });
     gui::drag_bar_style(gui::DragBarStyle::Scrollbar);
     {
         int page = g_song_page;
@@ -422,79 +425,14 @@ void draw() {
     }
 
 
-    // piano
-    if (piano::draw() && g_recording) {
-        int      pat_nr  = g_pattern_nums[g_cursor_chan];
-        auto&    pattern = song.pattern[pat_nr];
-        uint8_t* p       = pattern.data() + g_cursor_pattern_row * 4;
-        p[0] = gt::FIRSTNOTE + piano::note();
-        p[1] = piano::instrument();
-    }
 
     // buttons
-    gui::cursor({ app::CANVAS_WIDTH - 60, 24 });
+    gui::cursor({ app::CANVAS_WIDTH - 60, app::TAB_WIDTH });
     gui::align(gui::Align::Center);
     gui::item_size({ 60, app::BUTTON_WIDTH });
 
-    if (gui::button(gui::Icon::Play, is_playing)) {
-        if (is_playing) {
-            player.stop_song();
-        }
-        else {
-            player.init_song(0, gt::Player::PLAY_BEGINNING);
-        }
-    }
 
-    if (gui::button(gui::Icon::Follow, g_follow)) {
-        g_follow = !g_follow;
-    }
 
-    // pattern edit
-    if (g_cursor_pattern_row >= 0 && !(is_playing && g_follow)) {
-        int      pat_nr  = g_pattern_nums[g_cursor_chan];
-        auto&    pattern = song.pattern[pat_nr];
-        int&     len     = song.pattlen[pat_nr];
-        int&     pos     = g_cursor_pattern_row;
-        uint8_t* p       = pattern.data() + pos * 4;
-
-        if (gui::button(gui::Icon::AddRowAbove)) {
-            if (len < gt::MAX_PATTROWS) {
-                ++len;
-                memmove(pattern.data() + pos*4 + 4, pattern.data() + pos*4, (len-pos) * 4);
-                pattern[pos*4+0] = gt::REST;
-                pattern[pos*4+1] = 0;
-                pattern[pos*4+2] = 0;
-                pattern[pos*4+3] = 0;
-                ++pos;
-            }
-        }
-        if (gui::button(gui::Icon::AddRowBelow)) {
-            if (len < gt::MAX_PATTROWS) {
-                ++len;
-                memmove(pattern.data() + pos*4 + 8, pattern.data() + pos*4 + 4, (len-pos) * 4 - 4);
-                pattern[pos*4+4] = gt::REST;
-                pattern[pos*4+5] = 0;
-                pattern[pos*4+6] = 0;
-                pattern[pos*4+7] = 0;
-            }
-        }
-        if (gui::button(gui::Icon::DeleteRow)) {
-            if (len > 1) {
-                --len;
-                memmove(pattern.data() + pos*4, pattern.data() + pos*4 + 4, (len-pos) * 4 + 4);
-                if (pos >= len) pos = len - 1;
-            }
-        }
-
-        if (gui::button("\x01\x01\x01")) {
-            p[0] = gt::REST;
-            p[1] = 0;
-        }
-        if (gui::button("\x02\x02\x02")) {
-            p[0] = p[0] == gt::KEYOFF ? gt::KEYON : gt::KEYOFF;
-            p[1] = 0;
-        }
-    }
 
     // order edit
     if (g_cursor_song_row >= 0 && !(is_playing && g_follow)) {
@@ -502,29 +440,26 @@ void draw() {
         int&  len   = song.songlen[SONG_NR][g_cursor_chan];
         int&  pos   = g_cursor_song_row;
 
+        gui::disabled(!(len < gt::MAX_SONGLEN && pos <= len));
         if (gui::button(gui::Icon::AddRowAbove)) {
-            if (len < gt::MAX_SONGLEN && pos <= len) {
-                memmove(order.data() + pos + 1, order.data() + pos, len - pos + 2);
-                order[pos] = 0;
-                ++len;
-                ++pos;
-            }
+            memmove(order.data() + pos + 1, order.data() + pos, len - pos + 2);
+            order[pos] = 0;
+            ++len;
+            ++pos;
         }
+        gui::disabled(!(len < gt::MAX_SONGLEN && pos < len));
         if (gui::button(gui::Icon::AddRowBelow)) {
-            if (len < gt::MAX_SONGLEN && pos < len) {
-                memmove(order.data() + pos + 2, order.data() + pos + 1, len - pos + 1);
-                order[pos + 1] = 0;
-                ++len;
-            }
+            memmove(order.data() + pos + 2, order.data() + pos + 1, len - pos + 1);
+            order[pos + 1] = 0;
+            ++len;
         }
+        gui::disabled(!(len > 1 && pos < len));
         if (gui::button(gui::Icon::DeleteRow)) {
-            if (len > 1 && pos < len) {
-                memmove(order.data() + pos, order.data() + pos + 1, len - pos + 1);
-                order[len + 1] = 0;
-                // if (order[len] > pos) --order[len];
-                --len;
-            }
+            memmove(order.data() + pos, order.data() + pos + 1, len - pos + 1);
+            order[len + 1] = 0;
+            --len;
         }
+        gui::disabled(false);
 
         if (gui::button(gui::Icon::Pen)) {
             if (pos < len) {
@@ -537,16 +472,69 @@ void draw() {
 
     }
 
+    // pattern edit
+    if (g_cursor_pattern_row >= 0 && !(is_playing && g_follow)) {
+        int      pat_nr  = g_pattern_nums[g_cursor_chan];
+        auto&    pattern = song.pattern[pat_nr];
+        int&     len     = song.pattlen[pat_nr];
+        int&     pos     = g_cursor_pattern_row;
+        uint8_t* p       = pattern.data() + pos * 4;
 
+        gui::disabled(!(len < gt::MAX_PATTROWS));
+        if (gui::button(gui::Icon::AddRowAbove)) {
+            ++len;
+            memmove(pattern.data() + pos*4 + 4, pattern.data() + pos*4, (len-pos) * 4);
+            pattern[pos*4+0] = gt::REST;
+            pattern[pos*4+1] = 0;
+            pattern[pos*4+2] = 0;
+            pattern[pos*4+3] = 0;
+            ++pos;
+        }
+        gui::disabled(!(len < gt::MAX_PATTROWS));
+        if (gui::button(gui::Icon::AddRowBelow)) {
+            ++len;
+            memmove(pattern.data() + pos*4 + 8, pattern.data() + pos*4 + 4, (len-pos) * 4 - 4);
+            pattern[pos*4+4] = gt::REST;
+            pattern[pos*4+5] = 0;
+            pattern[pos*4+6] = 0;
+            pattern[pos*4+7] = 0;
+        }
+        gui::disabled(!(len > 1));
+        if (gui::button(gui::Icon::DeleteRow)) {
+            --len;
+            memmove(pattern.data() + pos*4, pattern.data() + pos*4 + 4, (len-pos) * 4 + 4);
+            if (pos >= len) pos = len - 1;
+        }
+        gui::disabled(false);
 
-    // record button
-    gui::cursor({ app::CANVAS_WIDTH - 60, app::canvas_height() - 48 - app::BUTTON_WIDTH - 20 });
-    if (gui::button(gui::Icon::Record, g_recording)) {
-        g_recording = !g_recording;
+        if (gui::button("\x01\x01\x01")) {
+            p[0] = gt::REST;
+            p[1] = 0;
+        }
+        if (gui::button("\x02\x02\x02")) {
+            p[0] = p[0] == gt::KEYOFF ? gt::KEYON : gt::KEYOFF;
+            p[1] = 0;
+        }
+        if (gui::button(gui::Icon::Record, g_recording)) {
+            g_recording = !g_recording;
+        }
     }
 
 
+
+    // record button
+
+
     draw_order_edit();
+
+    // piano
+    if (piano::draw(&g_follow) && g_recording) {
+        int      pat_nr  = g_pattern_nums[g_cursor_chan];
+        auto&    pattern = song.pattern[pat_nr];
+        uint8_t* p       = pattern.data() + g_cursor_pattern_row * 4;
+        p[0] = gt::FIRSTNOTE + piano::note();
+        p[1] = piano::instrument();
+    }
 }
 
 } // namespace song_view

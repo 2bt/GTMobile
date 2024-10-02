@@ -58,14 +58,8 @@ void draw() {
     gt::Instr& instr    = song.instr[instr_nr];
     settings_view::Settings const& settings = settings_view::settings();
 
-    gui::align(gui::Align::Left);
-    gui::item_size({ 2 * 8 + 12, app::BUTTON_WIDTH });
-
     char str[32];
-    sprintf(str, "%02X", instr_nr);
-    if (gui::button(str)) piano::show_instrument_select();
-
-    gui::same_line();
+    gui::align(gui::Align::Left);
     gui::item_size({ 16 * 8 + 12, app::BUTTON_WIDTH });
     gui::input_text(instr.name);
 
@@ -106,7 +100,7 @@ void draw() {
     gui::DrawContext& dc = gui::draw_context();
 
     ivec2 cursor = gui::cursor();
-    int table_page = (app::canvas_height() - cursor.y - 68 - app::BUTTON_WIDTH * 3) / settings.row_height;
+    int table_page = (app::canvas_height() - cursor.y - piano::HEIGHT - app::BUTTON_WIDTH * 3) / settings.row_height;
     int text_offset = (settings.row_height - 7) / 2;
 
     for (int t = 0; t < 4; ++t) {
@@ -114,7 +108,8 @@ void draw() {
 
         // table pointers
         gui::item_size({ 72, app::BUTTON_WIDTH });
-        sprintf(str, "%02X", instr.ptr[t]);
+        if (instr.ptr[t] > 0) sprintf(str, "%02X", instr.ptr[t]);
+        else sprintf(str, "\x01\x01");
         if (gui::button(str)) {
             if (g_cursor_select == CursorSelect(t) && instr.ptr[t] != g_cursor_row + 1) {
                 instr.ptr[t] = g_cursor_row + 1;
@@ -350,6 +345,7 @@ void draw() {
         if (gui::button(gui::Icon::Sync, v & 0x02)) v ^= 0x02;
         gui::same_line();
         if (gui::button(gui::Icon::Gate, v & 0x01)) v ^= 0x01;
+        break;
     }
 
     case CursorSelect::WaveTable:

@@ -21,7 +21,7 @@ public:
         PLAY_STOPPED   = 128,
     };
 
-    void init_song(int num, Mode mode, int pattpos = 0);
+    void init_song(int num, Mode mode);
     void stop_song();
     void play_routine();
 
