@@ -48,14 +48,6 @@ Player::Player(Song const& song) : song(song) {
     // }
 }
 
-void Player::play_song() {
-    m_songinit = PLAY_START;
-}
-
-void Player::stop_song() {
-    m_songinit = PLAY_STOP;
-}
-
 void Player::release_note(int chnnum) {
     m_channels[chnnum].gate    = 0xfe;
     m_channels[chnnum].newnote = 0; // 2bt: I added this
@@ -78,7 +70,7 @@ void Player::play_test_note(int note, int ins, int chnnum) {
 
     m_channels[chnnum].instr   = ins;
     m_channels[chnnum].newnote = note;
-    if (m_songinit == PLAY_STOPPED) {
+    if (!m_is_playing) {
         m_channels[chnnum].tick      = (song.instr[ins].gatetimer & 0x3f) + 1;
         m_channels[chnnum].gatetimer = song.instr[ins].gatetimer & 0x3f;
     }
@@ -138,7 +130,9 @@ void Player::sequencer(int c) {
 
 void Player::play_routine() {
 
-    if (m_songinit == PLAY_STOP) {
+    if (m_is_playing && !m_is_playing_req) {
+        // stop
+        m_is_playing = false;
         for (int c = 0; c < MAX_CHN; c++) {
             Channel& chan = m_channels[c];
             chan.gate       = 0xfe;
@@ -153,14 +147,12 @@ void Player::play_routine() {
             chan.gatetimer  = song.instr[1].gatetimer & 0x3f;
             regs[0x6 + 7 * c] &= 0xf0; // set release to 0
         }
-        m_songinit = PLAY_STOPPED;
     }
-
-    else if (m_songinit == PLAY_START) {
+    else if (!m_is_playing && m_is_playing_req) {
+        m_is_playing = true;
 
         m_filterctrl = 0;
         m_filterptr  = 0;
-
         for (int c = 0; c < MAX_CHN; c++) {
             Channel& chan = m_channels[c];
             chan.command    = 0;
@@ -196,15 +188,6 @@ void Player::play_routine() {
             //     if (chan.pattptr >= uint32_t(song.pattlen[chan.pattnum] * 4)) chan.pattptr = 0;
             //     break;
         }
-
-        m_songinit = PLAY_PLAYING;
-        if (song.songlen[S][0] == 0 ||
-            song.songlen[S][1] == 0 ||
-            song.songlen[S][2] == 0)
-        {
-            m_songinit = PLAY_STOPPED; // zero length song
-        }
-        // return;
     }
 
     if (m_filterptr) {
@@ -255,7 +238,7 @@ FILTERSTOP:
         Instr const& iptr = song.instr[chan.instr];
 
         // reset tempo in jam mode
-        if (m_songinit == PLAY_STOPPED && chan.tempo < 2) {
+        if (!m_is_playing && chan.tempo < 2) {
             chan.tempo = 6 * m_multiplier - 1;
         }
 
@@ -279,7 +262,7 @@ FILTERSTOP:
 
 TICK0:
         // tick 0
-        if (m_songinit != PLAY_STOPPED && chan.pattptr == 0x7fffffff) {
+        if (m_is_playing && chan.pattptr == 0x7fffffff) {
             chan.pattptr = 0;
             if (!m_loop_pattern) sequencer(c);
         }
@@ -677,7 +660,7 @@ TICKNEFFECTS:
 
 PULSEEXEC:
         if (m_optimizepulse) {
-            if (m_songinit != PLAY_STOPPED && chan.tick == chan.gatetimer) goto GETNEWNOTES;
+            if (m_is_playing && chan.tick == chan.gatetimer) goto GETNEWNOTES;
         }
 
         if (chan.ptr[PTBL]) {
@@ -719,7 +702,7 @@ PULSEEXEC:
                 if (!chan.pulsetime) chan.ptr[PTBL]++;
             }
         }
-        if (m_songinit == PLAY_STOPPED || chan.tick != chan.gatetimer) goto NEXTCHN;
+        if (!m_is_playing || chan.tick != chan.gatetimer) goto NEXTCHN;
 
 GETNEWNOTES:
         // new notes processing

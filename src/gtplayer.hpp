@@ -12,17 +12,10 @@ public:
     gt::Song const& song;
     Player(gt::Song const& song);
 
-    enum Mode {
-        PLAY_START,
-        PLAY_PLAYING,
-        PLAY_STOP,
-        PLAY_STOPPED,
-    };
-
-    void play_song();
-    void stop_song();
+    void play_song() { m_is_playing_req = true; }
+    void stop_song() { m_is_playing_req = false; }
+    bool is_playing() const { return m_is_playing_req; }
     void play_routine();
-
 
     void get_chan_info(int chnnum, uint8_t& songptr, uint8_t& pattnum, uint32_t& pattptr) const {
         Channel const& c = m_channels[chnnum];
@@ -31,13 +24,11 @@ public:
         pattptr = c.pattptr;
     }
 
-
     void release_note(int chnnum);
     void play_test_note(int note, int ins, int chnnum);
 
     void set_channel_active(int chnnum, bool active) { m_channels[chnnum].mute = !active; }
     bool is_channel_active(int chnnum) const { return !m_channels[chnnum].mute; }
-    int  is_playing() const { return m_songinit != PLAY_STOPPED; }
 
     std::array<uint8_t, 25> regs;
 
@@ -82,15 +73,13 @@ private:
     const bool     m_optimizepulse    = false;
     const bool     m_optimizerealtime = false;
 
-    int      m_espos[MAX_CHN]; // PLAY_POS     -> start
-    int      m_esend[MAX_CHN]; // PLAY_POS     -> end
-    int      m_epnum[MAX_CHN]; // PLAY_PATTERN -> pattern number
 
-    // state
-    bool                         m_loop_pattern = false;
-    int                          m_startpattpos = 0;
+    bool   m_is_playing_req = false;
+    bool   m_is_playing     = false;
+    bool   m_loop_pattern   = false;
+    int    m_startpattpos   = 0;
 
-    Mode                         m_songinit     = PLAY_STOPPED;
+
     std::array<Channel, MAX_CHN> m_channels     = {};
     uint8_t                      m_filterctrl   = 0;
     uint8_t                      m_filtertype   = 0;
