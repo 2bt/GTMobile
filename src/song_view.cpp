@@ -507,6 +507,7 @@ void draw() {
         }
         gui::disabled(false);
 
+
         if (gui::button("\x01\x01\x01")) {
             p[0] = gt::REST;
             p[1] = 0;
@@ -515,14 +516,13 @@ void draw() {
             p[0] = p[0] == gt::KEYOFF ? gt::KEYON : gt::KEYOFF;
             p[1] = 0;
         }
+
+        // record button
         if (gui::button(gui::Icon::Record, g_recording)) {
             g_recording = !g_recording;
         }
     }
 
-
-
-    // record button
 
 
     draw_order_edit();

@@ -59,13 +59,8 @@ void Player::stop_song() {
     m_songinit = PLAY_STOP;
 }
 
-//void rewindsong() {
-//    if (lastsonginit == PLAY_BEGINNING) lastsonginit = PLAY_POS;
-//    initsong(psnum, lastsonginit);
-//}
-
 void Player::release_note(int chnnum) {
-    m_channels[chnnum].gate = 0xfe;
+    m_channels[chnnum].gate    = 0xfe;
     m_channels[chnnum].newnote = 0; // 2bt: I added this
 }
 
@@ -94,35 +89,39 @@ void Player::play_test_note(int note, int ins, int chnnum) {
 
 
 void Player::sequencer(int c) {
-    Channel& chan = m_channels[c];
+    Channel&    chan  = m_channels[c];
+    auto const& order = song.songorder[m_s][c];
+    int         len   = song.songlen[m_s][c];
+
     if (m_songinit == PLAY_STOPPED || chan.pattptr != 0x7fffffff) return;
     chan.pattptr = m_startpattpos * 4;
     if (!chan.advance) return;
+
     // song loop
-    if (song.songorder[m_s][c][chan.songptr] == LOOPSONG) {
-        chan.songptr = song.songorder[m_s][c][chan.songptr + 1];
-        if (chan.songptr >= song.songlen[m_s][c]) {
+    if (order[chan.songptr] == LOOPSONG) {
+        chan.songptr = order[chan.songptr + 1];
+        if (chan.songptr >= len) {
             stop_song();
             chan.songptr = 0;
             return;
         }
     }
     // transpose
-    if (song.songorder[m_s][c][chan.songptr] >= TRANSDOWN &&
-        song.songorder[m_s][c][chan.songptr] < LOOPSONG)
+    if (order[chan.songptr] >= TRANSDOWN &&
+        order[chan.songptr] < LOOPSONG)
     {
-        chan.trans = song.songorder[m_s][c][chan.songptr] - TRANSUP;
+        chan.trans = order[chan.songptr] - TRANSUP;
         chan.songptr++;
     }
     // repeat
-    if (song.songorder[m_s][c][chan.songptr] >= REPEAT &&
-        song.songorder[m_s][c][chan.songptr] < TRANSDOWN)
+    if (order[chan.songptr] >= REPEAT &&
+        order[chan.songptr] < TRANSDOWN)
     {
-        chan.repeat = song.songorder[m_s][c][chan.songptr] - REPEAT;
+        chan.repeat = order[chan.songptr] - REPEAT;
         chan.songptr++;
     }
     // pattern number
-    chan.pattnum = song.songorder[m_s][c][chan.songptr];
+    chan.pattnum = order[chan.songptr];
     if (chan.repeat) chan.repeat--;
     else             chan.songptr++;
 
@@ -135,10 +134,9 @@ void Player::sequencer(int c) {
 
     // check for playback endpos
     if (m_lastsonginit != PLAY_BEGINNING &&
-        m_esend[c] > 0 &&
-        m_esend[c] > m_espos[c] &&
+        m_esend[c] > 0 && m_esend[c] > m_espos[c] &&
         chan.songptr > m_esend[c] &&
-        m_espos[c] < song.songlen[m_s][c])
+        m_espos[c] < len)
     {
         chan.songptr = m_espos[c];
     }
@@ -170,7 +168,7 @@ void Player::play_routine() {
             chan.newcommand = 0;
             chan.newcmddata = 0;
             chan.advance    = 1;
-            chan.wave       = 0;
+            if (m_songinit != PLAY_STOP) chan.wave = 0;
             chan.ptr[WTBL]  = 0;
             chan.newnote    = 0;
             chan.repeat     = 0;
@@ -192,6 +190,11 @@ void Player::play_routine() {
                 sequencer(c);
                 break;
 
+            case PLAY_POS:
+                chan.songptr = m_espos[c];
+                sequencer(c);
+                break;
+
             case PLAY_PATTERN:
                 chan.advance = 0;
                 chan.pattptr = m_startpattpos * 4;
@@ -199,12 +202,12 @@ void Player::play_routine() {
                 if (chan.pattptr >= uint32_t(song.pattlen[chan.pattnum] * 4)) chan.pattptr = 0;
                 break;
 
-            case PLAY_POS:
-                chan.songptr = m_espos[c];
-                sequencer(c);
+            case PLAY_STOP:
+                regs[0x6 + 7 * c] &= 0xf0; // set release to 0
+                chan.gate          = 0xfe;
                 break;
 
-            default: break;
+            default: assert(0);
             }
         }
 
@@ -774,7 +777,6 @@ NEXTCHN:
             regs[0x4 + 7 * c] = chan.wave & chan.gate;
         }
     }
-    //if (songinit != PLAY_STOPPED) incrementtime();
 }
 
 } // namespace gt

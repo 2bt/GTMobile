@@ -287,6 +287,7 @@ bool hold();
 void text(char const* fmt, ...);
 bool button(Icon icon, bool active = false);
 bool button(char const* label, bool active = false);
+
 void input_text(char* str, int len);
 template<size_t L>void input_text(std::array<char, L>& t) { input_text(t.data(), L - 1); }
 bool horizontal_drag_bar(int& value, int min, int max, int page);
