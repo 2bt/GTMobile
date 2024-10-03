@@ -131,9 +131,9 @@ bool draw(bool* follow) {
             };
             dc.box(b, gui::BoxStyle::PianoKey);
             if (note % 12 == 0) {
-                char str[] = { char('0' + note / 12), '\0' };
+                char str[2] = { char('0' + note / 12) };
                 dc.rgb(color::DARK_GREY);
-                dc.text({b.pos.x + KEY_HALF_WIDTH - 4, piano_y + 33}, str);
+                dc.text({ b.pos.x + KEY_HALF_WIDTH - 4, piano_y + KEY_HALF_HEIGHT * 2 - 13 }, str);
             }
         }
     });
@@ -159,10 +159,11 @@ bool draw(bool* follow) {
     gui::same_line();
     gui::button(gui::Icon::Stop);
 
+
+    // play button
     int w = app::CANVAS_WIDTH - app::TAB_WIDTH * 4;
     if (follow) w -= app::TAB_WIDTH;
     gui::item_size({ w, app::TAB_WIDTH });
-
     gt::Player& player = app::player();
     bool is_playing = player.is_playing();
     gui::same_line();
@@ -171,7 +172,7 @@ bool draw(bool* follow) {
             player.stop_song();
         }
         else {
-            player.init_song(0, gt::Player::PLAY_BEGINNING);
+            player.init_song(gt::Player::PLAY_BEGINNING);
         }
     }
 

@@ -21,7 +21,7 @@ public:
         PLAY_STOPPED   = 128,
     };
 
-    void init_song(int num, Mode mode);
+    void init_song(Mode mode);
     void stop_song();
     void play_routine();
 
@@ -77,10 +77,10 @@ private:
     };
 
     // play options
-    int      m_multiplier       = 1;      // for multi speed
-    uint16_t m_adparam          = 0x0f00; // HR
-    bool     m_optimizepulse    = false;
-    bool     m_optimizerealtime = false;
+    const int      m_multiplier       = 1;      // for multi speed
+    const uint16_t m_adparam          = 0x0f00; // HR
+    const bool     m_optimizepulse    = false;
+    const bool     m_optimizerealtime = false;
 
     int      m_espos[MAX_CHN]; // PLAY_POS     -> start
     int      m_esend[MAX_CHN]; // PLAY_POS     -> end
@@ -98,7 +98,7 @@ private:
     uint8_t                      m_filterptr    = 0;
     uint8_t                      m_funktable[2];
     uint8_t                      m_masterfader  = 0x0f;
-    int                          m_psnum        = 0; // song number
+    const int                    m_s            = 0; // song number
 
 };
 

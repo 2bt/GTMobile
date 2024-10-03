@@ -120,7 +120,7 @@ void draw_load_window() {
 
     gui::disabled(!file_selected);
     if (gui::button("LOAD")) {
-        app::player().init_song(0, gt::Player::PLAY_STOP);
+        app::player().init_song(gt::Player::PLAY_STOP);
         bool ok = app::song().load((g_songs_dir + g_file_name.data() + FILE_SUFFIX).c_str());
         if (ok) status("SONG WAS LOADED");
         else status("LOAD ERROR");
@@ -286,7 +286,7 @@ void draw() {
     if (gui::button("RESET")) {
         confirm("LOSE CHANGES TO THE CURRENT SONG?", [](bool ok) {
             if (ok) {
-                app::player().init_song(0, gt::Player::PLAY_STOP);
+                app::player().init_song(gt::Player::PLAY_STOP);
                 app::song().clear();
             }
         });
