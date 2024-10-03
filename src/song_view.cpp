@@ -147,11 +147,7 @@ void draw() {
     gt::Player& player = app::player();
     gt::Song&   song   = app::song();
     settings_view::Settings const& settings = settings_view::settings();
-
     gui::DrawContext& dc = gui::draw_context();
-
-    bool is_playing = player.is_playing();
-
 
     // get player position info
     std::array<int, 3> player_song_rows;
@@ -184,15 +180,16 @@ void draw() {
     g_song_page = clamp(g_song_page, 0, total_rows);
     int pattern_page = total_rows - g_song_page;
 
-
-
+    bool is_playing = player.is_playing();
     if (is_playing && g_follow) {
         // auto scroll
+        g_cursor_song_row    = -1;
         g_pattern_nums       = player_pattern_nums;
         g_song_scroll        = player_song_rows[g_cursor_chan] - g_song_page / 2;
-        g_pattern_scroll     = player_pattern_rows[g_cursor_chan] - pattern_page / 2;
-        g_cursor_pattern_row = player_pattern_rows[g_cursor_chan];
-        g_cursor_song_row    = -1;
+        if (player_pattern_rows[g_cursor_chan] < gt::MAX_PATTROWS) {
+            g_pattern_scroll     = player_pattern_rows[g_cursor_chan] - pattern_page / 2;
+            g_cursor_pattern_row = player_pattern_rows[g_cursor_chan];
+        }
     }
     else {
         if (g_cursor_pattern_row >= 0) {
@@ -208,7 +205,6 @@ void draw() {
     }
     g_song_scroll    = clamp(g_song_scroll, 0, max_song_len - g_song_page);
     g_pattern_scroll = clamp(g_pattern_scroll, 0, max_pattern_len - pattern_page);
-
 
 
     // put text in the center of the row
@@ -242,7 +238,8 @@ void draw() {
 
             dc.rgb(color::BACKGROUND_ROW);
             if (v == g_pattern_nums[c]) dc.rgb(color::HIGHLIGHT_ROW);
-            if (is_playing && row == player_song_rows[c]) dc.rgb(color::PLAYER_ROW);
+            // if (is_playing && row == player_song_rows[c]) dc.rgb(color::PLAYER_ROW);
+            if (row == player_song_rows[c]) dc.rgb(color::PLAYER_ROW);
             dc.fill(box);
 
             if (state == gui::ButtonState::Released) {
@@ -333,7 +330,7 @@ void draw() {
 
             dc.rgb(color::BACKGROUND_ROW);
             if (row % settings.row_highlight == 0) dc.rgb(color::HIGHLIGHT_ROW);
-            if (is_playing && g_pattern_nums[c] == player_pattern_nums[c] && row == player_pattern_rows[c]) {
+            if (g_pattern_nums[c] == player_pattern_nums[c] && row == player_pattern_rows[c]) {
                 dc.rgb(color::PLAYER_ROW);
             }
             dc.fill(box);
@@ -458,16 +455,13 @@ void draw() {
             memmove(order.data() + pos, order.data() + pos + 1, len - pos + 1);
             order[len + 1] = 0;
             --len;
+            if (pos == len) --pos;
         }
         gui::disabled(false);
 
+        assert (pos < len);
         if (gui::button(gui::Icon::Pen)) {
-            if (pos < len) {
-                init_order_edit();
-            }
-            else {
-                // TODO: loop dialog
-            }
+            init_order_edit();
         }
 
     }

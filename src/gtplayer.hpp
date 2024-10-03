@@ -13,15 +13,13 @@ public:
     Player(gt::Song const& song);
 
     enum Mode {
-        PLAY_FOO       = 0,
-        PLAY_BEGINNING = 1,
-        PLAY_POS       = 2,
-        PLAY_PATTERN   = 3,
-        PLAY_STOP      = 4,
-        PLAY_STOPPED   = 128,
+        PLAY_START,
+        PLAY_PLAYING,
+        PLAY_STOP,
+        PLAY_STOPPED,
     };
 
-    void init_song(Mode mode);
+    void play_song();
     void stop_song();
     void play_routine();
 
@@ -72,10 +70,12 @@ private:
         uint8_t  tick;
         uint8_t  tempo;
         uint8_t  mute;
-        uint8_t  advance;
         uint8_t  gatetimer;
     };
 
+    enum {
+        S = 0, // song number
+    };
     // play options
     const int      m_multiplier       = 1;      // for multi speed
     const uint16_t m_adparam          = 0x0f00; // HR
@@ -87,9 +87,10 @@ private:
     int      m_epnum[MAX_CHN]; // PLAY_PATTERN -> pattern number
 
     // state
-    Mode                         m_songinit     = PLAY_FOO;
-    Mode                         m_lastsonginit = PLAY_FOO;
+    bool                         m_loop_pattern = false;
     int                          m_startpattpos = 0;
+
+    Mode                         m_songinit     = PLAY_STOPPED;
     std::array<Channel, MAX_CHN> m_channels     = {};
     uint8_t                      m_filterctrl   = 0;
     uint8_t                      m_filtertype   = 0;
@@ -98,7 +99,6 @@ private:
     uint8_t                      m_filterptr    = 0;
     uint8_t                      m_funktable[2];
     uint8_t                      m_masterfader  = 0x0f;
-    const int                    m_s            = 0; // song number
 
 };
 

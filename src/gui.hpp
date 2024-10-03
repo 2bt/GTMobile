@@ -92,6 +92,7 @@ struct Box {
 enum class BoxStyle {
     Fill,
     Normal,
+    Tagged,
     Tab,
     Text,
     Cursor,
@@ -233,6 +234,7 @@ enum class Align { Left, Center };
 
 enum class ButtonStyle {
     Normal,
+    Tagged,
     Tab,
     TableCell,
 };

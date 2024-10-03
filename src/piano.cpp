@@ -68,11 +68,17 @@ bool draw(bool* follow) {
                 continue;
             }
             int i = n % 2 * 32 + n / 2;
-            sprintf(str, "%02X %s", i, song.instr[i].name.data());
+            auto const& instr = song.instr[i];
+            sprintf(str, "%02X %s", i, instr.name.data());
+            if (instr.ptr[0] | instr.ptr[1] | instr.ptr[2] | instr.ptr[3]) {
+                gui::button_style(gui::ButtonStyle::Tagged);
+            }
+
             if (gui::button(str, i == g_instrument)) {
                 g_instrument = i;
                 show_instrument_select = false;
             }
+            gui::button_style(gui::ButtonStyle::Normal);
         }
         gui::item_size({ box.size.x, app::BUTTON_WIDTH });
         gui::align(gui::Align::Center);
@@ -120,36 +126,34 @@ bool draw(bool* follow) {
 
     // draw white keys
     loop_keys([&](int i, int n, int note) {
-        if (n % 2 == 0) {
-            dc.rgb(0xbbbbbb);
-            if (g_gate && g_note == note) {
-                dc.rgb(color::BUTTON_ACTIVE);
-            }
-            gui::Box b = {
-                { i * KEY_HALF_WIDTH, piano_y },
-                { KEY_HALF_WIDTH * 2, KEY_HALF_HEIGHT * 2 },
-            };
-            dc.box(b, gui::BoxStyle::PianoKey);
-            if (note % 12 == 0) {
-                char str[2] = { char('0' + note / 12) };
-                dc.rgb(color::DARK_GREY);
-                dc.text({ b.pos.x + KEY_HALF_WIDTH - 4, piano_y + KEY_HALF_HEIGHT * 2 - 13 }, str);
-            }
+        if (n % 2 == 1) return;
+        dc.rgb(0xbbbbbb);
+        if (g_gate && g_note == note) {
+            dc.rgb(color::BUTTON_ACTIVE);
+        }
+        gui::Box b = {
+            { i * KEY_HALF_WIDTH, piano_y },
+            { KEY_HALF_WIDTH * 2, KEY_HALF_HEIGHT * 2 },
+        };
+        dc.box(b, gui::BoxStyle::PianoKey);
+        if (note % 12 == 0) {
+            char str[2] = { char('0' + note / 12) };
+            dc.rgb(color::DARK_GREY);
+            dc.text({ b.pos.x + KEY_HALF_WIDTH - 4, piano_y + KEY_HALF_HEIGHT * 2 - 13 }, str);
         }
     });
     // draw black keys
     loop_keys([&](int i, int n, int note) {
-        if (n % 2 == 1) {
-            dc.rgb(0x333333);
-            if (g_gate && g_note == note) {
-                dc.rgb(color::BUTTON_ACTIVE);
-            }
-            gui::Box b = {
-                { i * KEY_HALF_WIDTH, piano_y },
-                { KEY_HALF_WIDTH * 2, KEY_HALF_HEIGHT },
-            };
-            dc.box(b, gui::BoxStyle::PianoKey);
+        if (n % 2 == 0) return;
+        dc.rgb(0x262626);
+        if (g_gate && g_note == note) {
+            dc.rgb(color::BUTTON_ACTIVE);
         }
+        gui::Box b = {
+            { i * KEY_HALF_WIDTH, piano_y },
+            { KEY_HALF_WIDTH * 2, KEY_HALF_HEIGHT },
+        };
+        dc.box(b, gui::BoxStyle::PianoKey);
     });
 
     piano_y += KEY_HALF_HEIGHT * 2;
@@ -172,7 +176,7 @@ bool draw(bool* follow) {
             player.stop_song();
         }
         else {
-            player.init_song(gt::Player::PLAY_BEGINNING);
+            player.play_song();
         }
     }
 
@@ -184,7 +188,9 @@ bool draw(bool* follow) {
         }
     }
     gui::same_line();
+
     gui::button(gui::Icon::Loop);
+
     gui::same_line();
     gui::button(gui::Icon::FastForward);
 

@@ -243,7 +243,7 @@ void end_frame() {
         if (i == n - 1) {
             g_dc.mesh(w.mesh);
             g_dc.rgb(0);
-            g_dc.alpha(150);
+            g_dc.alpha(180);
             g_dc.fill({ {}, { app::CANVAS_WIDTH, app::canvas_height() } });
             g_dc.alpha(255);
         }
@@ -320,6 +320,7 @@ void disabled(bool disabled) {
 
 inline BoxStyle box_style(ButtonStyle s) {
     switch (s) {
+        case ButtonStyle::Tagged: return BoxStyle::Tagged;
         case ButtonStyle::Tab: return BoxStyle::Tab;
         default:
         case ButtonStyle::Normal: return BoxStyle::Normal;
