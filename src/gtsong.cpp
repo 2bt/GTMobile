@@ -2,6 +2,7 @@
 #include <cstring>
 #include <fstream>
 #include "gtsong.hpp"
+#include "log.hpp"
 
 namespace gt {
 namespace {
@@ -121,7 +122,6 @@ bool Song::load(std::istream& stream) {
 
     // read songorderlists
     int amount = read8(stream);
-    printf("%d\n", amount);
     for (int c = 0; c < MAX_CHN; c++) {
         int loadsize = read8(stream) + 1;
         stream.read((char*) songorder[c].data(), loadsize);
@@ -161,6 +161,19 @@ bool Song::load(std::istream& stream) {
     }
 
     count_pattern_lengths();
+
+
+    // compatibility check
+    for (int c = 0; c < MAX_CHN; ++c) {
+        auto const& order = songorder[c];
+        for (int i = 0; i < songlen[c]; ++i) {
+            if (order[i] >= REPEAT && order[i] < TRANSDOWN) {
+                LOGE("Song::load: repeat command is not supported");
+                clear();
+                return false;
+            }
+        }
+    }
 
     return true;
 }

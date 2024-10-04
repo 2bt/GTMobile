@@ -189,7 +189,10 @@ bool draw(bool* follow) {
     }
     gui::same_line();
 
-    gui::button(gui::Icon::Loop);
+    bool loop = player.get_loop();
+    if (gui::button(gui::Icon::Loop, loop)) {
+        player.set_loop(!loop);
+    }
 
     gui::same_line();
     gui::button(gui::Icon::FastForward);

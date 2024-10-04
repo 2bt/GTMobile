@@ -39,18 +39,11 @@ Player::Player(Song const& song) : song(song) {
     }
     m_funktable[0] = 9 * m_multiplier - 1;
     m_funktable[1] = 6 * m_multiplier - 1;
-
-    // // XXX: copied from songchanged()
-    // for (int c = 0; c < MAX_CHN; c++) {
-    //     m_espos[c] = 0;
-    //     m_esend[c] = 0;
-    //     m_epnum[c] = c;
-    // }
 }
 
 void Player::release_note(int chnnum) {
     m_channels[chnnum].gate    = 0xfe;
-    m_channels[chnnum].newnote = 0; // 2bt: I added this
+    m_channels[chnnum].newnote = 0;
 }
 
 void Player::play_test_note(int note, int ins, int chnnum) {
@@ -80,13 +73,12 @@ void Player::play_test_note(int note, int ins, int chnnum) {
 void Player::sequencer(int c) {
     Channel&    chan  = m_channels[c];
     auto const& order = song.songorder[c];
-    int         len   = song.songlen[c];
 
 
     // song loop
     if (order[chan.songptr] == LOOPSONG) {
         chan.songptr = order[chan.songptr + 1];
-        if (chan.songptr >= len) {
+        if (chan.songptr >= song.songlen[c]) {
             stop_song();
             chan.songptr = 0;
             return;
@@ -99,13 +91,14 @@ void Player::sequencer(int c) {
         chan.trans = order[chan.songptr] - TRANSUP;
         chan.songptr++;
     }
-    // repeat
-    if (order[chan.songptr] >= REPEAT &&
-        order[chan.songptr] < TRANSDOWN)
-    {
-        chan.repeat = order[chan.songptr] - REPEAT;
-        chan.songptr++;
-    }
+
+    // repeat is not supported
+    // if (order[chan.songptr] >= REPEAT &&
+    //     order[chan.songptr] < TRANSDOWN)
+    // {
+    //     chan.repeat = order[chan.songptr] - REPEAT;
+    //     chan.songptr++;
+    // }
 
     // store current song position
     m_current_song_pos[c] = chan.songptr;
@@ -115,7 +108,7 @@ void Player::sequencer(int c) {
     if (chan.repeat) chan.repeat--;
     else             chan.songptr++;
 
-    // check for illegal pattern now
+    // check for illegal pattern
     if (chan.pattnum >= MAX_PATT) {
         stop_song();
         chan.pattnum = 0;
@@ -133,13 +126,13 @@ void Player::sequencer(int c) {
 
 
 void Player::play_routine() {
+    m_loop_pattern = m_loop_pattern_req;
 
     if (m_is_playing && !m_is_playing_req) {
         // stop
         m_is_playing = false;
         for (int c = 0; c < MAX_CHN; c++) {
             Channel& chan = m_channels[c];
-            chan.gate       = 0xfe;
             chan.command    = 0;
             chan.cmddata    = 0;
             chan.newcommand = 0;
@@ -149,7 +142,9 @@ void Player::play_routine() {
             chan.repeat     = 0;
             chan.tick       = 6 * m_multiplier - 1;
             chan.gatetimer  = song.instr[1].gatetimer & 0x3f;
-            regs[0x6 + 7 * c] &= 0xf0; // set release to 0
+
+            chan.gate       = 0xfe;    // note off
+            regs[0x6 + 7 * c] &= 0xf0; // fast release
         }
     }
     else if (!m_is_playing && m_is_playing_req) {
@@ -739,13 +734,12 @@ GETNEWNOTES:
             }
         }
 NEXTCHN:
-        // 2bt: also set freq on muted channel for sync/ringmod
         regs[0x0 + 7 * c] = chan.freq & 0xff;
         regs[0x1 + 7 * c] = chan.freq >> 8;
         regs[0x2 + 7 * c] = chan.pulse & 0xfe;
         regs[0x3 + 7 * c] = chan.pulse >> 8;
         if (chan.mute) {
-            regs[0x4 + 7 * c] = chan.wave & 0x08; // 2bt: don't set test bit every time
+            regs[0x4 + 7 * c] = chan.wave & 0x08; // don't set test bit every time
         }
         else {
             regs[0x4 + 7 * c] = chan.wave & chan.gate;

@@ -16,11 +16,13 @@ public:
     void stop_song() { m_is_playing_req = false; }
     bool is_playing() const { return m_is_playing_req; }
 
+    bool get_loop() const { return m_loop_pattern_req; }
+    void set_loop(bool loop) { m_loop_pattern_req = loop; }
+
     void get_chan_info(int c, int& song_pos, int& patt_pos, uint8_t& pattnum) const {
-        Channel const& chan = m_channels[c];
         song_pos = m_current_song_pos[c];
         patt_pos = m_current_patt_pos[c];
-        pattnum = chan.pattnum;
+        pattnum  = m_channels[c].pattnum;
     }
 
     void play_test_note(int note, int ins, int chnnum);
@@ -71,9 +73,10 @@ private:
     const bool     m_optimizerealtime = false;
 
 
-    bool   m_is_playing_req = false;
-    bool   m_is_playing     = false;
-    bool   m_loop_pattern   = false;
+    bool   m_is_playing       = false;
+    bool   m_is_playing_req   = false;
+    bool   m_loop_pattern     = false;
+    bool   m_loop_pattern_req = false;
 
     int    m_start_song_pos = 0;
     int    m_start_patt_pos = 0;

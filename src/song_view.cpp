@@ -35,7 +35,6 @@ Dialog g_dialog = Dialog::None;
 
 
 int                            g_transpose = 0;
-int                            g_repeat    = 2;
 std::array<bool, gt::MAX_PATT> g_pattern_empty;
 
 void init_order_edit() {
@@ -47,7 +46,6 @@ void init_order_edit() {
     assert(v != gt::LOOPSONG);
     if      (v >= gt::TRANSUP)   g_transpose = v & 0x0f;
     else if (v >= gt::TRANSDOWN) g_transpose = (v & 0x0f) - 16;
-    else if (v >= gt::REPEAT)    g_repeat = v & 0xf;
 
     for (int i = 0; i < gt::MAX_PATT; ++i) {
         g_pattern_empty[i] = true;
@@ -55,7 +53,7 @@ void init_order_edit() {
         int         len     = song.pattlen[i];
         for (int r = 0; r < len; ++r) {
             uint8_t const* p = pattern.data() + r * 4;
-            if (p[0] || p[1] || p[2]) {
+            if (p[0] != gt::REST || p[1] || p[2]) {
                 g_pattern_empty[i] = false;
                 break;
             }
@@ -66,7 +64,7 @@ void init_order_edit() {
 void draw_order_edit() {
     if (g_dialog != Dialog::OrderEdit) return;
 
-    gui::Box box = gui::begin_window({ 13 * 26, (16 + 4) * app::BUTTON_WIDTH });
+    gui::Box box = gui::begin_window({ 13 * 26, (16 + 3) * app::BUTTON_WIDTH });
     gui::item_size({ box.size.x, app::BUTTON_WIDTH });
     gui::text("EDIT ORDER LIST");
 
@@ -81,17 +79,17 @@ void draw_order_edit() {
         gui::same_line(i % 13 != 0);
         int n = i % 13 * 16 + i / 13;
         sprintf(str, "%02X", n);
+        if (!g_pattern_empty[n]) gui::button_style(gui::ButtonStyle::Tagged);
         if (gui::button(str, v == n)) {
             g_dialog = Dialog::None;
             v = n;
         }
+        gui::button_style(gui::ButtonStyle::Normal);
     }
 
     bool is_transpose = false;
-    bool is_repeat    = false;
     if      (v >= gt::TRANSUP)   is_transpose = true;
     else if (v >= gt::TRANSDOWN) is_transpose = true;
-    else if (v >= gt::REPEAT)    is_repeat    = true;
 
     gui::item_size({ 26 * 3, app::BUTTON_WIDTH });
     sprintf(str, "TRANS %c%X", "+-"[g_transpose < 0], abs(g_transpose));
@@ -104,16 +102,6 @@ void draw_order_edit() {
     gui::item_size({ 26 * 10, app::BUTTON_WIDTH });
     gui::drag_bar_style(gui::DragBarStyle::Normal);
     gui::horizontal_drag_bar(g_transpose, -0xf, 0xe, 0);
-
-    gui::item_size({ 26 * 3, app::BUTTON_WIDTH });
-    sprintf(str, "REPEAT %X", g_repeat);
-    if (gui::button(str, is_repeat)) {
-        g_dialog = Dialog::None;
-        v = gt::REPEAT | g_repeat;
-    }
-    gui::same_line();
-    gui::item_size({ 26 * 10, app::BUTTON_WIDTH });
-    gui::horizontal_drag_bar(g_repeat, 0, 0xf, 0);
 
     gui::item_size({ box.size.x / 2, app::BUTTON_WIDTH });
     if (gui::button("SET LOOP POINTER", order[len + 1] == g_cursor_song_row)) {
@@ -263,7 +251,7 @@ void draw() {
                 sprintf(str, "TRANS -%X", 16 - (v & 0xf));
             }
             else if (v >= gt::REPEAT) {
-                sprintf(str, "REPEAT %X", v & 0xf);
+                assert(false); // don't support repeat
             }
             else {
                 sprintf(str, "%02X", v);
@@ -279,7 +267,6 @@ void draw() {
         }
 
     }
-
 
     // pattern bar
     gui::item_size({ 28, settings.row_height });
