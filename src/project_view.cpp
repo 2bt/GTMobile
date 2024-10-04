@@ -288,6 +288,7 @@ void draw() {
             if (ok) {
                 app::player().stop_song();
                 app::song().clear();
+                status("SONG WAS RESET");
             }
         });
     }

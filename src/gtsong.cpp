@@ -46,18 +46,16 @@ void Song::count_pattern_lengths() {
         pattlen[c] = d;
     }
 
-    for (int e = 0; e < MAX_SONGS; e++) {
-        for (int c = 0; c < MAX_CHN; c++) {
-            int d;
-            for (d = 0; d < MAX_SONGLEN; d++) {
-                if (songorder[e][c][d] >= LOOPSONG) break;
-                if (songorder[e][c][d] < REPEAT)
-                {
-                    highestusedpattern = std::max(highestusedpattern, int(songorder[e][c][d]));
-                }
+    for (int c = 0; c < MAX_CHN; c++) {
+        int d;
+        for (d = 0; d < MAX_SONGLEN; d++) {
+            if (songorder[c][d] >= LOOPSONG) break;
+            if (songorder[c][d] < REPEAT)
+            {
+                highestusedpattern = std::max(highestusedpattern, int(songorder[c][d]));
             }
-            songlen[e][c] = d;
         }
+        songlen[c] = d;
     }
 }
 
@@ -80,15 +78,8 @@ void Song::clear_instr(int num) {
 void Song::clear() {
     songorder = {};
     for (int c = 0; c < MAX_CHN; c++) {
-        for (int d = 0; d < MAX_SONGS; d++) {
-            if (d == 0) {
-                songorder[d][c][0] = c;
-                songorder[d][c][1] = LOOPSONG;
-            }
-            else {
-                songorder[d][c][0] = LOOPSONG;
-            }
-        }
+        songorder[c][0] = c;
+        songorder[c][1] = LOOPSONG;
     }
     songname = {};
     authorname = {};
@@ -130,12 +121,18 @@ bool Song::load(std::istream& stream) {
 
     // read songorderlists
     int amount = read8(stream);
-    for (int d = 0; d < amount; d++) {
+    printf("%d\n", amount);
+    for (int c = 0; c < MAX_CHN; c++) {
+        int loadsize = read8(stream) + 1;
+        stream.read((char*) songorder[c].data(), loadsize);
+    }
+    for (int d = 1; d < amount; d++) {
         for (int c = 0; c < MAX_CHN; c++) {
             int loadsize = read8(stream) + 1;
-            stream.read((char*) songorder[d][c].data(), loadsize);
+            stream.ignore(loadsize);
         }
     }
+
     // read instruments
     amount = read8(stream);
     for (int c = 1; c <= amount; c++) {
@@ -193,22 +190,15 @@ bool Song::save(std::ostream& stream) {
     write(stream, copyrightname);
 
     // songorderlists
-    int c = MAX_SONGS - 1;
-    for (;;) {
-        if (songlen[c][0] && songlen[c][1] && songlen[c][2]) break;
-        if (c == 0) break;
-        --c;
-    }
-    int amount = c + 1;
+    int amount = 1;
     write<uint8_t>(stream, amount);
-    for (int d = 0; d < amount; d++) {
-        for (int c = 0; c < MAX_CHN; c++) {
-            int length = songlen[d][c] + 1;
-            write<uint8_t>(stream, length);
-            int writebytes = length + 1;
-            stream.write((char const*) songorder[d][c].data(), writebytes);
-        }
+    for (int c = 0; c < MAX_CHN; c++) {
+        int length = songlen[c] + 1;
+        write<uint8_t>(stream, length);
+        int writebytes = length + 1;
+        stream.write((char const*) songorder[c].data(), writebytes);
     }
+
     // instruments
     write<uint8_t>(stream, highestusedinstr);
     for (int c = 1; c <= highestusedinstr; c++) {

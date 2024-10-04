@@ -79,8 +79,8 @@ void Player::play_test_note(int note, int ins, int chnnum) {
 
 void Player::sequencer(int c) {
     Channel&    chan  = m_channels[c];
-    auto const& order = song.songorder[S][c];
-    int         len   = song.songlen[S][c];
+    auto const& order = song.songorder[c];
+    int         len   = song.songlen[c];
 
 
     // song loop
@@ -106,6 +106,10 @@ void Player::sequencer(int c) {
         chan.repeat = order[chan.songptr] - REPEAT;
         chan.songptr++;
     }
+
+    // store current song position
+    m_current_song_pos[c] = chan.songptr;
+
     // pattern number
     chan.pattnum = order[chan.songptr];
     if (chan.repeat) chan.repeat--;
@@ -707,6 +711,9 @@ PULSEEXEC:
 GETNEWNOTES:
         // new notes processing
         {
+            // store current pattern position
+            m_current_patt_pos[c] = chan.pattptr / 4;
+
             uint8_t newnote = song.pattern[chan.pattnum][chan.pattptr];
             if (song.pattern[chan.pattnum][chan.pattptr + 1]) {
                 chan.instr = song.pattern[chan.pattnum][chan.pattptr + 1];

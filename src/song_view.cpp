@@ -16,10 +16,6 @@ namespace song_view {
 namespace {
 
 
-enum {
-    SONG_NR = 0,
-};
-
 std::array<int, 3> g_pattern_nums       = { 0, 1, 2 };
 int                g_song_page          = 8;
 int                g_song_scroll        = 0;
@@ -47,7 +43,7 @@ void init_order_edit() {
 
     gt::Song const& song = app::song();
 
-    uint8_t v = song.songorder[SONG_NR][g_cursor_chan][g_cursor_song_row];
+    uint8_t v = song.songorder[g_cursor_chan][g_cursor_song_row];
     assert(v != gt::LOOPSONG);
     if      (v >= gt::TRANSUP)   g_transpose = v & 0x0f;
     else if (v >= gt::TRANSDOWN) g_transpose = (v & 0x0f) - 16;
@@ -75,8 +71,8 @@ void draw_order_edit() {
     gui::text("EDIT ORDER LIST");
 
     gt::Song& song  = app::song();
-    auto&     order = song.songorder[SONG_NR][g_cursor_chan];
-    int       len   = song.songlen[SONG_NR][g_cursor_chan];
+    auto&     order = song.songorder[g_cursor_chan];
+    int       len   = song.songlen[g_cursor_chan];
     uint8_t&  v     = order[g_cursor_song_row];
 
     char str[32];
@@ -151,21 +147,21 @@ void draw() {
 
     // get player position info
     std::array<int, 3> player_song_rows;
-    std::array<int, 3> player_pattern_nums;
-    std::array<int, 3> player_pattern_rows;
+    std::array<int, 3> player_patt_nums;
+    std::array<int, 3> player_patt_rows;
     for (int c = 0; c < 3; ++c) {
-        uint8_t  songptr;
-        uint8_t  pattnum;
-        uint32_t pattptr;
-        player.get_chan_info(c, songptr, pattnum, pattptr);
-        player_song_rows[c]    = std::max<int>(0, songptr - 1);
-        player_pattern_nums[c] = pattnum;
-        player_pattern_rows[c] = pattptr / 4;
+        int     song_pos;
+        int     patt_pos;
+        uint8_t pattnum;
+        player.get_chan_info(c, song_pos, patt_pos, pattnum);
+        player_song_rows[c] = song_pos;
+        player_patt_rows[c] = patt_pos;
+        player_patt_nums[c] = pattnum;
     }
 
-    int max_song_len =                    song.songlen[SONG_NR][0];
-    max_song_len = std::max(max_song_len, song.songlen[SONG_NR][1]);
-    max_song_len = std::max(max_song_len, song.songlen[SONG_NR][2]);
+    int max_song_len =                    song.songlen[0];
+    max_song_len = std::max(max_song_len, song.songlen[1]);
+    max_song_len = std::max(max_song_len, song.songlen[2]);
     max_song_len += 1; // include LOOP command
 
     int max_pattern_len =                       song.pattlen[g_pattern_nums[0]];
@@ -184,12 +180,10 @@ void draw() {
     if (is_playing && g_follow) {
         // auto scroll
         g_cursor_song_row    = -1;
-        g_pattern_nums       = player_pattern_nums;
+        g_pattern_nums       = player_patt_nums;
         g_song_scroll        = player_song_rows[g_cursor_chan] - g_song_page / 2;
-        if (player_pattern_rows[g_cursor_chan] < gt::MAX_PATTROWS) {
-            g_pattern_scroll     = player_pattern_rows[g_cursor_chan] - pattern_page / 2;
-            g_cursor_pattern_row = player_pattern_rows[g_cursor_chan];
-        }
+        g_pattern_scroll     = player_patt_rows[g_cursor_chan] - pattern_page / 2;
+        g_cursor_pattern_row = player_patt_rows[g_cursor_chan];
     }
     else {
         if (g_cursor_pattern_row >= 0) {
@@ -199,7 +193,7 @@ void draw() {
         }
         if (g_cursor_song_row >= 0) {
             assert(g_cursor_pattern_row == -1);
-            int len = song.songlen[SONG_NR][g_cursor_chan];
+            int len = song.songlen[g_cursor_chan];
             if (g_cursor_song_row > len) g_cursor_song_row = -1;
         }
     }
@@ -230,8 +224,8 @@ void draw() {
             box.pos.x += 1;
             box.size.x -= 2;
 
-            auto const& order = song.songorder[SONG_NR][c];
-            int         len   = song.songlen[SONG_NR][c];
+            auto const& order = song.songorder[c];
+            int         len   = song.songlen[c];
 
             if (row >= len) continue;
             uint8_t v = order[row];
@@ -330,7 +324,7 @@ void draw() {
 
             dc.rgb(color::BACKGROUND_ROW);
             if (row % settings.row_highlight == 0) dc.rgb(color::HIGHLIGHT_ROW);
-            if (g_pattern_nums[c] == player_pattern_nums[c] && row == player_pattern_rows[c]) {
+            if (g_pattern_nums[c] == player_patt_nums[c] && row == player_patt_rows[c]) {
                 dc.rgb(color::PLAYER_ROW);
             }
             dc.fill(box);
@@ -430,11 +424,10 @@ void draw() {
 
 
 
-
     // order edit
     if (g_cursor_song_row >= 0 && !(is_playing && g_follow)) {
-        auto& order = song.songorder[SONG_NR][g_cursor_chan];
-        int&  len   = song.songlen[SONG_NR][g_cursor_chan];
+        auto& order = song.songorder[g_cursor_chan];
+        int&  len   = song.songlen[g_cursor_chan];
         int&  pos   = g_cursor_song_row;
 
         gui::disabled(!(len < gt::MAX_SONGLEN && pos <= len));

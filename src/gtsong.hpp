@@ -38,7 +38,6 @@ enum {
     MAX_INSTRNAMELEN = 16,
     MAX_PATTROWS     = 128,
     MAX_SONGLEN      = 254,
-    MAX_SONGS        = 32,
     MAX_NOTES        = 96,
 
     REPEAT    = 0xd0,
@@ -77,14 +76,12 @@ struct Instr {
 
 template<class T, size_t L1, size_t L2>
 using Array2 = std::array<std::array<T, L2>, L1>;
-template<class T, size_t L1, size_t L2, size_t L3>
-using Array3 = std::array<std::array<std::array<T, L3>, L2>, L1>;
 
 struct Song {
     std::array<Instr, MAX_INSTR> instr;
     Array2<uint8_t, MAX_TABLES, MAX_TABLELEN> ltable;
     Array2<uint8_t, MAX_TABLES, MAX_TABLELEN> rtable;
-    Array3<uint8_t, MAX_SONGS, MAX_CHN, MAX_SONGLEN + 2> songorder;
+    Array2<uint8_t, MAX_CHN, MAX_SONGLEN + 2> songorder;
     Array2<uint8_t, MAX_PATT, MAX_PATTROWS * 4 + 4> pattern;
 
     std::array<char, MAX_STR> songname;
@@ -92,7 +89,7 @@ struct Song {
     std::array<char, MAX_STR> copyrightname;
 
     std::array<int, MAX_PATT> pattlen;
-    std::array<std::array<int, MAX_CHN>, MAX_SONGS> songlen;
+    std::array<int, MAX_CHN>  songlen;
     int highestusedpattern;
     int highestusedinstr;
 
