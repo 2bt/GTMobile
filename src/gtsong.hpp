@@ -63,54 +63,57 @@ enum {
 };
 
 
-struct Instr {
-    uint8_t ad;
-    uint8_t sr;
-    uint8_t ptr[MAX_TABLES];
-    uint8_t vibdelay;
-    uint8_t gatetimer;
-    uint8_t firstwave;
-    std::array<char, MAX_INSTRNAMELEN> name;
+struct Instrument {
+    uint8_t ad              = 0;
+    uint8_t sr              = 0;
+    std::array<uint8_t, 4> ptr;
+    uint8_t vibdelay        = 0;
+    uint8_t gatetimer       = 2; // 2 * multiplier
+    uint8_t firstwave       = 0x9;
+    std::array<char, MAX_INSTRNAMELEN> name = {};
 };
 
 
 template<class T, size_t L1, size_t L2>
 using Array2 = std::array<std::array<T, L2>, L1>;
 
+struct OrderRow {
+    int8_t  trans   = 0;
+    uint8_t pattnum = 0;
+};
+
+struct PatternRow {
+    uint8_t note    = REST;
+    uint8_t instr   = 0;
+    uint8_t command = 0;
+    uint8_t data    = 0;
+};
+
+struct Pattern {
+    std::array<PatternRow, MAX_PATTROWS> rows = {};
+    int                                  len  = 32;
+};
+
+
 struct Song {
-    std::array<Instr, MAX_INSTR> instr;
-    Array2<uint8_t, MAX_TABLES, MAX_TABLELEN> ltable;
-    Array2<uint8_t, MAX_TABLES, MAX_TABLELEN> rtable;
-    Array2<uint8_t, MAX_CHN, MAX_SONGLEN + 2> songorder;
-    Array2<uint8_t, MAX_PATT, MAX_PATTROWS * 4 + 4> pattern;
+    std::array<Instrument, MAX_INSTR>          instruments;
+    Array2<uint8_t, MAX_TABLES, MAX_TABLELEN>  ltable;
+    Array2<uint8_t, MAX_TABLES, MAX_TABLELEN>  rtable;
+    Array2<OrderRow, MAX_CHN, MAX_SONGLEN / 2> song_order;
+    std::array<Pattern, MAX_PATT>              patterns;
+    int                                        song_len  = 1;
+    int                                        song_loop = 0;
 
-    std::array<char, MAX_STR> songname;
-    std::array<char, MAX_STR> authorname;
-    std::array<char, MAX_STR> copyrightname;
+    std::array<char, MAX_STR>                  song_name;
+    std::array<char, MAX_STR>                  author_name;
+    std::array<char, MAX_STR>                  copyright_name;
 
-    std::array<int, MAX_PATT> pattlen;
-    std::array<int, MAX_CHN>  songlen;
-    int highestusedpattern;
-    int highestusedinstr;
-
-    void count_pattern_lengths();
     bool load(char const* filename);
     bool load(uint8_t const* data, size_t size);
     bool load(std::istream& stream);
     bool save(char const* filename);
     bool save(std::ostream& stream);
-
     void clear();
-    void clear_pattern(int p);
-    void clear_instr(int num);
-
-    int gettablelen(int num) {
-        int c;
-        for (c = MAX_TABLELEN - 1; c >= 0; c--) {
-            if (ltable[num][c] | rtable[num][c]) break;
-        }
-        return c + 1;
-    }
 };
 
 

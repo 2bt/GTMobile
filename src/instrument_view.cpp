@@ -53,9 +53,9 @@ void tag_used(int table, TagTable& tag, int pos) {
 
 void draw() {
 
-    int        instr_nr = piano::instrument();
-    gt::Song&  song     = app::song();
-    gt::Instr& instr    = song.instr[instr_nr];
+    int             instr_nr = piano::instrument();
+    gt::Song&       song     = app::song();
+    gt::Instrument& instr    = song.instruments[instr_nr];
     settings_view::Settings const& settings = settings_view::settings();
 
     char str[32];

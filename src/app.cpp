@@ -88,9 +88,9 @@ void init() {
     g_song.clear();
 
     // simple beep instrument
-    strcpy(g_song.instr[1].name.data(), "BEEP");
-    g_song.instr[1].sr = 0xf3;
-    g_song.instr[1].ptr[0] = 1;
+    strcpy(g_song.instruments[1].name.data(), "BEEP");
+    g_song.instruments[1].sr = 0xf3;
+    g_song.instruments[1].ptr[0] = 1;
     g_song.ltable[0][0] = 0x11;
     g_song.ltable[0][1] = 0xff;
 

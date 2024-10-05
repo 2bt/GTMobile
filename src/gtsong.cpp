@@ -1,6 +1,7 @@
 #include <cstdio>
 #include <cstring>
 #include <fstream>
+#include <cassert>
 #include "gtsong.hpp"
 #include "log.hpp"
 
@@ -28,70 +29,11 @@ bool write(std::ostream& stream, T const& v) {
 } // namespace
 
 
-void Song::count_pattern_lengths() {
-    highestusedpattern = 0;
-    highestusedinstr   = 0;
-    for (int c = 0; c < MAX_PATT; c++) {
-        int d;
-        for (d = 0; d <= MAX_PATTROWS; d++) {
-            if (pattern[c][d * 4] == ENDPATT) break;
-            if (pattern[c][d * 4] != REST ||
-                pattern[c][d * 4 + 1] ||
-                pattern[c][d * 4 + 2] ||
-                pattern[c][d * 4 + 3])
-            {
-                highestusedpattern = c;
-            }
-            highestusedinstr = std::max(highestusedinstr, int(pattern[c][d * 4 + 1]));
-        }
-        pattlen[c] = d;
-    }
-
-    for (int c = 0; c < MAX_CHN; c++) {
-        int d;
-        for (d = 0; d < MAX_SONGLEN; d++) {
-            if (songorder[c][d] >= LOOPSONG) break;
-            if (songorder[c][d] < REPEAT)
-            {
-                highestusedpattern = std::max(highestusedpattern, int(songorder[c][d]));
-            }
-        }
-        songlen[c] = d;
-    }
-}
-
-void Song::clear_pattern(int p) {
-    pattern[p] = {};
-    for (int c = 0; c < 32; c++) pattern[p][c * 4] = REST;
-    for (int c = 32; c <= MAX_PATTROWS; c++) pattern[p][c * 4] = ENDPATT;
-}
-
-void Song::clear_instr(int num) {
-    instr[num] = {};
-    if (num) {
-        //if (multiplier) instr[num].gatetimer = 2 * multiplier;
-        //else instr[num].gatetimer = 1;
-        instr[num].gatetimer = 2;
-        instr[num].firstwave = 0x9;
-    }
-}
-
 void Song::clear() {
-    songorder = {};
-    for (int c = 0; c < MAX_CHN; c++) {
-        songorder[c][0] = c;
-        songorder[c][1] = LOOPSONG;
-    }
-    songname = {};
-    authorname = {};
-    copyrightname = {};
-    for (int c = 0; c < MAX_PATT; c++) clear_pattern(c);
-    for (int c = 0; c < MAX_INSTR; c++) clear_instr(c);
-    ltable = {};
-    rtable = {};
-    count_pattern_lengths();
+    *this = {};
+    song_order[1][0].pattnum = 1;
+    song_order[2][0].pattnum = 2;
 }
-
 
 bool Song::load(char const* filename) {
     std::ifstream stream(filename, std::ios::binary);
@@ -109,43 +51,91 @@ bool Song::load(uint8_t const* data, size_t size) {
     return load(stream);
 }
 bool Song::load(std::istream& stream) {
-    char ident[4];
-    stream.read(ident, 4);
-    if (memcmp(ident, "GTS5", 4) != 0) return false;
+    std::array<char, 4> ident;
+    read(stream, ident);
+    if (ident != std::array<char, 4>{'G', 'T', 'S', '5'}) return false;
 
     clear();
-
-    // read infotexts
-    read(stream, songname);
-    read(stream, authorname);
-    read(stream, copyrightname);
+    read(stream, song_name);
+    read(stream, author_name);
+    read(stream, copyright_name);
 
     // read songorderlists
     int amount = read8(stream);
-    for (int c = 0; c < MAX_CHN; c++) {
-        int loadsize = read8(stream) + 1;
-        stream.read((char*) songorder[c].data(), loadsize);
+    if (amount != 1) {
+        LOGE("Song::load: multiple songs are not supported");
+        clear();
+        return false;
     }
-    for (int d = 1; d < amount; d++) {
-        for (int c = 0; c < MAX_CHN; c++) {
-            int loadsize = read8(stream) + 1;
-            stream.ignore(loadsize);
+
+    for (int c = 0; c < MAX_CHN; c++) {
+        int buffer_len = read8(stream) + 1;
+        assert(buffer_len >= 3);
+        std::array<uint8_t, 256> buffer;
+        stream.read((char*) buffer.data(), buffer_len);
+
+        assert(buffer[buffer_len - 2] == LOOPSONG);
+        int loop  = buffer[buffer_len - 1];
+        int pos   = 0;
+        int trans = 0;
+        auto& order = song_order[c];
+        for (int i = 0; i < buffer_len;) {
+            uint8_t x = buffer[i++];
+            if (x == LOOPSONG) break;
+            if (pos >= int(order.size())) {
+                LOGE("Song::load: max song length exceeded");
+                clear();
+                return false;
+            }
+            // transpose
+            if (x >= TRANSDOWN && x < LOOPSONG) {
+                if (i <= buffer[buffer_len - 1]) --loop;
+                trans = x - TRANSUP;
+                x = buffer[i++];
+            }
+            if (x >= REPEAT && x < TRANSDOWN) {
+                LOGE("Song::load: repeat command not supported");
+                clear();
+                return false;
+            }
+            if (x >= MAX_PATT) {
+                LOGE("Song::load: invalid pattern number");
+                clear();
+                return false;
+            }
+            order[pos].trans   = trans;
+            order[pos].pattnum = x;
+            ++pos;
+        }
+        if (c == 0) {
+            song_len  = pos;
+            song_loop = loop;
+        }
+        else {
+            if (pos != song_len) {
+                LOGE("Song::load: song length mismatch");
+                clear();
+                return false;
+            }
+            if (loop != song_loop) {
+                LOGE("Song::load: song loop mismatch");
+                clear();
+                return false;
+            }
         }
     }
 
     // read instruments
     amount = read8(stream);
     for (int c = 1; c <= amount; c++) {
-        instr[c].ad        = read8(stream);
-        instr[c].sr        = read8(stream);
-        instr[c].ptr[WTBL] = read8(stream);
-        instr[c].ptr[PTBL] = read8(stream);
-        instr[c].ptr[FTBL] = read8(stream);
-        instr[c].ptr[STBL] = read8(stream);
-        instr[c].vibdelay  = read8(stream);
-        instr[c].gatetimer = read8(stream);
-        instr[c].firstwave = read8(stream);
-        read(stream, instr[c].name);
+        Instrument& instr = instruments[c];
+        instr.ad        = read8(stream);
+        instr.sr        = read8(stream);
+        read(stream, instr.ptr);
+        instr.vibdelay  = read8(stream);
+        instr.gatetimer = read8(stream);
+        instr.firstwave = read8(stream);
+        read(stream, instr.name);
     }
     // read tables
     for (int c = 0; c < MAX_TABLES; c++) {
@@ -156,22 +146,20 @@ bool Song::load(std::istream& stream) {
     // read patterns
     amount = read8(stream);
     for (int c = 0; c < amount; c++) {
-        int length = read8(stream) * 4;
-        stream.read((char*) pattern[c].data(), length);
-    }
-
-    count_pattern_lengths();
-
-
-    // compatibility check
-    for (int c = 0; c < MAX_CHN; ++c) {
-        auto const& order = songorder[c];
-        for (int i = 0; i < songlen[c]; ++i) {
-            if (order[i] >= REPEAT && order[i] < TRANSDOWN) {
-                LOGE("Song::load: repeat command is not supported");
-                clear();
-                return false;
-            }
+        int len = read8(stream);
+        std::array<uint8_t, 1024> buffer;
+        stream.read((char*) buffer.data(), len * 4);
+        Pattern& patt = patterns[c];
+        patt.len = len - 1;
+        assert(patt.len > 0);
+        assert(patt.len <= int(patt.rows.size()));
+        for (int i = 0; i < patt.len; ++i) {
+            patt.rows[i] = {
+                buffer[i * 4 + 0],
+                buffer[i * 4 + 1],
+                buffer[i * 4 + 2],
+                buffer[i * 4 + 3],
+            };
         }
     }
 
@@ -184,62 +172,85 @@ bool Song::save(char const* filename) {
     if (!stream.is_open()) return false;
     return save(stream);
 }
+
+
 bool Song::save(std::ostream& stream) {
-    count_pattern_lengths();
+
+    assert(song_len <= MAX_SONGLEN / 2);
 
     stream.write("GTS5", 4);
-
-    for (int c = 1; c < MAX_INSTR; c++) {
-        if (instr[c].ad || instr[c].sr || instr[c].ptr[0] || instr[c].ptr[1] ||
-            instr[c].ptr[2] || instr[c].ptr[3] || instr[c].vibdelay)
-        {
-            highestusedinstr = std::max(highestusedinstr, c);
-        }
-    }
-
-    // infotexts
-    write(stream, songname);
-    write(stream, authorname);
-    write(stream, copyrightname);
+    write(stream, song_name);
+    write(stream, author_name);
+    write(stream, copyright_name);
 
     // songorderlists
-    int amount = 1;
-    write<uint8_t>(stream, amount);
-    for (int c = 0; c < MAX_CHN; c++) {
-        int length = songlen[c] + 1;
-        write<uint8_t>(stream, length);
-        int writebytes = length + 1;
-        stream.write((char const*) songorder[c].data(), writebytes);
+    write<uint8_t>(stream, 1);
+    for (auto const& order : song_order) {
+        // TODO: remove transpose
+        write<uint8_t>(stream, song_len * 2 + 1);
+        for (int r = 0; r < song_len; ++r) {
+            write<uint8_t>(stream, order[r].trans + TRANSUP);
+            write<uint8_t>(stream, order[r].pattnum);
+        }
+        write<uint8_t>(stream, LOOPSONG);
+        write<uint8_t>(stream, song_loop);
     }
 
     // instruments
-    write<uint8_t>(stream, highestusedinstr);
-    for (int c = 1; c <= highestusedinstr; c++) {
-        write(stream, instr[c].ad);
-        write(stream, instr[c].sr);
-        write(stream, instr[c].ptr[WTBL]);
-        write(stream, instr[c].ptr[PTBL]);
-        write(stream, instr[c].ptr[FTBL]);
-        write(stream, instr[c].ptr[STBL]);
-        write(stream, instr[c].vibdelay);
-        write(stream, instr[c].gatetimer);
-        write(stream, instr[c].firstwave);
-        write(stream, instr[c].name);
+    int max_used_instr = 1;
+    constexpr Instrument emtpy_instr = {};
+    for (int i = 0; i < MAX_INSTR; i++) {
+        if (memcmp(&instruments[i], &emtpy_instr, sizeof(Instrument)) != 0) {
+            max_used_instr = i;
+        }
     }
-    // Write tables
-    for (int c = 0; c < MAX_TABLES; c++) {
-        int writebytes = gettablelen(c);
-        write<uint8_t>(stream, writebytes);
-        stream.write((char const*) ltable[c].data(), writebytes);
-        stream.write((char const*) rtable[c].data(), writebytes);
+    write<uint8_t>(stream, max_used_instr);
+    for (int i = 1; i <= max_used_instr; i++) {
+        Instrument& instr = instruments[i];
+        write(stream, instr.ad);
+        write(stream, instr.sr);
+        write(stream, instr.ptr);
+        write(stream, instr.vibdelay);
+        write(stream, instr.gatetimer);
+        write(stream, instr.firstwave);
+        write(stream, instr.name);
     }
-    // Write patterns
-    amount = highestusedpattern + 1;
-    write<uint8_t>(stream, amount);
-    for (int c = 0; c < amount; c++) {
-        int length = pattlen[c] + 1;
-        write<uint8_t>(stream, length);
-        stream.write((char const*) pattern[c].data(), length * 4);
+
+    // tables
+    for (int i = 0; i < MAX_TABLES; i++) {
+        int c = MAX_TABLELEN - 1;
+        for (; c >= 0; c--) {
+            if (ltable[i][c] | rtable[i][c]) break;
+        }
+        ++c;
+        write<uint8_t>(stream, c);
+        stream.write((char const*) ltable[i].data(), c);
+        stream.write((char const*) rtable[i].data(), c);
+    }
+
+    // patterns
+    int max_used_patt = 0;
+    for (int i = 0; i < MAX_PATT; ++i) {
+        Pattern const& patt = patterns[i];
+        for (int r = 0; r < patt.len; ++r) {
+            auto row = patt.rows[r];
+            if (row.note != gt::REST || row.instr || row.command) {
+                max_used_patt = i;
+                break;
+            }
+        }
+    }
+    write<uint8_t>(stream, max_used_patt + 1);
+    for (int i = 0; i <= max_used_patt; i++) {
+        Pattern const& patt = patterns[i];
+        write<uint8_t>(stream, patt.len + 1);
+        for (int r = 0; r < patt.len; ++r) {
+            write(stream, patt.rows[r]);
+        }
+        write<uint8_t>(stream, ENDPATT);
+        write<uint8_t>(stream, 0);
+        write<uint8_t>(stream, 0);
+        write<uint8_t>(stream, 0);
     }
 
     return true;

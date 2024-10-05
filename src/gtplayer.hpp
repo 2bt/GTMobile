@@ -9,21 +9,15 @@ namespace gt {
 
 class Player {
 public:
-    gt::Song const& song;
     Player(gt::Song const& song);
 
-    void play_song() { m_is_playing_req = true; }
-    void stop_song() { m_is_playing_req = false; }
-    bool is_playing() const { return m_is_playing_req; }
+    void play_song() { m_action = Action::start; }
+    void stop_song() { m_action = Action::stop; }
+    void pause_song() { m_action = Action::pause; }
+    bool is_playing() const { return m_is_playing; }
 
     bool get_loop() const { return m_loop_pattern_req; }
     void set_loop(bool loop) { m_loop_pattern_req = loop; }
-
-    void get_chan_info(int c, int& song_pos, int& patt_pos, uint8_t& pattnum) const {
-        song_pos = m_current_song_pos[c];
-        patt_pos = m_current_patt_pos[c];
-        pattnum  = m_channels[c].pattnum;
-    }
 
     void play_test_note(int note, int ins, int chnnum);
     void release_note(int chnnum);
@@ -43,10 +37,9 @@ private:
         uint8_t  note;
         uint8_t  lastnote;
         uint8_t  newnote;
-        uint32_t pattptr;
+        int      pattptr;
         uint8_t  pattnum;
         uint8_t  songptr;
-        uint8_t  repeat;
         uint16_t freq;
         uint8_t  gate;
         uint8_t  wave;
@@ -66,23 +59,30 @@ private:
         uint8_t  gatetimer;
     };
 
+    gt::Song const& m_song;
+
     // play options
     const int      m_multiplier       = 1;      // for multi speed
     const uint16_t m_adparam          = 0x0f00; // HR
     const bool     m_optimizepulse    = false;
     const bool     m_optimizerealtime = false;
 
+    enum class Action {
+        none, start, pause, stop,
+    };
 
-    bool   m_is_playing       = false;
-    bool   m_is_playing_req   = false;
+    Action m_action     = Action::none;
+    bool   m_is_playing = false;
+
     bool   m_loop_pattern     = false;
     bool   m_loop_pattern_req = false;
 
-    int    m_start_song_pos = 0;
-    int    m_start_patt_pos = 0;
+public:
+    std::array<int, MAX_CHN> m_start_song_pos;
+    std::array<int, MAX_CHN> m_start_patt_pos;
     std::array<int, MAX_CHN> m_current_song_pos;
     std::array<int, MAX_CHN> m_current_patt_pos;
-
+private:
 
     std::array<Channel, MAX_CHN> m_channels     = {};
     uint8_t                      m_filterctrl   = 0;

@@ -37,7 +37,7 @@ bool draw(bool* follow) {
     // instrument button
     gui::item_size({ 8 * 18 + 12, app::BUTTON_WIDTH });
     gui::align(gui::Align::Left);
-    sprintf(str, "%02X %s", g_instrument, song.instr[g_instrument].name.data());
+    sprintf(str, "%02X %s", g_instrument, song.instruments[g_instrument].name.data());
     if (gui::button(str)) show_instrument_select = true;
 
     // piano scroll bar
@@ -68,7 +68,7 @@ bool draw(bool* follow) {
                 continue;
             }
             int i = n % 2 * 32 + n / 2;
-            auto const& instr = song.instr[i];
+            auto const& instr = song.instruments[i];
             sprintf(str, "%02X %s", i, instr.name.data());
             if (instr.ptr[0] | instr.ptr[1] | instr.ptr[2] | instr.ptr[3]) {
                 gui::button_style(gui::ButtonStyle::Tagged);
@@ -156,24 +156,29 @@ bool draw(bool* follow) {
         dc.box(b, gui::BoxStyle::PianoKey);
     });
 
+    // player buttons
+    gt::Player& player = app::player();
     piano_y += KEY_HALF_HEIGHT * 2;
     gui::cursor({ 0, piano_y });
     gui::item_size(app::TAB_WIDTH);
     gui::button(gui::Icon::FastBackward);
     gui::same_line();
-    gui::button(gui::Icon::Stop);
 
+    if (gui::button(gui::Icon::Stop)) {
+        player.m_start_song_pos = {};
+        player.m_start_patt_pos = {};
+        player.stop_song();
+    }
 
     // play button
     int w = app::CANVAS_WIDTH - app::TAB_WIDTH * 4;
     if (follow) w -= app::TAB_WIDTH;
     gui::item_size({ w, app::TAB_WIDTH });
-    gt::Player& player = app::player();
     bool is_playing = player.is_playing();
     gui::same_line();
     if (gui::button(gui::Icon::Play, is_playing)) {
         if (is_playing) {
-            player.stop_song();
+            player.pause_song();
         }
         else {
             player.play_song();

@@ -263,19 +263,19 @@ void draw() {
     gui::text("TITLE");
     gui::same_line();
     gui::item_size({ INPUT_WIDTH, app::BUTTON_WIDTH });
-    gui::input_text(song.songname);
+    gui::input_text(song.song_name);
 
     gui::item_size({ app::CANVAS_WIDTH - INPUT_WIDTH, app::BUTTON_WIDTH });
     gui::text("AUTHOR");
     gui::same_line();
     gui::item_size({ INPUT_WIDTH, app::BUTTON_WIDTH });
-    gui::input_text(song.authorname);
+    gui::input_text(song.author_name);
 
     gui::item_size({ app::CANVAS_WIDTH - INPUT_WIDTH, app::BUTTON_WIDTH });
     gui::text("RELEASED");
     gui::same_line();
     gui::item_size({ INPUT_WIDTH, app::BUTTON_WIDTH });
-    gui::input_text(song.copyrightname);
+    gui::input_text(song.copyright_name);
 
 
     gui::item_size(app::BUTTON_WIDTH);
