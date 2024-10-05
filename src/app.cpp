@@ -123,7 +123,7 @@ void resize(int width, int height) {
 
     // XXX
     // g_canvas_scale = 1;
-    LOGD("canvas scale = %f", g_canvas_scale);
+    // LOGD("canvas scale = %f", g_canvas_scale);
 
     // reinit canvas with POT dimensions
     int w = 2;

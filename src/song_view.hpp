@@ -2,7 +2,9 @@
 
 namespace song_view {
 
-    void draw();
     int  channel();
+    int  song_position();
+    void reset();
+    void draw();
 
 } // namespace song_view

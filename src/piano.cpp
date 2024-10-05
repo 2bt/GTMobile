@@ -165,7 +165,7 @@ bool draw(bool* follow) {
     gui::same_line();
 
     if (gui::button(gui::Icon::Stop)) {
-        player.m_start_song_pos = {};
+        player.m_start_song_pos.fill(song_view::song_position());
         player.m_start_patt_pos = {};
         player.stop_song();
     }

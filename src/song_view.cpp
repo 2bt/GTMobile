@@ -18,18 +18,17 @@ namespace {
 enum class Dialog { None, OrderEdit };
 enum class EditMode { Song, Pattern };
 
-std::array<int, 3> g_pattern_nums       = { 0, 1, 2 };
-int                g_song_page          = 8;
-int                g_song_scroll        = 0;
-int                g_pattern_scroll     = 0;
-bool               g_follow             = false;
-bool               g_recording          = false;
-int                g_cursor_chan        = 0;
-int                g_cursor_pattern_row = 0;
-int                g_cursor_song_row    = 0;
-int                g_transpose          = 0;
-EditMode           g_edit_mode          = EditMode::Song;
-Dialog             g_dialog             = Dialog::None;
+int      g_song_page          = 8;
+int      g_song_scroll        = 0;
+int      g_pattern_scroll     = 0;
+bool     g_follow             = false;
+bool     g_recording          = false;
+int      g_cursor_chan        = 0;
+int      g_cursor_pattern_row = 0;
+int      g_cursor_song_row    = 0;
+int      g_transpose          = 0;
+EditMode g_edit_mode          = EditMode::Song;
+Dialog   g_dialog             = Dialog::None;
 
 std::array<bool, gt::MAX_PATT> g_pattern_empty;
 
@@ -112,8 +111,24 @@ void draw_order_edit() {
 } // namespace
 
 
-int channel() {
-    return g_cursor_chan;
+int channel() { return g_cursor_chan; }
+
+int song_position() {
+    gt::Song& song = app::song();
+    if (g_cursor_song_row >= song.song_len) {
+        g_cursor_song_row = song.song_len - 1;
+    }
+    return g_cursor_song_row;
+}
+
+void reset() {
+    g_cursor_pattern_row = 0;
+    g_cursor_song_row    = 0;
+    g_song_scroll        = 0;
+    g_pattern_scroll     = 0;
+    g_follow             = false;
+    g_recording          = false;
+    g_edit_mode          = EditMode::Song;
 }
 
 
@@ -143,18 +158,28 @@ void draw() {
     int pattern_page = total_rows - g_song_page;
 
     bool is_playing = player.is_playing();
+    std::array<int, 3> patt_nums;
     if (g_follow) {
         // auto scroll
         g_edit_mode          = EditMode::Pattern;
-        g_pattern_nums       = player_patt_nums;
         g_song_scroll        = player_song_rows[g_cursor_chan] - g_song_page / 2;
         g_pattern_scroll     = player_patt_rows[g_cursor_chan] - pattern_page / 2;
         g_cursor_pattern_row = player_patt_rows[g_cursor_chan];
+        patt_nums            = player_patt_nums;
+    }
+    else {
+        // check bounds if a new song was loaded
+        if (g_cursor_song_row >= song.song_len) {
+            g_cursor_song_row = song.song_len - 1;
+        }
+        for (int k = 0; k < gt::MAX_CHN; ++k) {
+            patt_nums[k] = song.song_order[k][g_cursor_song_row].pattnum;
+        }
     }
 
-    int max_pattern_len = song.patterns[g_pattern_nums[0]].len;
-    max_pattern_len = std::max<int>(max_pattern_len, song.patterns[g_pattern_nums[1]].len);
-    max_pattern_len = std::max<int>(max_pattern_len, song.patterns[g_pattern_nums[2]].len);
+    int max_pattern_len = song.patterns[patt_nums[0]].len;
+    max_pattern_len = std::max<int>(max_pattern_len, song.patterns[patt_nums[1]].len);
+    max_pattern_len = std::max<int>(max_pattern_len, song.patterns[patt_nums[2]].len);
 
     g_song_scroll    = clamp<int>(g_song_scroll, 0, song.song_len - g_song_page);
     g_pattern_scroll = clamp<int>(g_pattern_scroll, 0, max_pattern_len - pattern_page);
@@ -192,16 +217,18 @@ void draw() {
             gt::OrderRow& row = song.song_order[c][r];
 
             dc.rgb(color::BACKGROUND_ROW);
-            if (row.pattnum == g_pattern_nums[c]) dc.rgb(color::HIGHLIGHT_ROW);
+            if (row.pattnum == patt_nums[c]) dc.rgb(color::HIGHLIGHT_ROW);
             if (r == player_song_rows[c]) dc.rgb(color::PLAYER_ROW);
             dc.fill(box);
 
             if (state == gui::ButtonState::Released) {
                 g_follow          = false;
-                g_pattern_nums[c] = row.pattnum;
                 g_edit_mode       = EditMode::Song;
                 g_cursor_chan     = c;
                 g_cursor_song_row = r;
+                for (int k = 0; k < gt::MAX_CHN; ++k) {
+                    patt_nums[k] = song.song_order[k][r].pattnum;
+                }
             }
 
             if (state != gui::ButtonState::Normal) {
@@ -233,7 +260,7 @@ void draw() {
         gui::same_line();
         ivec2 p = gui::cursor();
         bool active = player.is_channel_active(c);
-        sprintf(str, "%02X", g_pattern_nums[c]);
+        sprintf(str, "%02X", patt_nums[c]);
         gui::align(gui::Align::Left);
         if (gui::button(str, active)) {
             player.set_channel_active(c, !active);
@@ -264,12 +291,12 @@ void draw() {
             box.pos.x += 1;
             box.size.x -= 2;
 
-            gt::Pattern& patt = song.patterns[g_pattern_nums[c]];
+            gt::Pattern& patt = song.patterns[patt_nums[c]];
             if (r >= patt.len) continue;
 
             dc.rgb(color::BACKGROUND_ROW);
             if (r % settings.row_highlight == 0) dc.rgb(color::HIGHLIGHT_ROW);
-            if (g_pattern_nums[c] == player_patt_nums[c] && r == player_patt_rows[c]) {
+            if (patt_nums[c] == player_patt_nums[c] && r == player_patt_rows[c]) {
                 dc.rgb(color::PLAYER_ROW);
             }
             dc.fill(box);
@@ -404,7 +431,7 @@ void draw() {
     }
 
     // pattern edit
-    gt::Pattern& patt = song.patterns[g_pattern_nums[g_cursor_chan]];
+    gt::Pattern& patt = song.patterns[patt_nums[g_cursor_chan]];
     if (g_edit_mode == EditMode::Pattern && g_cursor_pattern_row < patt.len && !(is_playing && g_follow)) {
         auto& rows = patt.rows;
         int&  len  = patt.len;

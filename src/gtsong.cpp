@@ -153,13 +153,18 @@ bool Song::load(std::istream& stream) {
         patt.len = len - 1;
         assert(patt.len > 0);
         assert(patt.len <= int(patt.rows.size()));
+        int instr = 0;
         for (int i = 0; i < patt.len; ++i) {
-            patt.rows[i] = {
+            PatternRow row = {
                 buffer[i * 4 + 0],
                 buffer[i * 4 + 1],
                 buffer[i * 4 + 2],
                 buffer[i * 4 + 3],
             };
+            // add missing instr to notes
+            if (row.instr > 0) instr = row.instr;
+            else if (instr > 0 && row.note <= LASTNOTE) row.instr = instr;
+            patt.rows[i] = row;
         }
     }
 

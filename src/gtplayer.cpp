@@ -118,8 +118,8 @@ void Player::play_routine() {
             m_start_patt_pos = m_current_patt_pos;
         }
         else {
-            m_current_song_pos = {};
-            m_current_patt_pos = {};
+            m_current_song_pos = m_start_song_pos;
+            m_current_patt_pos = m_start_patt_pos;
         }
         m_action = Action::none;
     }
