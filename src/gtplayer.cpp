@@ -112,6 +112,7 @@ void Player::play_routine() {
             chan.gatetimer  = m_song.instruments[1].gatetimer & 0x3f;
             chan.gate       = 0xfe;    // note off
             regs[0x6 + 7 * c] &= 0xf0; // fast release
+            if (m_action == Action::stop && chan.tempo < 2) chan.tick = 0;
         }
         if (m_action == Action::pause) {
             m_start_song_pos = m_current_song_pos;
@@ -193,11 +194,6 @@ FILTERSTOP:
     for (int c = 0; c < MAX_CHN; c++) {
         Channel&          chan  = m_channels[c];
         Instrument const& instr = m_song.instruments[chan.instr];
-
-        // reset tempo in jam mode
-        if (!m_is_playing && chan.tempo < 2) {
-            chan.tempo = 6 * m_multiplier - 1;
-        }
 
         // decrease tick
         chan.tick--;

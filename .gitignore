@@ -1,2 +1,4 @@
 /build
+/songs
 .cmake
+CMakeLists.txt.user
