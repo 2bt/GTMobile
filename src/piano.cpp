@@ -161,7 +161,24 @@ bool draw(bool* follow) {
     piano_y += KEY_HALF_HEIGHT * 2;
     gui::cursor({ 0, piano_y });
     gui::item_size(app::TAB_WIDTH);
-    gui::button(gui::Icon::FastBackward);
+
+
+    static float backward_time = 0.0f;
+    backward_time += gui::get_frame_time();
+    if (gui::button(gui::Icon::FastBackward)) {
+        if (backward_time < 0.5f) {
+            for (int& x : player.m_start_song_pos) {
+                if (x > 0) --x;
+            }
+        }
+        player.m_start_patt_pos = {};
+        if (player.is_playing()) player.play_song();
+        else {
+            player.m_current_song_pos = player.m_start_song_pos;
+            player.m_current_patt_pos = {};
+        }
+        backward_time = 0.0f;
+    }
     gui::same_line();
 
     if (gui::button(gui::Icon::Stop)) {
@@ -200,7 +217,17 @@ bool draw(bool* follow) {
     }
 
     gui::same_line();
-    gui::button(gui::Icon::FastForward);
+    if (gui::button(gui::Icon::FastForward)) {
+        for (int& x : player.m_start_song_pos) {
+            if (x < song.song_len - 1) ++x;
+        }
+        player.m_start_patt_pos = {};
+        if (player.is_playing()) player.play_song();
+        else {
+            player.m_current_song_pos = player.m_start_song_pos;
+            player.m_current_patt_pos = {};
+        }
+    }
 
 
     return note_on;

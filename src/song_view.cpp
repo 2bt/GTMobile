@@ -162,9 +162,10 @@ void draw() {
     if (g_follow) {
         // auto scroll
         g_edit_mode          = EditMode::Pattern;
+        g_cursor_song_row    = player_song_rows[g_cursor_chan];
+        g_cursor_pattern_row = player_patt_rows[g_cursor_chan];
         g_song_scroll        = player_song_rows[g_cursor_chan] - g_song_page / 2;
         g_pattern_scroll     = player_patt_rows[g_cursor_chan] - pattern_page / 2;
-        g_cursor_pattern_row = player_patt_rows[g_cursor_chan];
         patt_nums            = player_patt_nums;
     }
     else {
