@@ -39,60 +39,84 @@ void draw_easy() {
     gui::align(gui::Align::Left);
     gui::item_size({ 16 * 8 + 12, app::BUTTON_HEIGHT });
     gui::input_text(instr.name);
-
-
-    int adsr[] = {
-        instr.ad >> 4,
-        instr.ad & 0xf,
-        instr.sr >> 4,
-        instr.sr & 0xf,
-    };
-    for (int i = 0; i < 4; ++i) {
-        constexpr char const* LABELS[] = {
-            "ATTACK  %X",
-            "DECAY   %X",
-            "SUSTAIN %X",
-            "RELEASE %X",
-        };
-        gui::item_size({ 9 * 8 + 12, app::BUTTON_HEIGHT });
-        gui::text(LABELS[i], adsr[i]);
-        gui::same_line();
-        gui::item_size({ app::CANVAS_WIDTH - gui::cursor().x, app::BUTTON_HEIGHT });
-        gui::drag_bar_style(gui::DragBarStyle::Normal);
-        gui::horizontal_drag_bar(adsr[i], 0, 15);
-    }
     gui::align(gui::Align::Center);
-    instr.ad = (adsr[0] << 4) | adsr[1];
-    instr.sr = (adsr[2] << 4) | adsr[3];
+
+
+    // int adsr[] = {
+    //     instr.ad >> 4,
+    //     instr.ad & 0xf,
+    //     instr.sr >> 4,
+    //     instr.sr & 0xf,
+    // };
+    // for (int i = 0; i < 4; ++i) {
+    //     constexpr char const* LABELS[] = {
+    //         "ATTACK  %X",
+    //         "DECAY   %X",
+    //         "SUSTAIN %X",
+    //         "RELEASE %X",
+    //     };
+    //     gui::item_size({ 9 * 8 + 12, app::BUTTON_HEIGHT });
+    //     gui::text(LABELS[i], adsr[i]);
+    //     gui::same_line();
+    //     gui::item_size({ app::CANVAS_WIDTH - gui::cursor().x, app::BUTTON_HEIGHT });
+    //     gui::drag_bar_style(gui::DragBarStyle::Normal);
+    //     gui::horizontal_drag_bar(adsr[i], 0, 15);
+    // }
+    // gui::align(gui::Align::Center);
+    // instr.ad = (adsr[0] << 4) | adsr[1];
+    // instr.sr = (adsr[2] << 4) | adsr[3];
 
 
     // tables
     enum {
         CW_NUM = 28,
-        CW_DATA = (app::CANVAS_WIDTH - CW_NUM - app::BUTTON_HEIGHT - app::TAB_HEIGHT * 2) / 3,
+        CW_DATA = app::CANVAS_WIDTH - CW_NUM - app::BUTTON_HEIGHT - app::TAB_HEIGHT * 2,
     };
 
-    static int g_cursor_table = 0;
-    static int g_cursor_row   = 0;
-    static int g_scroll       = 0;
+    static int g_table      = 0;
+    static int g_cursor_row = 0;
+    static int g_scroll     = 0;
 
-
-    gui::item_size({ CW_NUM, app::BUTTON_HEIGHT });
-    gui::item_box();
-    gui::item_size({ CW_DATA, app::BUTTON_HEIGHT });
+    gui::item_size({ app::CANVAS_WIDTH / 3, app::BUTTON_HEIGHT });
     for (int t = 0; t < 3; ++t) {
         constexpr char const* LABELS[] = { "WAVE", "PULSE", "FILTER" };
-        gui::same_line();
-        if (gui::button(LABELS[t], t == g_cursor_table)) {
-            g_cursor_table = t;
+
+        gui::button_style(instr.ptr[t] > 0 ? gui::ButtonStyle::Tab : gui::ButtonStyle::ShadedTab );
+        if (gui::button(LABELS[t], t == g_table)) {
+            g_table = t;
         }
+        gui::same_line();
     }
+    gui::button_style(gui::ButtonStyle::Normal);
+    gui::same_line(false);
 
     ivec2 cursor      = gui::cursor();
     int   table_page  = (app::canvas_height() - cursor.y - piano::HEIGHT - app::BUTTON_HEIGHT * 4) / app::BUTTON_HEIGHT;
     int   max_scroll  = 0;
     int   text_offset = (app::BUTTON_HEIGHT - 7) / 2;
     char  str[32];
+
+
+    auto& ltable = song.ltable[g_table];
+    auto& rtable = song.rtable[g_table];
+    int start_row = 0;
+    int end_row = 0;
+    int len = 0;
+    // get length
+    if (instr.ptr[g_table] > 0) {
+        start_row = instr.ptr[g_table] - 1;
+        end_row = start_row;
+        for (; end_row < gt::MAX_TABLELEN; ++end_row) {
+            if (ltable[end_row] == 0xff) break;
+        }
+        len = end_row - start_row;
+        // TODO: verify in Song::load
+        assert(end_row < gt::MAX_TABLELEN);
+        assert(len > 0);
+        int loop = rtable[end_row];
+        assert(loop == 0 || (loop - 1 >= start_row && loop - 1 < end_row));
+        max_scroll = std::max(max_scroll, len);
+    }
 
     gui::DrawContext& dc = gui::draw_context();
     for (int i = 0; i < table_page; ++i) {
@@ -102,202 +126,167 @@ void draw_easy() {
         gui::Box box = gui::item_box();
         dc.rgb(color::ROW_NUMBER);
         dc.text(box.pos + ivec2(6, text_offset), str);
-    }
-    for (int t = 0; t < 3; ++t) {
-        auto& ltable = song.ltable[t];
-        auto& rtable = song.rtable[t];
-        int start_row = 0;
-        int end_row = 0;
-        int len = 0;
-        // get length
-        if (instr.ptr[t] > 0) {
-            start_row = instr.ptr[t] - 1;
-            end_row = start_row;
-            for (; end_row < gt::MAX_TABLELEN; ++end_row) {
-                if (ltable[end_row] == 0xff) break;
-            }
-            len = end_row - start_row;
-            // TODO: verify in Song::load
-            assert(end_row < gt::MAX_TABLELEN);
-            assert(len > 0);
-            int loop = rtable[end_row];
-            assert(loop == 0 || (loop - 1 >= start_row && loop - 1 < end_row));
-            max_scroll = std::max(max_scroll, len);
-        }
+        gui::same_line();
 
-        gui::cursor({ CW_NUM + CW_DATA * t, cursor.y });
         gui::item_size({ CW_DATA, app::BUTTON_HEIGHT });
-        for (int i = 0; i < table_page; ++i) {
-            int r = i + g_scroll;
-            gui::Box box = gui::item_box();
-            if (r >= len) continue;
+        box = gui::item_box();
+        if (r >= len) continue;
 
-            gui::ButtonState state = gui::button_state(box);
-            box.pos.x += 1;
-            box.size.x -= 2;
+        gui::ButtonState state = gui::button_state(box);
+        box.pos.x += 1;
+        box.size.x -= 2;
 
-            dc.rgb(color::BACKGROUND_ROW);
-            dc.fill(box);
+        dc.rgb(color::BACKGROUND_ROW);
+        dc.fill(box);
 
-            // loop marker
-            if (start_row + r + 1 == rtable[end_row]) {
-                dc.rgb(color::BUTTON_HELD);
-                dc.text(box.pos + ivec2(box.size.x - 8, text_offset), "\x05");
-            }
-
-            if (state == gui::ButtonState::Released) {
-                g_cursor_table = t;
-                g_cursor_row   = r;
-            }
-            if (state != gui::ButtonState::Normal) {
-                dc.rgb(color::BUTTON_HELD);
-                dc.box(box, gui::BoxStyle::Cursor);
-            }
-            if (g_cursor_table == t && g_cursor_row == r) {
-                dc.rgb(color::BUTTON_ACTIVE);
-                dc.box(box, gui::BoxStyle::Cursor);
-            }
-
-            uint8_t& lval = ltable[start_row + r];
-            uint8_t& rval = rtable[start_row + r];
-            assert(lval != 0xff);
-
-            // chose colors
-            uint32_t colors[2] = {
-                color::WHITE,
-                color::WHITE,
-            };
-            if (t == gt::WTBL) {
-
-                // wave table
-                // left side:
-                // + 00    no waveform change
-                // + 01-0F delay
-                // + 10-DF waveform
-                // + E0-EF inaudible waveform 00-0F
-                // + F0-FE pattern command
-                // + FF    jump
-                // right side:
-                // + 00-57 relative note
-                // + 60-7F negative relative note
-                // + 80    no change
-                // + 81-DD absolute notes C#0 - B-7
-
-                if (lval >= 0x10 && lval <= 0xef) {
-                    colors[0] = color::CMDS[7]; // color like waveform command
-                }
-
-                if (lval >= 0xf0 && lval <= 0xfe) {
-                    // pattern command
-                    int cmd = lval & 0xf;
-                    constexpr bool valid_command[] = {
-                        0, 1, 1, 1,
-                        1, 1, 1, 1,
-                        0, 1, 1, 1,
-                        1, 1, 0,
-                    };
-                    if (valid_command[cmd]) {
-                        colors[0] = color::CMDS[cmd];
-                        colors[1] = color::CMDS[cmd];
-                    }
-                }
-                else if (lval != 0xff) {
-                    if (rval > 0 && rval < 0x7f) { // relative pitch
-                        colors[1] = color::CMDS[5]; // green
-                    }
-                    if (rval > 0x80 && rval <= 0xdf) { // absolute pitch
-                        colors[1] = color::CMDS[10]; // blue
-                    }
-                }
-            }
-            else if (t == gt::PTBL) {
-                // 01-7F pulse mod step time/speed
-                // 8X-FX set pulsewidth XYY
-                // FF    jump
-                if (lval > 0 && lval <= 0x7f) { // mod step
-                    colors[0] = colors[1] = color::CMDS[5]; // green
-                }
-                if (lval >= 0x80 && lval < 0xff) { // set
-                    colors[0] = colors[1] = color::CMDS[10]; // blue
-                }
-            }
-            else if (t == gt::FTBL) {
-                // 00    set cutoff
-                // 01-7F filter mod step time/speed
-                // 80-F0 set params
-                if (lval == 0 && rval > 0) { // set
-                    colors[0] = colors[1] = color::CMDS[10]; // blue
-                }
-                if (lval >= 0x01 && lval <= 0x7f) { // mod
-                    colors[0] = colors[1] = color::CMDS[5]; // green
-                }
-                if (lval >= 0x80 && lval < 0xff) { // params
-                    colors[0] = colors[1] = color::CMDS[4];
-                }
-            }
-            else if (t == gt::STBL) {
-                if (lval | rval) {
-                    colors[0] = colors[1] = color::CMDS[5]; // green
-                }
-            }
-
-            sprintf(str, "%02X", lval);
-            dc.rgb(colors[0]);
-            ivec2 p = box.pos + ivec2(5, text_offset);
-            dc.text(p, str);
-            p.x += 20;
-            sprintf(str, "%02X", rval);
-            dc.rgb(colors[1]);
-            dc.text(p, str);
+        // loop marker
+        if (start_row + r + 1 == rtable[end_row]) {
+            dc.rgb(color::BUTTON_HELD);
+            dc.text(box.pos + ivec2(box.size.x - 8, text_offset), "\x05");
         }
 
-        if (t == g_cursor_table) {
-
-            int free_row = ltable.size();
-            while (free_row > 0 && ltable[free_row - 1] == 0 && rtable[free_row - 1] == 0) {
-                --free_row;
-            }
-            int num_free_rows = ltable.size() - free_row;
-            // we need two free rows to add a single row to an emtpy instr table
-            bool can_add_row = len == 0 ? num_free_rows >= 2 : num_free_rows > 0;
-
-            gui::cursor({ app::CANVAS_WIDTH - app::TAB_HEIGHT * 2, cursor.y });
-            gui::item_size(app::TAB_HEIGHT);
-            // gui::disabled(!can_add_row);
-            if (gui::button(gui::Icon::AddRowAbove)) {
-                // TODO
-            }
-            gui::same_line();
-            // gui::disabled(!(len < MAX_SONG_ROWS  && pos < len));
-            if (gui::button(gui::Icon::AddRowBelow)) {
-                // TODO
-            }
-
-            gui::disabled(g_cursor_row >= len);
-            if (gui::button(gui::Icon::DeleteRow)) {
-                // TODO
-            }
-            gui::same_line();
-            bool is_loop = rtable[end_row] == start_row + g_cursor_row + 1;
-            if (gui::button(gui::Icon::JumpBack)) {
-                if (is_loop) rtable[end_row] = 0;
-                else rtable[end_row] = start_row + g_cursor_row + 1;
-            }
-            gui::disabled(false);
-
-
-
-
-
+        if (state == gui::ButtonState::Released) {
+            g_cursor_row = r;
+        }
+        if (state != gui::ButtonState::Normal) {
+            dc.rgb(color::BUTTON_HELD);
+            dc.box(box, gui::BoxStyle::Cursor);
+        }
+        if (g_cursor_row == r) {
+            dc.rgb(color::BUTTON_ACTIVE);
+            dc.box(box, gui::BoxStyle::Cursor);
         }
 
+        uint8_t& lval = ltable[start_row + r];
+        uint8_t& rval = rtable[start_row + r];
+        assert(lval != 0xff);
+
+        // chose colors
+        uint32_t colors[2] = {
+            color::WHITE,
+            color::WHITE,
+        };
+        if (g_table == gt::WTBL) {
+
+            // wave table
+            // left side:
+            // + 00    no waveform change
+            // + 01-0F delay
+            // + 10-DF waveform
+            // + E0-EF inaudible waveform 00-0F
+            // + F0-FE pattern command
+            // + FF    jump
+            // right side:
+            // + 00-57 relative note
+            // + 60-7F negative relative note
+            // + 80    no change
+            // + 81-DD absolute notes C#0 - B-7
+
+            if (lval >= 0x10 && lval <= 0xef) {
+                colors[0] = color::CMDS[7]; // color like waveform command
+            }
+
+            if (lval >= 0xf0 && lval <= 0xfe) {
+                // pattern command
+                int cmd = lval & 0xf;
+                constexpr bool valid_command[] = {
+                    0, 1, 1, 1,
+                    1, 1, 1, 1,
+                    0, 1, 1, 1,
+                    1, 1, 0,
+                };
+                if (valid_command[cmd]) {
+                    colors[0] = color::CMDS[cmd];
+                    colors[1] = color::CMDS[cmd];
+                }
+            }
+            else if (lval != 0xff) {
+                if (rval > 0 && rval < 0x7f) { // relative pitch
+                    colors[1] = color::CMDS[5]; // green
+                }
+                if (rval > 0x80 && rval <= 0xdf) { // absolute pitch
+                    colors[1] = color::CMDS[10]; // blue
+                }
+            }
+        }
+        else if (g_table == gt::PTBL) {
+            // 01-7F pulse mod step time/speed
+            // 8X-FX set pulsewidth XYY
+            // FF    jump
+            if (lval > 0 && lval <= 0x7f) { // mod step
+                colors[0] = colors[1] = color::CMDS[5]; // green
+            }
+            if (lval >= 0x80 && lval < 0xff) { // set
+                colors[0] = colors[1] = color::CMDS[10]; // blue
+            }
+        }
+        else if (g_table == gt::FTBL) {
+            // 00    set cutoff
+            // 01-7F filter mod step time/speed
+            // 80-F0 set params
+            if (lval == 0 && rval > 0) { // set
+                colors[0] = colors[1] = color::CMDS[10]; // blue
+            }
+            if (lval >= 0x01 && lval <= 0x7f) { // mod
+                colors[0] = colors[1] = color::CMDS[5]; // green
+            }
+            if (lval >= 0x80 && lval < 0xff) { // params
+                colors[0] = colors[1] = color::CMDS[4];
+            }
+        }
+        else if (g_table == gt::STBL) {
+            if (lval | rval) {
+                colors[0] = colors[1] = color::CMDS[5]; // green
+            }
+        }
+
+        sprintf(str, "%02X", lval);
+        dc.rgb(colors[0]);
+        ivec2 p = box.pos + ivec2(5, text_offset);
+        dc.text(p, str);
+        p.x += 20;
+        sprintf(str, "%02X", rval);
+        dc.rgb(colors[1]);
+        dc.text(p, str);
     }
+
+    int free_row = ltable.size();
+    while (free_row > 0 && ltable[free_row - 1] == 0 && rtable[free_row - 1] == 0) {
+        --free_row;
+    }
+    int num_free_rows = ltable.size() - free_row;
+    // we need two free rows to add a single row to an emtpy instr table
+    bool can_add_row = len == 0 ? num_free_rows >= 2 : num_free_rows > 0;
+
+    gui::cursor({ app::CANVAS_WIDTH - app::TAB_HEIGHT * 2, cursor.y });
+    gui::item_size(app::TAB_HEIGHT);
+    // gui::disabled(!can_add_row);
+    if (gui::button(gui::Icon::AddRowAbove)) {
+        // TODO
+    }
+    gui::same_line();
+    // gui::disabled(!(len < MAX_SONG_ROWS  && pos < len));
+    if (gui::button(gui::Icon::AddRowBelow)) {
+        // TODO
+    }
+
+    gui::disabled(g_cursor_row >= len);
+    if (gui::button(gui::Icon::DeleteRow)) {
+        // TODO
+    }
+    gui::same_line();
+    bool is_loop = rtable[end_row] == start_row + g_cursor_row + 1;
+    if (gui::button(gui::Icon::JumpBack)) {
+        if (is_loop) rtable[end_row] = 0;
+        else rtable[end_row] = start_row + g_cursor_row + 1;
+    }
+    gui::disabled(false);
+
     // scrolling
-    gui::cursor({ CW_NUM + CW_DATA * 3, cursor.y });
+    gui::cursor({ CW_NUM + CW_DATA, cursor.y });
     gui::item_size({ app::BUTTON_HEIGHT, app::BUTTON_HEIGHT * table_page });
     gui::drag_bar_style(gui::DragBarStyle::Scrollbar);
     gui::vertical_drag_bar(g_scroll, 0, max_scroll - table_page, table_page);
-
 }
 
 
@@ -394,7 +383,6 @@ void draw_hard() {
         int pos = instr.ptr[t] - 1;
         tag_used(t, used, pos);
 
-        gui::item_size({ 72, settings.row_height });
 
         auto& ltable = song.ltable[t];
         auto& rtable = song.rtable[t];
@@ -405,25 +393,29 @@ void draw_hard() {
             uint8_t& lval = ltable[row];
             uint8_t& rval = rtable[row];
 
+            gui::item_size({ 28, settings.row_height });
+            gui::Box num_box = gui::item_box();
+            gui::same_line();
+            gui::item_size({ 44, settings.row_height });
             gui::Box box = gui::item_box();
+
             gui::ButtonState state = gui::button_state(box);
             box.pos.x += 1;
             box.size.x -= 2;
 
+            num_box.pos.x += 1;
+            num_box.size.x -= 2;
             dc.rgb(color::ROW_NUMBER);
             if (row == pos) {
                 dc.rgb(color::BUTTON_ACTIVE);
-                dc.fill({ box.pos, ivec2(26, settings.row_height) });
+                dc.fill(num_box);
                 dc.rgb(color::WHITE);
             }
             // row number
-            ivec2 p = box.pos + ivec2(5, text_offset);
             sprintf(str, "%02X", row + 1);
-            dc.text(p, str);
-            p.x += 28;
-
+            dc.text(num_box.pos + ivec2(5, text_offset), str);
             dc.rgb(used[row] ? color::HIGHLIGHT_ROW : color::BACKGROUND_ROW);
-            dc.fill({ box.pos + ivec2(28, 0), ivec2(42, settings.row_height) });
+            dc.fill(box);
 
 
             if (state == gui::ButtonState::Released) {
@@ -526,6 +518,7 @@ void draw_hard() {
                 sprintf(str, "%02X", lval);
             }
             dc.rgb(colors[0]);
+            auto p = box.pos + ivec2(5, text_offset);
             dc.text(p, str);
             p.x += 16;
             sprintf(str, "%02X", rval);

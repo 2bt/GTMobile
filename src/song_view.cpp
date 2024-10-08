@@ -78,13 +78,13 @@ void draw_order_edit() {
         gui::same_line(i % 13 != 0);
         int n = i % 13 * 16 + i / 13;
         sprintf(str, "%02X", n);
-        if (!g_pattern_empty[n]) gui::button_style(gui::ButtonStyle::Tagged);
+        gui::button_style(g_pattern_empty[n] ? gui::ButtonStyle::Shaded : gui::ButtonStyle::Normal);
         if (gui::button(str, row.pattnum == n)) {
             row.pattnum = n;
             exit_order_edit();
         }
-        gui::button_style(gui::ButtonStyle::Normal);
     }
+    gui::button_style(gui::ButtonStyle::Normal);
 
     gui::item_size({ 26 * 4, app::BUTTON_HEIGHT });
     sprintf(str, "TRANSPOSE %c%X", "+-"[g_transpose < 0], abs(g_transpose));

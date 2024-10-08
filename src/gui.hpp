@@ -92,8 +92,9 @@ struct Box {
 enum class BoxStyle {
     Fill,
     Normal,
-    Tagged,
+    Shaded,
     Tab,
+    ShadedTab,
     Text,
     Cursor,
     Window,
@@ -236,8 +237,9 @@ enum class Align { Left, Center };
 
 enum class ButtonStyle {
     Normal,
-    Tagged,
+    Shaded,
     Tab,
+    ShadedTab,
     TableCell,
 };
 enum class DragBarStyle {

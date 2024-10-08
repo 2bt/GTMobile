@@ -70,16 +70,14 @@ bool draw(bool* follow) {
             int i = n % 2 * 32 + n / 2;
             auto const& instr = song.instruments[i];
             sprintf(str, "%02X %s", i, instr.name.data());
-            if (instr.ptr[0] | instr.ptr[1] | instr.ptr[2] | instr.ptr[3]) {
-                gui::button_style(gui::ButtonStyle::Tagged);
-            }
-
+            bool set = instr.ptr[0] | instr.ptr[1] | instr.ptr[2] | instr.ptr[3];
+            gui::button_style(set ? gui::ButtonStyle::Normal : gui::ButtonStyle::Shaded);
             if (gui::button(str, i == g_instrument)) {
                 g_instrument = i;
                 show_instrument_select = false;
             }
-            gui::button_style(gui::ButtonStyle::Normal);
         }
+        gui::button_style(gui::ButtonStyle::Normal);
         gui::item_size({ box.size.x, app::BUTTON_HEIGHT });
         gui::align(gui::Align::Center);
         if (gui::button("CANCEL")) show_instrument_select = false;

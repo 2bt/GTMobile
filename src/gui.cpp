@@ -315,13 +315,14 @@ bool hold() {
 }
 void disabled(bool disabled) {
     g_disabled = disabled;
-    g_dc.alpha(disabled ? 100 : 255);
+    g_dc.alpha(disabled ? 80 : 255);
 }
 
 inline BoxStyle box_style(ButtonStyle s) {
     switch (s) {
-        case ButtonStyle::Tagged: return BoxStyle::Tagged;
+        case ButtonStyle::Shaded: return BoxStyle::Shaded;
         case ButtonStyle::Tab: return BoxStyle::Tab;
+        case ButtonStyle::ShadedTab: return BoxStyle::ShadedTab;
         default:
         case ButtonStyle::Normal: return BoxStyle::Normal;
     }
