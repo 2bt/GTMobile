@@ -95,14 +95,6 @@ void draw_order_edit() {
     gui::horizontal_drag_bar(g_transpose, -0xf, 0xe, 0);
 
     gui::item_size({ box.size.x, app::BUTTON_HEIGHT });
-    if (song.song_loop != g_cursor_song_row) {
-        gui::item_size({ box.size.x / 2, app::BUTTON_HEIGHT });
-        if (gui::button("SET LOOP START")) {
-            song.song_loop = g_cursor_song_row;
-            exit_order_edit();
-        }
-        gui::same_line();
-    }
     if (gui::button("CLOSE")) {
         exit_order_edit();
     }
@@ -388,8 +380,6 @@ void draw() {
     // buttons
     gui::cursor({ app::CANVAS_WIDTH - 60, app::TAB_HEIGHT });
     gui::align(gui::Align::Center);
-    // gui::item_size({ 60, app::BUTTON_HEIGHT });
-    gui::item_size(app::TAB_HEIGHT);
 
     // order edit
     if (g_edit_mode == EditMode::Song && !(is_playing && g_follow)) {
@@ -397,6 +387,7 @@ void draw() {
         int& len = song.song_len;
         assert(pos < len);
 
+        gui::item_size(app::TAB_HEIGHT);
         gui::disabled(!(len < MAX_SONG_ROWS && pos <= len));
         if (gui::button(gui::Icon::AddRowAbove)) {
             for (auto& order : song.song_order) {
@@ -408,7 +399,6 @@ void draw() {
             ++len;
         }
         gui::same_line();
-        gui::disabled(!(len < MAX_SONG_ROWS  && pos < len));
         if (gui::button(gui::Icon::AddRowBelow)) {
             for (auto& order : song.song_order) {
                 std::rotate(order.begin() + pos + 1, order.end() - 1, order.end());
@@ -427,11 +417,19 @@ void draw() {
             if (song.song_loop >= len) song.song_loop = len - 1;
             if (pos >= len) --pos;
         }
-        gui::disabled(false);
         gui::same_line();
+        gui::disabled(song.song_loop == g_cursor_song_row);
+        if (gui::button(gui::Icon::JumpBack)) {
+            song.song_loop = g_cursor_song_row;
+        }
+        gui::disabled(false);
+
+        gui::item_size({ app::TAB_HEIGHT * 2, app::TAB_HEIGHT });
         if (gui::button(gui::Icon::Pen)) {
             init_order_edit();
         }
+
+
     }
 
     // pattern edit
@@ -441,6 +439,7 @@ void draw() {
         int&  len  = patt.len;
         int&  pos  = g_cursor_pattern_row;
 
+        gui::item_size(app::TAB_HEIGHT);
         gui::disabled(!(len < gt::MAX_PATTROWS));
         if (gui::button(gui::Icon::AddRowAbove)) {
             std::rotate(rows.begin() + pos, rows.end() - 1, rows.end());
@@ -449,7 +448,6 @@ void draw() {
             ++len;
         }
         gui::same_line();
-        gui::disabled(!(len < gt::MAX_PATTROWS));
         if (gui::button(gui::Icon::AddRowBelow)) {
             std::rotate(rows.begin() + pos + 1, rows.end() - 1, rows.end());
             rows[pos + 1] = {};
@@ -475,6 +473,7 @@ void draw() {
         }
 
         // record button
+        gui::item_size({ app::TAB_HEIGHT * 2, app::TAB_HEIGHT });
         if (gui::button(gui::Icon::Record, g_recording)) {
             g_recording = !g_recording;
         }
