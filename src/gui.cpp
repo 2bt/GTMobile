@@ -394,6 +394,7 @@ void input_text(char* str, int len) {
 }
 
 bool horizontal_drag_bar(int& value, int min, int max, int page) {
+    max = std::max(max, min);
     Box box = item_box();
     ButtonState state = button_state(box, &value);
     bool is_active = state != ButtonState::Normal;
@@ -431,6 +432,7 @@ bool horizontal_drag_bar(int& value, int min, int max, int page) {
 
 
 bool vertical_drag_bar(int& value, int min, int max, int page) {
+    max = std::max(max, min);
     Box box = item_box();
     ButtonState state = button_state(box, &value);
     bool is_active = state != ButtonState::Normal;

@@ -11,8 +11,8 @@ namespace app {
         MIXRATE           = 44100,
         CANVAS_WIDTH      = 360,
         CANVAS_MIN_HEIGHT = 590,
-        BUTTON_WIDTH      = 20,
-        TAB_WIDTH         = 30,
+        BUTTON_HEIGHT     = 20,
+        TAB_HEIGHT        = 30,
     };
 
     enum class View {

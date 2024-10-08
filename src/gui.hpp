@@ -204,6 +204,8 @@ enum class Icon {
     Pen,
     Trash,
     Settings,
+    Sliders,
+    JumpBack,
 
     Loop = 40,
     Stop,

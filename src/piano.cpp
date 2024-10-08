@@ -32,17 +32,17 @@ bool draw(bool* follow) {
     char str[32];
 
     gui::cursor({ 0, piano_y });
-    piano_y += app::BUTTON_WIDTH;
+    piano_y += app::BUTTON_HEIGHT;
 
     // instrument button
-    gui::item_size({ 8 * 18 + 12, app::BUTTON_WIDTH });
+    gui::item_size({ 8 * 18 + 12, app::BUTTON_HEIGHT });
     gui::align(gui::Align::Left);
     sprintf(str, "%02X %s", g_instrument, song.instruments[g_instrument].name.data());
     if (gui::button(str)) show_instrument_select = true;
 
     // piano scroll bar
     gui::same_line();
-    gui::item_size({ app::CANVAS_WIDTH - gui::cursor().x, app::BUTTON_WIDTH });
+    gui::item_size({ app::CANVAS_WIDTH - gui::cursor().x, app::BUTTON_HEIGHT });
     gui::drag_bar_style(gui::DragBarStyle::Scrollbar);
     gui::horizontal_drag_bar(g_scroll, 0, PIANO_STEP_COUNT - PIANO_PAGE, PIANO_PAGE);
 
@@ -53,10 +53,10 @@ bool draw(bool* follow) {
             INST_BUTTON_H = 16,
             INST_BUTTON_W = 8 * 19,
         };
-        gui::Box box = gui::begin_window({ INST_BUTTON_W * 2, INST_BUTTON_H * 32 + app::BUTTON_WIDTH * 2 });
+        gui::Box box = gui::begin_window({ INST_BUTTON_W * 2, INST_BUTTON_H * 32 + app::BUTTON_HEIGHT * 2 });
 
         gui::align(gui::Align::Center);
-        gui::item_size({ box.size.x, app::BUTTON_WIDTH });
+        gui::item_size({ box.size.x, app::BUTTON_HEIGHT });
         gui::text("SELECT INSTRUMENT");
 
         gui::align(gui::Align::Left);
@@ -80,7 +80,7 @@ bool draw(bool* follow) {
             }
             gui::button_style(gui::ButtonStyle::Normal);
         }
-        gui::item_size({ box.size.x, app::BUTTON_WIDTH });
+        gui::item_size({ box.size.x, app::BUTTON_HEIGHT });
         gui::align(gui::Align::Center);
         if (gui::button("CANCEL")) show_instrument_select = false;
         gui::end_window();
@@ -144,7 +144,7 @@ bool draw(bool* follow) {
     });
     // draw black keys
     loop_keys([&](int i, int n, int note) {
-        if (n % 2 == 0) return;
+        if (n < 0 || n % 2 == 0) return;
         dc.rgb(0x262626);
         if (g_gate && g_note == note) {
             dc.rgb(color::BUTTON_ACTIVE);
@@ -160,7 +160,7 @@ bool draw(bool* follow) {
     gt::Player& player = app::player();
     piano_y += KEY_HALF_HEIGHT * 2;
     gui::cursor({ 0, piano_y });
-    gui::item_size(app::TAB_WIDTH);
+    gui::item_size(app::TAB_HEIGHT);
 
 
     static float backward_time = 0.0f;
@@ -188,9 +188,9 @@ bool draw(bool* follow) {
     }
 
     // play button
-    int w = app::CANVAS_WIDTH - app::TAB_WIDTH * 4;
-    if (follow) w -= app::TAB_WIDTH;
-    gui::item_size({ w, app::TAB_WIDTH });
+    int w = app::CANVAS_WIDTH - app::TAB_HEIGHT * 4;
+    if (follow) w -= app::TAB_HEIGHT;
+    gui::item_size({ w, app::TAB_HEIGHT });
     bool is_playing = player.is_playing();
     gui::same_line();
     if (gui::button(gui::Icon::Play, is_playing)) {
@@ -202,7 +202,7 @@ bool draw(bool* follow) {
         }
     }
 
-    gui::item_size(app::TAB_WIDTH);
+    gui::item_size(app::TAB_HEIGHT);
     if (follow) {
         gui::same_line();
         if (gui::button(gui::Icon::Follow, *follow)) {
@@ -220,6 +220,7 @@ bool draw(bool* follow) {
     if (gui::button(gui::Icon::FastForward)) {
         for (int& x : player.m_start_song_pos) {
             if (x < song.song_len - 1) ++x;
+            else x = 0;
         }
         player.m_start_patt_pos = {};
         if (player.is_playing()) player.play_song();

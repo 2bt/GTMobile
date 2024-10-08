@@ -64,8 +64,8 @@ void exit_order_edit() {
 void draw_order_edit() {
     if (g_dialog != Dialog::OrderEdit) return;
 
-    gui::Box box = gui::begin_window({ 13 * 26, (16 + 3) * app::BUTTON_WIDTH });
-    gui::item_size({ box.size.x, app::BUTTON_WIDTH });
+    gui::Box box = gui::begin_window({ 13 * 26, (16 + 3) * app::BUTTON_HEIGHT });
+    gui::item_size({ box.size.x, app::BUTTON_HEIGHT });
     gui::text("EDIT ORDER LIST");
 
     gt::Song&     song  = app::song();
@@ -73,7 +73,7 @@ void draw_order_edit() {
     gt::OrderRow& row   = order[g_cursor_song_row];
 
     char str[32];
-    gui::item_size({ 26, app::BUTTON_WIDTH });
+    gui::item_size({ 26, app::BUTTON_HEIGHT });
     for (int i = 0; i < gt::MAX_PATT; ++i) {
         gui::same_line(i % 13 != 0);
         int n = i % 13 * 16 + i / 13;
@@ -86,20 +86,23 @@ void draw_order_edit() {
         gui::button_style(gui::ButtonStyle::Normal);
     }
 
-    gui::item_size({ 26 * 4, app::BUTTON_WIDTH });
+    gui::item_size({ 26 * 4, app::BUTTON_HEIGHT });
     sprintf(str, "TRANSPOSE %c%X", "+-"[g_transpose < 0], abs(g_transpose));
     gui::text(str);
     gui::same_line();
-    gui::item_size({ 26 * 9, app::BUTTON_WIDTH });
+    gui::item_size({ 26 * 9, app::BUTTON_HEIGHT });
     gui::drag_bar_style(gui::DragBarStyle::Normal);
     gui::horizontal_drag_bar(g_transpose, -0xf, 0xe, 0);
 
-    gui::item_size({ box.size.x / 2, app::BUTTON_WIDTH });
-    if (gui::button("SET LOOP POINTER", song.song_loop == g_cursor_song_row)) {
-        song.song_loop = g_cursor_song_row;
-        exit_order_edit();
+    gui::item_size({ box.size.x, app::BUTTON_HEIGHT });
+    if (song.song_loop != g_cursor_song_row) {
+        gui::item_size({ box.size.x / 2, app::BUTTON_HEIGHT });
+        if (gui::button("SET LOOP START")) {
+            song.song_loop = g_cursor_song_row;
+            exit_order_edit();
+        }
+        gui::same_line();
     }
-    gui::same_line();
     if (gui::button("CLOSE")) {
         exit_order_edit();
     }
@@ -151,8 +154,8 @@ void draw() {
         MAX_SONG_ROWS = 127, // --> gt::MAX_SONGLEN / 2
     };
 
-    gui::cursor({ 0, app::TAB_WIDTH });
-    int height_left = app::canvas_height() - gui::cursor().y - piano::HEIGHT - app::BUTTON_WIDTH;
+    gui::cursor({ 0, app::TAB_HEIGHT });
+    int height_left = app::canvas_height() - gui::cursor().y - piano::HEIGHT - app::BUTTON_HEIGHT;
     int total_rows = height_left / settings.row_height;
     g_song_page = clamp(g_song_page, 0, total_rows);
     int pattern_page = total_rows - g_song_page;
@@ -179,11 +182,11 @@ void draw() {
     }
 
     int max_pattern_len = song.patterns[patt_nums[0]].len;
-    max_pattern_len = std::max<int>(max_pattern_len, song.patterns[patt_nums[1]].len);
-    max_pattern_len = std::max<int>(max_pattern_len, song.patterns[patt_nums[2]].len);
+    max_pattern_len = std::max(max_pattern_len, song.patterns[patt_nums[1]].len);
+    max_pattern_len = std::max(max_pattern_len, song.patterns[patt_nums[2]].len);
 
-    g_song_scroll    = clamp<int>(g_song_scroll, 0, song.song_len - g_song_page);
-    g_pattern_scroll = clamp<int>(g_pattern_scroll, 0, max_pattern_len - pattern_page);
+    g_song_scroll    = clamp(g_song_scroll, 0, song.song_len - g_song_page);
+    g_pattern_scroll = clamp(g_pattern_scroll, 0, max_pattern_len - pattern_page);
 
 
     // put text in the center of the row
@@ -241,7 +244,7 @@ void draw() {
                 dc.box(box, gui::BoxStyle::Cursor);
             }
 
-            int prev_trans = r == 0 ? 99 : song.song_order[c][r - 1].trans;
+            int prev_trans = r == 0 ? 0 : song.song_order[c][r - 1].trans;
             if (row.trans >= 0) sprintf(str, "+%X", row.trans);
             else                sprintf(str, "-%X", -row.trans);
             dc.rgb(color::WHITE);
@@ -288,13 +291,12 @@ void draw() {
         for (int c = 0; c < 3; ++c) {
             gui::same_line();
             gui::Box box = gui::item_box();
-            gui::ButtonState state = gui::button_state(box);
-            box.pos.x += 1;
-            box.size.x -= 2;
-
             gt::Pattern& patt = song.patterns[patt_nums[c]];
             if (r >= patt.len) continue;
 
+            gui::ButtonState state = gui::button_state(box);
+            box.pos.x += 1;
+            box.size.x -= 2;
             dc.rgb(color::BACKGROUND_ROW);
             if (r % settings.row_highlight == 0) dc.rgb(color::HIGHLIGHT_ROW);
             if (patt_nums[c] == player_patt_nums[c] && r == player_patt_rows[c]) {
@@ -355,19 +357,19 @@ void draw() {
 
 
     // scroll bars
-    gui::cursor({ app::CANVAS_WIDTH - 80, app::TAB_WIDTH });
+    gui::cursor({ app::CANVAS_WIDTH - 80, app::TAB_HEIGHT });
     gui::drag_bar_style(gui::DragBarStyle::Scrollbar);
     {
         int page = g_song_page;
         // int max_scroll = std::max(0, max_song_len - page);
         int max_scroll = std::max(0, song.song_len - page);
-        gui::item_size({ app::BUTTON_WIDTH, page * settings.row_height });
+        gui::item_size({ app::BUTTON_HEIGHT, page * settings.row_height });
         if (gui::vertical_drag_bar(g_song_scroll, 0, max_scroll, page)) {
             g_follow = false;
         }
     }
     {
-        gui::item_size(app::BUTTON_WIDTH);
+        gui::item_size(app::BUTTON_HEIGHT);
         static int dy = 0;
         if (gui::vertical_drag_button(dy)) {
             g_song_page += dy;
@@ -376,7 +378,7 @@ void draw() {
     {
         int page = pattern_page;
         int max_scroll = std::max<int>(0, max_pattern_len - page);
-        gui::item_size({ app::BUTTON_WIDTH, page * settings.row_height });
+        gui::item_size({ app::BUTTON_HEIGHT, page * settings.row_height });
         if (gui::vertical_drag_bar(g_pattern_scroll, 0, max_scroll, page)) {
             g_follow = false;
         }
@@ -384,15 +386,16 @@ void draw() {
 
 
     // buttons
-    gui::cursor({ app::CANVAS_WIDTH - 60, app::TAB_WIDTH });
+    gui::cursor({ app::CANVAS_WIDTH - 60, app::TAB_HEIGHT });
     gui::align(gui::Align::Center);
-    gui::item_size({ 60, app::BUTTON_WIDTH });
-
+    // gui::item_size({ 60, app::BUTTON_HEIGHT });
+    gui::item_size(app::TAB_HEIGHT);
 
     // order edit
     if (g_edit_mode == EditMode::Song && !(is_playing && g_follow)) {
         int& pos = g_cursor_song_row;
         int& len = song.song_len;
+        assert(pos < len);
 
         gui::disabled(!(len < MAX_SONG_ROWS && pos <= len));
         if (gui::button(gui::Icon::AddRowAbove)) {
@@ -404,6 +407,7 @@ void draw() {
             ++pos;
             ++len;
         }
+        gui::same_line();
         gui::disabled(!(len < MAX_SONG_ROWS  && pos < len));
         if (gui::button(gui::Icon::AddRowBelow)) {
             for (auto& order : song.song_order) {
@@ -424,8 +428,7 @@ void draw() {
             if (pos >= len) --pos;
         }
         gui::disabled(false);
-
-        assert(pos < len);
+        gui::same_line();
         if (gui::button(gui::Icon::Pen)) {
             init_order_edit();
         }
@@ -445,6 +448,7 @@ void draw() {
             ++pos;
             ++len;
         }
+        gui::same_line();
         gui::disabled(!(len < gt::MAX_PATTROWS));
         if (gui::button(gui::Icon::AddRowBelow)) {
             std::rotate(rows.begin() + pos + 1, rows.end() - 1, rows.end());
@@ -464,6 +468,7 @@ void draw() {
             row.note  = gt::REST;
             row.instr = 0;
         }
+        gui::same_line();
         if (gui::button("\x02\x02\x02")) {
             row.note  = row.note == gt::KEYOFF ? gt::KEYON : gt::KEYOFF;
             row.instr = 0;

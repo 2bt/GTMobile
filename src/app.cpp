@@ -18,14 +18,7 @@ namespace app {
 namespace {
 
 
-const std::array<const char*, 3> VIEW_NAMES = {
-    "PROJECT",
-    "SONG",
-    "INSTRUMENT",
-};
-
-
-View        g_view = View::project;
+View        g_view;
 gt::Song    g_song;
 gt::Player  g_player(g_song);
 
@@ -78,21 +71,21 @@ void audio_callback(int16_t* buffer, int length) {
 
 void init() {
     LOGD("init");
-
     sid::init(MIXRATE);
     gfx::init();
     gui::init();
 
-    set_view(View::project);
-
     g_song.clear();
-
     // simple beep instrument
     strcpy(g_song.instruments[1].name.data(), "BEEP");
     g_song.instruments[1].sr = 0xf3;
     g_song.instruments[1].ptr[0] = 1;
     g_song.ltable[0][0] = 0x11;
     g_song.ltable[0][1] = 0xff;
+
+    // DEBUB
+    set_view(View::instrument);
+    g_song.load("songs/Endgame.sng");
 
     g_initialized = true;
 }
@@ -157,16 +150,21 @@ void draw() {
 
     gui::begin_frame();
 
-    gui::item_size({ (CANVAS_WIDTH - TAB_WIDTH) / 3 , TAB_WIDTH });
+    gui::item_size({ (CANVAS_WIDTH - TAB_HEIGHT) / 3 , TAB_HEIGHT });
     gui::align(gui::Align::Center);
     gui::button_style(gui::ButtonStyle::Tab);
+    constexpr std::array<const char*, 3> VIEW_NAMES = {
+        "PROJECT",
+        "SONG",
+        "INSTRUMENT",
+    };
     for (size_t i = 0; i < VIEW_NAMES.size(); ++i) {
         if (gui::button(VIEW_NAMES[i], i == size_t(g_view))) {
             set_view(View(i));
         }
         gui::same_line();
     }
-    gui::item_size({ CANVAS_WIDTH - gui::cursor().x, TAB_WIDTH });
+    gui::item_size({ CANVAS_WIDTH - gui::cursor().x, TAB_HEIGHT });
     if (gui::button(gui::Icon::Settings, g_view == View::settings)) {
         set_view(View::settings);
     }
