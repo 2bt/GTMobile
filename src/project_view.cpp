@@ -57,8 +57,6 @@ enum class Dialog {
     save,
 };
 
-enum { PAGE = 20, };
-
 Dialog                   g_dialog = Dialog::none;
 std::string              g_songs_dir;
 std::array<char, 32>     g_file_name;
@@ -89,17 +87,23 @@ bool ends_with(std::string const& str, char const* suffix) {
 
 
 void draw_load_window() {
-    gui::Box box = gui::begin_window({ app::CANVAS_WIDTH - 24 * 2, PAGE * 16 + app::BUTTON_HEIGHT * 2 });
+    int table_height = app::canvas_height() - app::BUTTON_HEIGHT * 2 - 30;
+    int page = table_height / app::MAX_ROW_HEIGHT;
+    table_height = page * app::MAX_ROW_HEIGHT;
+    gui::Box box = gui::begin_window({
+        app::CANVAS_WIDTH - 30,
+        table_height + app::BUTTON_HEIGHT * 2,
+    });
 
     gui::item_size({ box.size.x, app::BUTTON_HEIGHT });
     gui::align(gui::Align::Center);
     gui::text("LOAD SONG");
 
     gui::align(gui::Align::Left);
-    gui::item_size({ box.size.x - app::BUTTON_HEIGHT, 16 });
+    gui::item_size({ box.size.x - app::SCROLL_WIDTH, app::MAX_ROW_HEIGHT });
     bool file_selected = false;
 
-    for (int i = 0; i < PAGE; ++i) {
+    for (int i = 0; i < page; ++i) {
         size_t row = g_file_scroll + i;
         if (row >= g_file_names.size()) {
             gui::item_box();
@@ -131,11 +135,11 @@ void draw_load_window() {
     gui::disabled(false);
 
     // scrollbar
-    gui::cursor(box.pos + ivec2(box.size.x - app::BUTTON_HEIGHT, app::BUTTON_HEIGHT));
-    gui::item_size({ app::BUTTON_HEIGHT, PAGE * 16 });
-    int max_scroll = std::max(0, int(g_file_names.size()) - PAGE);
+    gui::cursor(box.pos + ivec2(box.size.x - app::SCROLL_WIDTH, app::BUTTON_HEIGHT));
+    gui::item_size({ app::SCROLL_WIDTH, table_height });
+    int max_scroll = std::max(0, int(g_file_names.size()) - page);
     gui::drag_bar_style(gui::DragBarStyle::Scrollbar);
-    gui::vertical_drag_bar(g_file_scroll, 0, max_scroll, PAGE);
+    gui::vertical_drag_bar(g_file_scroll, 0, max_scroll, page);
 
     gui::end_window();
 }
@@ -149,17 +153,23 @@ void save() {
 }
 
 void draw_save_window() {
-    gui::Box box = gui::begin_window({ app::CANVAS_WIDTH - 24 * 2, PAGE * 16 + app::BUTTON_HEIGHT * 3 });
+    int table_height = app::canvas_height() - app::BUTTON_HEIGHT * 3 - 30;
+    int page = table_height / app::MAX_ROW_HEIGHT;
+    table_height = page * app::MAX_ROW_HEIGHT;
+    gui::Box box = gui::begin_window({
+        app::CANVAS_WIDTH - 30,
+        table_height + app::BUTTON_HEIGHT * 3,
+    });
 
     gui::item_size({ box.size.x, app::BUTTON_HEIGHT });
     gui::align(gui::Align::Center);
     gui::text("SAVE SONG");
 
     gui::align(gui::Align::Left);
-    gui::item_size({ box.size.x - app::BUTTON_HEIGHT, 16 });
+    gui::item_size({ box.size.x - app::SCROLL_WIDTH, app::MAX_ROW_HEIGHT });
     bool file_selected = false;
 
-    for (int i = 0; i < PAGE; ++i) {
+    for (int i = 0; i < page; ++i) {
         size_t row = g_file_scroll + i;
         if (row >= g_file_names.size()) {
             gui::item_box();
@@ -196,11 +206,11 @@ void draw_save_window() {
     gui::disabled(false);
 
     // scrollbar
-    gui::cursor(box.pos + ivec2(box.size.x - app::BUTTON_HEIGHT, app::BUTTON_HEIGHT));
-    gui::item_size({ app::BUTTON_HEIGHT, PAGE * 16 });
-    int max_scroll = std::max(0, int(g_file_names.size()) - PAGE);
+    gui::cursor(box.pos + ivec2(box.size.x - app::SCROLL_WIDTH, app::BUTTON_HEIGHT));
+    gui::item_size({ app::SCROLL_WIDTH, table_height });
+    int max_scroll = std::max(0, int(g_file_names.size()) - page);
     gui::drag_bar_style(gui::DragBarStyle::Scrollbar);
-    gui::vertical_drag_bar(g_file_scroll, 0, max_scroll, PAGE);
+    gui::vertical_drag_bar(g_file_scroll, 0, max_scroll, page);
 
     draw_confirm();
     gui::end_window();
@@ -257,9 +267,6 @@ void draw() {
 
     gt::Song& song = app::song();
 
-    gui::item_size(app::BUTTON_HEIGHT);
-    gui::item_box();
-
     gui::align(gui::Align::Left);
     gui::item_size({ app::CANVAS_WIDTH - INPUT_WIDTH, app::BUTTON_HEIGHT });
     gui::text("TITLE");
@@ -280,11 +287,8 @@ void draw() {
     gui::input_text(song.copyright_name);
 
 
-    gui::item_size(app::BUTTON_HEIGHT);
-    gui::item_box();
-
     gui::align(gui::Align::Center);
-    gui::item_size({ app::CANVAS_WIDTH, app::BUTTON_HEIGHT });
+    gui::item_size({ app::CANVAS_WIDTH / 3, app::BUTTON_HEIGHT });
     if (gui::button("RESET")) {
         confirm("LOSE CHANGES TO THE CURRENT SONG?", [](bool ok) {
             if (ok) {
@@ -295,9 +299,11 @@ void draw() {
             }
         });
     }
+    gui::same_line();
     if (gui::button("LOAD")) {
         g_dialog = Dialog::load;
     }
+    gui::same_line();
     if (gui::button("SAVE")) {
         g_dialog = Dialog::save;
     }

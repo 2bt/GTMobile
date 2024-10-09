@@ -57,14 +57,14 @@ char const* print_to_text_buffer(const char* fmt, va_list args) {
 }
 
 ivec2 text_pos(Box const& box, char const* text) {
-    int pad = box.size.y / 2 - 4;
+    int y = box.size.y / 2 - 4;
     switch (g_align) {
     case Align::Left:
-        return box.pos + ivec2(pad);
+        return box.pos + ivec2(6, y);
     case Align::Center:
-        return box.pos + ivec2(box.size.x / 2 - strlen(text) * 4, pad);
+        return box.pos + ivec2(box.size.x / 2 - strlen(text) * 4, y);
     case Align::Right:
-        return box.pos + ivec2(box.size.x - box.size.y - strlen(text) * 4 - pad, pad);
+        return box.pos + ivec2(box.size.x - box.size.y - strlen(text) * 8 - 6, y);
     default: assert(0);
     }
 }
@@ -394,7 +394,7 @@ void input_text(char* str, int len) {
     bool active = g_input_text_str == str;
     button_color(state, active);
     g_dc.box(box, BoxStyle::Text);
-    ivec2 p = box.pos + ivec2(box.size.y / 2 - 4);
+    ivec2 p = box.pos + ivec2(6, box.size.y / 2 - 4);
     g_dc.rgb(color::WHITE);
     g_dc.text(p, str);
     // cursor

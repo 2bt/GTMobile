@@ -40,7 +40,7 @@ void draw() {
     gui::item_size(app::BUTTON_HEIGHT);
     if (gui::button(gui::Icon::Left) && g_settings.row_height > 8) --g_settings.row_height;
     gui::same_line();
-    if (gui::button(gui::Icon::Right) && g_settings.row_height < 18) ++g_settings.row_height;
+    if (gui::button(gui::Icon::Right) && g_settings.row_height < app::MAX_ROW_HEIGHT) ++g_settings.row_height;
     gui::same_line();
     gui::item_size({ 12 + 2 * 8, app::BUTTON_HEIGHT });
     gui::text("%2d", g_settings.row_height);

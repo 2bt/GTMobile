@@ -70,7 +70,7 @@ void draw_easy() {
     // tables
     enum {
         CW_NUM = 28,
-        CW_DATA = app::CANVAS_WIDTH - CW_NUM - app::BUTTON_HEIGHT - app::TAB_HEIGHT * 2,
+        CW_DATA = app::CANVAS_WIDTH - CW_NUM - app::SCROLL_WIDTH - app::BUTTON_HEIGHT * 2,
         PANEL_W = app::CANVAS_WIDTH - 10,
         LABEL_W = 12 + 8*3,
         SLIDER_W = PANEL_W - LABEL_W,
@@ -95,9 +95,9 @@ void draw_easy() {
 
     ivec2 cursor      = gui::cursor();
     int   table_space = app::canvas_height() - cursor.y - piano::HEIGHT - app::BUTTON_HEIGHT * 4 - 10;
-    int   table_page  = table_space / app::BUTTON_HEIGHT;
+    int   table_page  = table_space / app::MAX_ROW_HEIGHT;
     int   max_scroll  = 0;
-    int   text_offset = (app::BUTTON_HEIGHT - 7) / 2;
+    int   text_offset = (app::MAX_ROW_HEIGHT - 7) / 2;
     char  str[32];
 
 
@@ -127,13 +127,13 @@ void draw_easy() {
     for (int i = 0; i < table_page; ++i) {
         int r = i + g_scroll;
         sprintf(str, "%02X", r + 1);
-        gui::item_size({ CW_NUM, app::BUTTON_HEIGHT });
+        gui::item_size({ CW_NUM, app::MAX_ROW_HEIGHT });
         gui::Box box = gui::item_box();
         dc.rgb(color::ROW_NUMBER);
         dc.text(box.pos + ivec2(6, text_offset), str);
         gui::same_line();
 
-        gui::item_size({ CW_DATA, app::BUTTON_HEIGHT });
+        gui::item_size({ CW_DATA, app::MAX_ROW_HEIGHT });
         box = gui::item_box();
         if (r >= len) continue;
 
@@ -251,10 +251,11 @@ void draw_easy() {
         dc.rgb(colors[1]);
         dc.text(p, str);
     }
+    int y = gui::cursor().y;
 
     // scrolling
     gui::cursor({ CW_NUM + CW_DATA, cursor.y });
-    gui::item_size({ app::BUTTON_HEIGHT, app::BUTTON_HEIGHT * table_page });
+    gui::item_size({ app::SCROLL_WIDTH, app::MAX_ROW_HEIGHT * table_page });
     gui::drag_bar_style(gui::DragBarStyle::Scrollbar);
     gui::vertical_drag_bar(g_scroll, 0, max_scroll - table_page, table_page);
 
@@ -268,8 +269,8 @@ void draw_easy() {
     // we need two free rows to add a single row to an emtpy instr table
     bool can_add_row = len == 0 ? num_free_rows >= 2 : num_free_rows > 0;
 
-    gui::cursor({ app::CANVAS_WIDTH - app::TAB_HEIGHT * 2, cursor.y });
-    gui::item_size(app::TAB_HEIGHT);
+    gui::cursor({ app::CANVAS_WIDTH - app::BUTTON_HEIGHT * 2, cursor.y });
+    gui::item_size(app::BUTTON_HEIGHT);
     // gui::disabled(!can_add_row);
     if (gui::button(gui::Icon::AddRowAbove)) {
         // TODO
@@ -295,7 +296,6 @@ void draw_easy() {
     if (g_cursor_row >= len) return;
 
     // draw frame
-    int y = cursor.y + app::BUTTON_HEIGHT * table_page;
     dc.rgb(color::BUTTON_NORMAL);
     dc.box({ { -1, y - 1 }, { app::CANVAS_WIDTH + 2, 12 + app::BUTTON_HEIGHT * 4 } }, gui::BoxStyle::Window);
     gui::cursor({ 5, y + 5 });

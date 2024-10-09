@@ -138,6 +138,8 @@ void draw() {
 
     enum {
         MAX_SONG_ROWS = 127, // --> gt::MAX_SONGLEN / 2
+        NUM_W = 28,
+        COL_W = 84,
     };
 
     gui::cursor({ 0, app::TAB_HEIGHT });
@@ -183,7 +185,7 @@ void draw() {
     for (int i = 0; i < g_song_page; ++i) {
         int r = g_song_scroll + i;
 
-        gui::item_size({ 28, settings.row_height });
+        gui::item_size({ NUM_W, settings.row_height });
         gui::Box box = gui::item_box();
 
         sprintf(str, "%02X", r);
@@ -195,7 +197,7 @@ void draw() {
             dc.text(box.pos + ivec2(0, text_offset), "\x04");
         }
 
-        gui::item_size({ 84, settings.row_height });
+        gui::item_size({ COL_W, settings.row_height });
         for (int c = 0; c < 3; ++c) {
             gui::same_line();
             gui::Box box = gui::item_box();
@@ -243,9 +245,9 @@ void draw() {
     }
 
     // pattern bar
-    gui::item_size({ 28, settings.row_height });
+    gui::item_size({ NUM_W, settings.row_height });
     gui::item_box();
-    gui::item_size({ 84, 20 });
+    gui::item_size({ COL_W, app::BUTTON_HEIGHT });
     for (int c = 0; c < 3; ++c) {
         gui::same_line();
         ivec2 p = gui::cursor();
@@ -256,24 +258,23 @@ void draw() {
             player.set_channel_active(c, !active);
         }
         dc.rgb(color::BLACK);
-        dc.fill({ p + ivec2(27, 7), { 50, 6 } });
+        dc.fill({ p + ivec2(27, 11), { 50, 8 } });
         dc.rgb(color::WHITE);
-        dc.fill({ p + ivec2(27, 7), ivec2(sid::chan_level(c) * 50.0f + 0.9f, 6) });
+        dc.fill({ p + ivec2(27, 12), ivec2(sid::chan_level(c) * 50.0f + 0.9f, 6) });
     }
-
 
     // patterns
     for (int i = 0; i < pattern_page; ++i) {
         int r = g_pattern_scroll + i;
 
-        gui::item_size({ 28, settings.row_height });
+        gui::item_size({ NUM_W, settings.row_height });
         gui::Box box = gui::item_box();
 
         sprintf(str, "%02X", r);
         dc.rgb(color::ROW_NUMBER);
         dc.text(box.pos + ivec2(6, text_offset), str);
 
-        gui::item_size({ 84, settings.row_height });
+        gui::item_size({ COL_W, settings.row_height });
         for (int c = 0; c < 3; ++c) {
             gui::same_line();
             gui::Box box = gui::item_box();
@@ -349,13 +350,13 @@ void draw() {
         int page = g_song_page;
         // int max_scroll = std::max(0, max_song_len - page);
         int max_scroll = std::max(0, song.song_len - page);
-        gui::item_size({ app::BUTTON_HEIGHT, page * settings.row_height });
+        gui::item_size({ app::SCROLL_WIDTH, page * settings.row_height });
         if (gui::vertical_drag_bar(g_song_scroll, 0, max_scroll, page)) {
             g_follow = false;
         }
     }
     {
-        gui::item_size(app::BUTTON_HEIGHT);
+        gui::item_size({ app::SCROLL_WIDTH, app::BUTTON_HEIGHT });
         static int dy = 0;
         if (gui::vertical_drag_button(dy)) {
             g_song_page += dy;
@@ -364,7 +365,7 @@ void draw() {
     {
         int page = pattern_page;
         int max_scroll = std::max<int>(0, max_pattern_len - page);
-        gui::item_size({ app::BUTTON_HEIGHT, page * settings.row_height });
+        gui::item_size({ app::SCROLL_WIDTH, page * settings.row_height });
         if (gui::vertical_drag_bar(g_pattern_scroll, 0, max_scroll, page)) {
             g_follow = false;
         }
@@ -372,7 +373,7 @@ void draw() {
 
 
     // buttons
-    gui::cursor({ app::CANVAS_WIDTH - 60, app::TAB_HEIGHT });
+    gui::cursor({ app::CANVAS_WIDTH - app::BUTTON_HEIGHT * 2, app::TAB_HEIGHT });
     gui::align(gui::Align::Center);
 
     // order edit
@@ -381,7 +382,7 @@ void draw() {
         int& len = song.song_len;
         assert(pos < len);
 
-        gui::item_size(app::TAB_HEIGHT);
+        gui::item_size(app::BUTTON_HEIGHT);
         gui::disabled(!(len < MAX_SONG_ROWS && pos <= len));
         if (gui::button(gui::Icon::AddRowAbove)) {
             for (auto& order : song.song_order) {
@@ -418,7 +419,7 @@ void draw() {
         }
         gui::disabled(false);
 
-        gui::item_size({ app::TAB_HEIGHT * 2, app::TAB_HEIGHT });
+        gui::item_size({ app::BUTTON_HEIGHT * 2, app::BUTTON_HEIGHT });
         if (gui::button(gui::Icon::Pen)) {
             init_order_edit();
         }
@@ -433,7 +434,7 @@ void draw() {
         int&  len  = patt.len;
         int&  pos  = g_cursor_pattern_row;
 
-        gui::item_size(app::TAB_HEIGHT);
+        gui::item_size(app::BUTTON_HEIGHT);
         gui::disabled(!(len < gt::MAX_PATTROWS));
         if (gui::button(gui::Icon::AddRowAbove)) {
             std::rotate(rows.begin() + pos, rows.end() - 1, rows.end());
@@ -467,7 +468,7 @@ void draw() {
         }
 
         // record button
-        gui::item_size({ app::TAB_HEIGHT * 2, app::TAB_HEIGHT });
+        gui::item_size({ app::BUTTON_HEIGHT * 2, app::BUTTON_HEIGHT });
         if (gui::button(gui::Icon::Record, g_recording)) {
             g_recording = !g_recording;
         }

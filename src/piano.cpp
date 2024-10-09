@@ -50,18 +50,19 @@ bool draw(bool* follow) {
 
     // instrument window
     if (show_instrument_select) {
+        int space = app::canvas_height() - 12 - app::BUTTON_HEIGHT * 2;
+        int row_h = std::min<int>(space / 32, app::MAX_ROW_HEIGHT);
         enum {
-            INST_BUTTON_H = 16,
             INST_BUTTON_W = 8 * 19,
         };
-        gui::Box box = gui::begin_window({ INST_BUTTON_W * 2, INST_BUTTON_H * 32 + app::BUTTON_HEIGHT * 2 });
+        gui::Box box = gui::begin_window({ INST_BUTTON_W * 2, row_h * 32 + app::BUTTON_HEIGHT * 2 });
 
         gui::align(gui::Align::Center);
         gui::item_size({ box.size.x, app::BUTTON_HEIGHT });
         gui::text("SELECT INSTRUMENT");
 
         gui::align(gui::Align::Left);
-        gui::item_size({ INST_BUTTON_W, INST_BUTTON_H });
+        gui::item_size({ INST_BUTTON_W, row_h });
         for (int n = 0; n < gt::MAX_INSTR; ++n) {
             gui::same_line(n % 2 == 1);
             if (n == 0) {
