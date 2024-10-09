@@ -3,6 +3,7 @@
 #include <string>
 #include "gtplayer.hpp"
 #include "gtsong.hpp"
+#include "gui.hpp"
 
 
 namespace app {
@@ -21,6 +22,26 @@ namespace app {
         instrument,
         settings,
     };
+
+    template<class T>
+    bool slider(int width, T& value, int min, int max, void const* addr=nullptr) {
+        int v = value;
+        int old_v = value;
+        gui::drag_bar_style(gui::DragBarStyle::Normal);
+        gui::item_size({ width - BUTTON_HEIGHT * 2, BUTTON_HEIGHT });
+        gui::id(addr ? addr : &value);
+        gui::horizontal_drag_bar(v, min, max, 1);
+        gui::same_line();
+        gui::button_style(gui::ButtonStyle::Normal);
+        gui::item_size(BUTTON_HEIGHT);
+        if (gui::button(gui::Icon::Left)) v = std::max(min, v - 1);
+        gui::same_line();
+        if (gui::button(gui::Icon::Right)) v = std::max(min, v + 1);
+        value = v;
+        return v != old_v;
+    }
+
+
 
 
     gt::Song&   song();

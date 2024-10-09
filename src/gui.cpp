@@ -317,12 +317,18 @@ void disabled(bool disabled) {
     g_disabled = disabled;
     g_dc.alpha(disabled ? 80 : 255);
 }
+bool get_disabled() {
+    return g_disabled;
+}
 
 inline BoxStyle box_style(ButtonStyle s) {
     switch (s) {
         case ButtonStyle::Shaded: return BoxStyle::Shaded;
         case ButtonStyle::Tab: return BoxStyle::Tab;
         case ButtonStyle::ShadedTab: return BoxStyle::ShadedTab;
+        case ButtonStyle::RadioLeft: return BoxStyle::RadioLeft;
+        case ButtonStyle::RadioCenter: return BoxStyle::RadioCenter;
+        case ButtonStyle::RadioRight: return BoxStyle::RadioRight;
         default:
         case ButtonStyle::Normal: return BoxStyle::Normal;
     }

@@ -38,6 +38,7 @@ bool draw(bool* follow) {
     gui::item_size({ 8 * 18 + 12, app::BUTTON_HEIGHT });
     gui::align(gui::Align::Left);
     sprintf(str, "%02X %s", g_instrument, song.instruments[g_instrument].name.data());
+    gui::button_style(gui::ButtonStyle::Normal);
     if (gui::button(str)) show_instrument_select = true;
 
     // piano scroll bar

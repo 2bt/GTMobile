@@ -90,15 +90,9 @@ void draw_order_edit() {
     sprintf(str, "TRANSPOSE %c%X", "+-"[g_transpose < 0], abs(g_transpose));
     gui::text(str);
     gui::same_line();
-    gui::item_size({ 26 * 9, app::BUTTON_HEIGHT });
-    gui::drag_bar_style(gui::DragBarStyle::Normal);
-    gui::horizontal_drag_bar(g_transpose, -0xf, 0xe, 0);
-
+    app::slider(26 * 9, g_transpose, -0xf, 0xe);
     gui::item_size({ box.size.x, app::BUTTON_HEIGHT });
-    if (gui::button("CLOSE")) {
-        exit_order_edit();
-    }
-
+    if (gui::button("CLOSE")) exit_order_edit();
     gui::end_window();
 }
 

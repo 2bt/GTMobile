@@ -98,8 +98,10 @@ enum class BoxStyle {
     Text,
     Cursor,
     Window,
-
-    PianoKey = 8,
+    PianoKey,
+    RadioLeft,
+    RadioCenter,
+    RadioRight,
 };
 
 
@@ -241,6 +243,9 @@ enum class ButtonStyle {
     Tab,
     ShadedTab,
     TableCell,
+    RadioLeft,
+    RadioCenter,
+    RadioRight,
 };
 enum class DragBarStyle {
     Normal,
@@ -274,6 +279,7 @@ void begin_frame();
 void end_frame();
 
 void disabled(bool disabled);
+bool get_disabled();
 
 void begin_window();
 Box  begin_window(ivec2 size);
@@ -301,7 +307,7 @@ bool vertical_drag_bar(int& value, int min, int max, int page);
 bool vertical_drag_button(int& value);
 
 template<class T>
-bool horizontal_drag_bar(T& value, int min, int max, int page = 0) {
+bool horizontal_drag_bar(T& value, int min, int max, int page) {
     int v = value;
     id(&value);
     bool b = horizontal_drag_bar(v, min, max, page);
