@@ -235,7 +235,7 @@ enum class Icon {
     Highpass,
 };
 
-enum class Align { Left, Center };
+enum class Align { Left, Center, Right };
 
 enum class ButtonStyle {
     Normal,

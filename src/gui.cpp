@@ -57,12 +57,15 @@ char const* print_to_text_buffer(const char* fmt, va_list args) {
 }
 
 ivec2 text_pos(Box const& box, char const* text) {
+    int pad = box.size.y / 2 - 4;
     switch (g_align) {
     case Align::Left:
-        return box.pos + ivec2(box.size.y / 2 - 4);
+        return box.pos + ivec2(pad);
     case Align::Center:
-    default:
-        return box.pos + ivec2(box.size.x / 2 - strlen(text) * 4, box.size.y / 2 - 4);
+        return box.pos + ivec2(box.size.x / 2 - strlen(text) * 4, pad);
+    case Align::Right:
+        return box.pos + ivec2(box.size.x - box.size.y - strlen(text) * 4 - pad, pad);
+    default: assert(0);
     }
 }
 

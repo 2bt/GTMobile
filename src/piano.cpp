@@ -132,7 +132,7 @@ bool draw(bool* follow) {
         }
         gui::Box b = {
             { i * KEY_HALF_WIDTH, piano_y },
-            { KEY_HALF_WIDTH * 2, KEY_HALF_HEIGHT * 2 },
+            { KEY_HALF_WIDTH * 2, KEY_HALF_HEIGHT * 2 - 1 },
         };
         dc.box(b, gui::BoxStyle::PianoKey);
         if (note % 12 == 0) {

@@ -71,6 +71,9 @@ void draw_easy() {
     enum {
         CW_NUM = 28,
         CW_DATA = app::CANVAS_WIDTH - CW_NUM - app::BUTTON_HEIGHT - app::TAB_HEIGHT * 2,
+        PANEL_W = app::CANVAS_WIDTH - 10,
+        LABEL_W = 12 + 8*3,
+        SLIDER_W = PANEL_W - LABEL_W,
     };
 
     static int g_table      = 0;
@@ -91,7 +94,8 @@ void draw_easy() {
     gui::same_line(false);
 
     ivec2 cursor      = gui::cursor();
-    int   table_page  = (app::canvas_height() - cursor.y - piano::HEIGHT - app::BUTTON_HEIGHT * 4) / app::BUTTON_HEIGHT;
+    int   table_space = app::canvas_height() - cursor.y - piano::HEIGHT - app::BUTTON_HEIGHT * 4 - 10;
+    int   table_page  = table_space / app::BUTTON_HEIGHT;
     int   max_scroll  = 0;
     int   text_offset = (app::BUTTON_HEIGHT - 7) / 2;
     char  str[32];
@@ -102,7 +106,6 @@ void draw_easy() {
     int start_row = 0;
     int end_row = 0;
     int len = 0;
-    // get length
     if (instr.ptr[g_table] > 0) {
         start_row = instr.ptr[g_table] - 1;
         end_row = start_row;
@@ -117,6 +120,8 @@ void draw_easy() {
         assert(loop == 0 || (loop - 1 >= start_row && loop - 1 < end_row));
         max_scroll = std::max(max_scroll, len);
     }
+    g_cursor_row = std::min(g_cursor_row, len - 1);
+    g_cursor_row = std::max(g_cursor_row, 0);
 
     gui::DrawContext& dc = gui::draw_context();
     for (int i = 0; i < table_page; ++i) {
@@ -246,7 +251,6 @@ void draw_easy() {
         dc.rgb(colors[1]);
         dc.text(p, str);
     }
-    int panel_y = gui::cursor().y;
 
     // scrolling
     gui::cursor({ CW_NUM + CW_DATA, cursor.y });
@@ -290,9 +294,14 @@ void draw_easy() {
 
     if (g_cursor_row >= len) return;
 
-    gui::cursor({ 0, panel_y });
-    uint8_t& lval = ltable[g_cursor_row];
-    uint8_t& rval = rtable[g_cursor_row];
+    // draw frame
+    int y = cursor.y + app::BUTTON_HEIGHT * table_page;
+    dc.rgb(color::BUTTON_NORMAL);
+    dc.box({ { -1, y - 1 }, { app::CANVAS_WIDTH + 2, 12 + app::BUTTON_HEIGHT * 4 } }, gui::BoxStyle::Window);
+    gui::cursor({ 5, y + 5 });
+    const ivec2 LABEL_SIZE = { LABEL_W, app::BUTTON_HEIGHT };
+    uint8_t& lval = ltable[start_row + g_cursor_row];
+    uint8_t& rval = rtable[start_row + g_cursor_row];
     if (g_table == gt::WTBL) {
         // left side:
         // + 00-0F delay
@@ -304,9 +313,9 @@ void draw_easy() {
         if (lval <= 0xf)       mode = 0;
         else if (lval <= 0xef) mode = 1;
         else                   mode = 2;
-        gui::item_size({ app::CANVAS_WIDTH / 3, app::BUTTON_HEIGHT });
+        gui::item_size({ PANEL_W / 3 + 1, app::BUTTON_HEIGHT });
         gui::button_style(gui::ButtonStyle::RadioLeft);
-        if (gui::button("DELAY", mode == 0) && mode != 0) {
+        if (gui::button("WAIT", mode == 0) && mode != 0) {
             mode = 0;
             lval = 0;
         }
@@ -317,94 +326,141 @@ void draw_easy() {
             lval = 0x11;
         }
         gui::same_line();
+        gui::item_size({ PANEL_W / 3, app::BUTTON_HEIGHT });
         gui::button_style(gui::ButtonStyle::RadioRight);
         if (gui::button("COMMAND", mode == 2) && mode != 2) {
             mode = 2;
+            // TODO
             lval = 0xf0;
+            rval = 0x00;
         }
 
         gui::button_style(gui::ButtonStyle::Normal);
         if (mode == 0) {
+            // wait
             int v = lval;
-            gui::item_size(app::BUTTON_HEIGHT);
-            gui::text("%X", v);
+            gui::item_size(LABEL_SIZE);
+            gui::text("  %X", v);
             gui::same_line();
-            app::slider(app::CANVAS_WIDTH - app::BUTTON_HEIGHT, v, 0, 0xf, &lval);
+            app::slider(SLIDER_W, v, 0, 0xf, &lval);
             lval = v;
         }
         else if (mode == 1) {
+            // wave
             uint8_t v = lval;
             if (v >= 0xe0) v -= 0xe0;
-            gui::item_size({ app::CANVAS_WIDTH / 8, app::BUTTON_HEIGHT });
-            if (gui::button(gui::Icon::Noise, v & 0x80)) v ^= 0x80;
-            gui::same_line();
-            if (gui::button(gui::Icon::Pulse, v & 0x40)) v ^= 0x40;
-            gui::same_line();
-            if (gui::button(gui::Icon::Saw, v & 0x20)) v ^= 0x20;
-            gui::same_line();
-            if (gui::button(gui::Icon::Triangle, v & 0x10)) v ^= 0x10;
-            gui::same_line();
-            if (gui::button(gui::Icon::Test, v & 0x08)) v ^= 0x08;
-            gui::same_line();
-            if (gui::button(gui::Icon::Ring, v & 0x04)) v ^= 0x04;
-            gui::same_line();
-            if (gui::button(gui::Icon::Sync, v & 0x02)) v ^= 0x02;
-            gui::same_line();
-            if (gui::button(gui::Icon::Gate, v & 0x01)) v ^= 0x01;
+            for (int i = 0; i < 8; ++i) {
+                gui::item_size({ PANEL_W / 8 + (i % 4 < 3), app::BUTTON_HEIGHT });
+                int mask = 0x80 >> i;
+                int icon = int(gui::Icon::Noise) + i;
+                if (gui::button(gui::Icon(icon), v & mask)) v ^= mask;
+                gui::same_line();
+            }
+            gui::same_line(false);
             if (v > 0xdf) v ^= 0x80;
             if (v < 0x10) v += 0xe0;
             lval = v;
         }
-        else {
-            gui::text("TODO");
-        }
+        if (mode != 2) {
+            // right side:
+            // + 00-5F relative note
+            // + 60-7F negative relative note
+            // + 80    do nothing
+            // + 81-DD absolute notes C#0 - B-7
+            if (rval < 0x80) mode = 0;
+            else if (rval > 0x80) mode = 1;
+            else mode = 2;
+            gui::item_size({ PANEL_W / 3 + 1, app::BUTTON_HEIGHT });
+            gui::button_style(gui::ButtonStyle::RadioLeft);
+            if (gui::button("RELATIVE", mode == 0) && mode != 0) {
+                mode = 0;
+                rval = 0;
+            }
+            gui::same_line();
+            gui::button_style(gui::ButtonStyle::RadioCenter);
+            if (gui::button("ABSOLUTE", mode == 1) && mode != 1) {
+                mode = 1;
+                rval = 0x80 + 48;
+            }
+            gui::same_line();
+            gui::item_size({ PANEL_W / 3, app::BUTTON_HEIGHT });
+            gui::button_style(gui::ButtonStyle::RadioRight);
+            if (gui::button("NO CHANGE", mode == 2) && mode != 2) {
+                mode = 2;
+                rval = 0x80;
+            }
 
-        // right side:
-        // + 00-5F relative note
-        // + 60-7F negative relative note
-        // + 80    do nothing
-        // + 81-DD absolute notes C#0 - B-7
-        if (rval < 0x80) mode = 0;
-        else if (rval > 0x80) mode = 1;
-        else mode = 2;
-        gui::item_size({ app::CANVAS_WIDTH / 3, app::BUTTON_HEIGHT });
-        gui::button_style(gui::ButtonStyle::RadioLeft);
-        if (gui::button("RELATIVE", mode == 0) && mode != 0) {
-            mode = 0;
-            rval = 0;
+            if (mode == 0) {
+                int v = rval < 0x60 ? rval : rval - 0x80;
+                gui::item_size(LABEL_SIZE);
+                gui::text("%c%02X", "+-"[v < 0], abs(v));
+                gui::same_line();
+                // NOTE: don't show full range
+                app::slider(SLIDER_W, v, -0x20, 0x20, &rval);
+                rval = v >= 0 ? v : v + 0x80;
+            }
+            else if (mode == 1) {
+                int v = rval - 0x80;
+                gui::item_size(LABEL_SIZE);
+                gui::text(" %02X", v);
+                gui::same_line();
+                app::slider(SLIDER_W, v, 1, 95, &rval);
+                rval = v + 0x80;
+            }
         }
-        gui::same_line();
-        gui::button_style(gui::ButtonStyle::RadioCenter);
-        if (gui::button("ABSOLUTE", mode == 1) && mode != 1) {
-            mode = 1;
-            rval = 0x80 + 48;
+        else {
+            // command
+            gui::align(gui::Align::Left);
+            gui::text("TODO");
+            gui::align(gui::Align::Center);
+        }
+    }
+    else if (g_table == gt::PTBL) {
+        // 01-7F pulse mod step time/speed
+        // 8X-FX set pulsewidth XYY
+        int mode = lval >= 0x80;
+        gui::item_size({ PANEL_W / 2, app::BUTTON_HEIGHT });
+        gui::button_style(gui::ButtonStyle::RadioLeft);
+        if (gui::button("STEP", mode == 0) && mode != 0) {
+            mode = 0;
+            lval = 0x20;
+            rval = 0x40;
         }
         gui::same_line();
         gui::button_style(gui::ButtonStyle::RadioRight);
-        if (gui::button("NO CHANGE", mode == 2) && mode != 2) {
-            mode = 2;
-            rval = 0x80;
+        if (gui::button("SET", mode == 1) && mode != 1) {
+            mode = 1;
+            lval = 0x88;
+            rval = 0x00;
         }
-
-        gui::item_size({ 12 + 8*3, app::BUTTON_HEIGHT });
         if (mode == 0) {
-            int v = rval < 0x60 ? rval : rval - 0x80;
+            gui::item_size(LABEL_SIZE);
+            gui::text(" %02X", lval);
+            gui::same_line();
+            app::slider(SLIDER_W, lval, 1, 0x7f);
+            int v = int8_t(rval);
+            gui::item_size(LABEL_SIZE);
             gui::text("%c%02X", "+-"[v < 0], abs(v));
             gui::same_line();
-            // NOTE: don't show full range
-            app::slider(app::CANVAS_WIDTH - gui::cursor().x, v, -0x20, 0x20, &rval);
-            rval = v >= 0 ? v : v + 0x80;
+            app::slider(SLIDER_W, v, -128, 127, &rval);
+            rval = v;
         }
-        else if (mode == 1) {
-            int v = rval - 0x80;
-            gui::text("%02X", v);
+        else {
+            int v = ((lval & 0xf) << 8) | rval;
+            gui::item_size(LABEL_SIZE);
+            gui::text("%03X", v);
             gui::same_line();
-            app::slider(app::CANVAS_WIDTH - gui::cursor().x, v, 1, 95, &rval);
-            rval = v + 0x80;
+            app::slider(SLIDER_W, v, 0, 0xfff, &rval);
+            lval = 0x80 | (v >> 8);
+            rval = v & 0xff;
         }
 
     }
+    else if (g_table == gt::FTBL) {
+        gui::text("TODO");
 
+
+    }
 }
 
 

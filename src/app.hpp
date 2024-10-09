@@ -36,7 +36,7 @@ namespace app {
         gui::item_size(BUTTON_HEIGHT);
         if (gui::button(gui::Icon::Left)) v = std::max(min, v - 1);
         gui::same_line();
-        if (gui::button(gui::Icon::Right)) v = std::max(min, v + 1);
+        if (gui::button(gui::Icon::Right)) v = std::min(max, v + 1);
         value = v;
         return v != old_v;
     }
