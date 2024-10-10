@@ -9,38 +9,25 @@
 namespace instrument_view {
 namespace {
 
-bool         g_easy_mode = true;
-
-using TagTable = std::array<bool, gt::MAX_TABLELEN>;
-
-
-void tag_used(int table, TagTable& tag, int pos) {
-    gt::Song const& song = app::song();
-    auto& ltable = song.ltable[table];
-    auto& rtable = song.rtable[table];
-    while (pos >= 0 && pos < gt::MAX_TABLELEN && !tag[pos]) {
-        tag[pos] = true;
-        if (table == gt::STBL) break;
-        if (ltable[pos] == 0xff) {
-            pos = rtable[pos] - 1;
-        }
-        else ++pos;
-    }
-}
+bool g_easy_mode = true;
 
 
 void draw_easy() {
-    gt::Song&       song     = app::song();
-    int             instr_nr = piano::instrument();
-    gt::Instrument& instr    = song.instruments[instr_nr];
-    char str[32];
-
     enum class CursorSelect {
         Adsr,
         //...
         Table,
     };
     static CursorSelect g_cursor_select = CursorSelect::Adsr;
+    static int          g_table         = 0;
+    static int          g_cursor_row    = 0;
+    static int          g_scroll        = 0;
+
+    gt::Song&       song     = app::song();
+    int             instr_nr = piano::instrument();
+    gt::Instrument& instr    = song.instruments[instr_nr];
+    char str[32];
+
 
     gui::same_line();
     gui::align(gui::Align::Left);
@@ -68,13 +55,8 @@ void draw_easy() {
         CW_NUM = 28,
         CW_DATA = app::CANVAS_WIDTH - CW_NUM - app::SCROLL_WIDTH - app::BUTTON_HEIGHT * 2,
         PANEL_W = app::CANVAS_WIDTH - 10,
-        LABEL_W = 12 + 8*3,
-        SLIDER_W = PANEL_W - LABEL_W,
     };
 
-    static int g_table      = 0;
-    static int g_cursor_row = 0;
-    static int g_scroll     = 0;
 
     gui::item_size({ app::CANVAS_WIDTH / 3, app::BUTTON_HEIGHT });
     for (int t = 0; t < 3; ++t) {
@@ -222,7 +204,7 @@ void draw_easy() {
             // 00    set cutoff
             // 01-7F filter mod step time/speed
             // 80-F0 set params
-            if (lval == 0 && rval > 0) { // set
+            if (lval == 0) { // set
                 colors[0] = colors[1] = color::CMDS[10]; // blue
             }
             if (lval >= 0x01 && lval <= 0x7f) { // mod
@@ -289,32 +271,34 @@ void draw_easy() {
     }
     gui::disabled(false);
 
-    if (g_cursor_row >= len) return;
 
     // draw frame
     dc.rgb(color::BUTTON_NORMAL);
     dc.box({ { -1, y - 1 }, { app::CANVAS_WIDTH + 2, 12 + app::BUTTON_HEIGHT * 4 } }, gui::BoxStyle::Window);
     gui::cursor({ 5, y + 5 });
-    const ivec2 LABEL_SIZE = { LABEL_W, app::BUTTON_HEIGHT };
-
 
     if (g_cursor_select == CursorSelect::Adsr) {
+        enum {
+            LABEL_W = 12 + 8*9,
+            SLIDER_W = PANEL_W - LABEL_W,
+        };
+        constexpr char const* LABELS[] = { "ATTACK ", "DECAY  ", "SUSTAIN", "RELEASE" };
         for (int i = 0; i < 4; ++i) {
-            constexpr char const* LABELS[] = {
-                "A %X",
-                "D %X",
-                "S %X",
-                "R %X",
-            };
-            gui::item_size(LABEL_SIZE);
-            gui::text(LABELS[i], adsr[i]);
+            gui::item_size({ LABEL_W, app::BUTTON_HEIGHT });
+            gui::text("%s %X", LABELS[i], adsr[i]);
             gui::same_line();
             app::slider(SLIDER_W, adsr[i], 0, 0xf);
         }
         instr.ad = (adsr[0] << 4) | adsr[1];
         instr.sr = (adsr[2] << 4) | adsr[3];
     }
-    else if (g_cursor_select == CursorSelect::Table) {
+    if (g_cursor_row >= len) return;
+    if (g_cursor_select == CursorSelect::Table) {
+        enum {
+            LABEL_W = 12 + 8*3,
+            SLIDER_W = PANEL_W - LABEL_W,
+        };
+        const ivec2 LABEL_SIZE = { LABEL_W, app::BUTTON_HEIGHT };
         uint8_t& lval = ltable[start_row + g_cursor_row];
         uint8_t& rval = rtable[start_row + g_cursor_row];
         if (g_table == gt::WTBL) {
@@ -324,43 +308,30 @@ void draw_easy() {
             // + E0-EF inaudible waveform 00-0F
             // + F0-FE pattern command
             // + FF    jump
-            int mode;
-            if (lval <= 0xf)       mode = 0;
-            else if (lval <= 0xef) mode = 1;
-            else                   mode = 2;
+            int mode = (lval <= 0x0f) ? 1 : (lval <= 0xef) ? 0 : 2;
             gui::item_size({ PANEL_W / 3 + 1, app::BUTTON_HEIGHT });
             gui::button_style(gui::ButtonStyle::RadioLeft);
-            if (gui::button("WAIT", mode == 0) && mode != 0) {
+            if (gui::button("WAVE", mode == 0) && mode != 0) {
                 mode = 0;
-                lval = 0;
+                lval = 0x11;
             }
             gui::same_line();
             gui::button_style(gui::ButtonStyle::RadioCenter);
-            if (gui::button("WAVE", mode == 1) && mode != 1) {
+            if (gui::button("WAIT", mode == 1) && mode != 1) {
                 mode = 1;
-                lval = 0x11;
+                lval = 0;
             }
             gui::same_line();
             gui::item_size({ PANEL_W / 3, app::BUTTON_HEIGHT });
             gui::button_style(gui::ButtonStyle::RadioRight);
             if (gui::button("COMMAND", mode == 2) && mode != 2) {
                 mode = 2;
-                // TODO
                 lval = 0xf0;
                 rval = 0x00;
             }
 
             gui::button_style(gui::ButtonStyle::Normal);
             if (mode == 0) {
-                // wait
-                int v = lval;
-                gui::item_size(LABEL_SIZE);
-                gui::text("  %X", v);
-                gui::same_line();
-                app::slider(SLIDER_W, v, 0, 0xf, &lval);
-                lval = v;
-            }
-            else if (mode == 1) {
                 // wave
                 uint8_t v = lval;
                 if (v >= 0xe0) v -= 0xe0;
@@ -376,24 +347,31 @@ void draw_easy() {
                 if (v < 0x10) v += 0xe0;
                 lval = v;
             }
+            else if (mode == 1) {
+                // wait
+                int v = lval;
+                gui::item_size(LABEL_SIZE);
+                gui::text("  %X", v);
+                gui::same_line();
+                app::slider(SLIDER_W, v, 0, 0xf, &lval);
+                lval = v;
+            }
             if (mode != 2) {
                 // right side:
                 // + 00-5F relative note
                 // + 60-7F negative relative note
                 // + 80    do nothing
                 // + 81-DD absolute notes C#0 - B-7
-                if (rval < 0x80) mode = 0;
-                else if (rval > 0x80) mode = 1;
-                else mode = 2;
+                mode = (rval < 0x80) ? 0 : (rval > 0x80) ? 1 : 2;
                 gui::item_size({ PANEL_W / 3 + 1, app::BUTTON_HEIGHT });
                 gui::button_style(gui::ButtonStyle::RadioLeft);
-                if (gui::button("RELATIVE", mode == 0) && mode != 0) {
+                if (gui::button("RELATIVE NOTE", mode == 0) && mode != 0) {
                     mode = 0;
                     rval = 0;
                 }
                 gui::same_line();
                 gui::button_style(gui::ButtonStyle::RadioCenter);
-                if (gui::button("ABSOLUTE", mode == 1) && mode != 1) {
+                if (gui::button("ABSOLUTE NOTE", mode == 1) && mode != 1) {
                     mode = 1;
                     rval = 0x80 + 48;
                 }
@@ -433,22 +411,33 @@ void draw_easy() {
         else if (g_table == gt::PTBL) {
             // 01-7F pulse mod step time/speed
             // 8X-FX set pulsewidth XYY
-            int mode = lval >= 0x80;
+            int mode = lval >= 0x80 ? 0 : 1;
             gui::item_size({ PANEL_W / 2, app::BUTTON_HEIGHT });
             gui::button_style(gui::ButtonStyle::RadioLeft);
-            if (gui::button("STEP", mode == 0) && mode != 0) {
+            if (gui::button("SET PW", mode == 0) && mode != 0) {
                 mode = 0;
-                lval = 0x20;
-                rval = 0x40;
-            }
-            gui::same_line();
-            gui::button_style(gui::ButtonStyle::RadioRight);
-            if (gui::button("SET", mode == 1) && mode != 1) {
-                mode = 1;
                 lval = 0x88;
                 rval = 0x00;
             }
+            gui::same_line();
+            gui::button_style(gui::ButtonStyle::RadioRight);
+            if (gui::button("STEP PW", mode == 1) && mode != 1) {
+                mode = 1;
+                lval = 0x20;
+                rval = 0x40;
+            }
             if (mode == 0) {
+                // set pw
+                int v = ((lval & 0xf) << 8) | rval;
+                gui::item_size(LABEL_SIZE);
+                gui::text("%03X", v);
+                gui::same_line();
+                app::slider(SLIDER_W, v, 0, 0xfff, &rval);
+                lval = 0x80 | (v >> 8);
+                rval = v & 0xff;
+            }
+            else {
+                // step pw
                 gui::item_size(LABEL_SIZE);
                 gui::text(" %02X", lval);
                 gui::same_line();
@@ -460,20 +449,96 @@ void draw_easy() {
                 app::slider(SLIDER_W, v, -128, 127, &rval);
                 rval = v;
             }
-            else {
-                int v = ((lval & 0xf) << 8) | rval;
-                gui::item_size(LABEL_SIZE);
-                gui::text("%03X", v);
-                gui::same_line();
-                app::slider(SLIDER_W, v, 0, 0xfff, &rval);
-                lval = 0x80 | (v >> 8);
-                rval = v & 0xff;
-            }
 
         }
         else if (g_table == gt::FTBL) {
-            gui::text("TODO");
+            // 00    set cutoff
+            // 01-7F filter mod step time/speed
+            // 80-F0 set params
 
+            //     // new modulation step
+            //     if (m_song.ltable[FTBL][m_filterptr - 1]) m_filtertime = m_song.ltable[FTBL][m_filterptr - 1];
+            //     else {
+            //         // cutoff set
+            //         m_filtercutoff = m_song.rtable[FTBL][m_filterptr - 1];
+            //         m_filterptr++;
+            //     }
+            // }
+
+            int mode = (lval >= 0x80) ? 0 : (lval == 0x00) ? 1 : 2;
+
+            gui::item_size({ PANEL_W / 3 + 1, app::BUTTON_HEIGHT });
+            gui::button_style(gui::ButtonStyle::RadioLeft);
+            if (gui::button("SET PARAMS", mode == 0) && mode != 0) {
+                mode = 0;
+                lval = 0x90; // low pass
+                rval = 0xF1; // res F, voice 0
+            }
+            gui::same_line();
+            gui::item_size({ PANEL_W / 3 + 1, app::BUTTON_HEIGHT });
+            gui::button_style(gui::ButtonStyle::RadioCenter);
+            if (gui::button("SET FREQ", mode == 1) && mode != 1) {
+                mode = 1;
+                lval = 0x00;
+                rval = 0x20;
+            }
+            gui::same_line();
+            gui::item_size({ PANEL_W / 3, app::BUTTON_HEIGHT });
+            gui::button_style(gui::ButtonStyle::RadioRight);
+            if (gui::button("STEP FREQ", mode == 2) && mode != 2) {
+                mode = 2;
+                lval = 0x01;
+                rval = 0x00;
+            }
+
+            if (mode == 0) {
+                // set params
+                gui::button_style(gui::ButtonStyle::Normal);
+                gui::item_size({ PANEL_W / 3 + 1, app::BUTTON_HEIGHT });
+                if (gui::button(gui::Icon::Lowpass, lval & 0x10)) lval ^= 0x10;
+                gui::same_line();
+                gui::item_size({ PANEL_W / 3 + 1, app::BUTTON_HEIGHT });
+                if (gui::button(gui::Icon::Bandpass, lval & 0x20)) lval ^= 0x20;
+                gui::same_line();
+                gui::item_size({ PANEL_W / 3, app::BUTTON_HEIGHT });
+                if (gui::button(gui::Icon::Highpass, lval & 0x40)) lval ^= 0x40;
+
+                gui::item_size({ PANEL_W / 3 + 1, app::BUTTON_HEIGHT });
+                if (gui::button("VOICE 1", rval & 0x1)) rval ^= 0x1;
+                gui::same_line();
+                gui::item_size({ PANEL_W / 3 + 1, app::BUTTON_HEIGHT });
+                if (gui::button("VOICE 2", rval & 0x2)) rval ^= 0x2;
+                gui::same_line();
+                gui::item_size({ PANEL_W / 3, app::BUTTON_HEIGHT });
+                if (gui::button("VOICE 3", rval & 0x4)) rval ^= 0x4;
+
+                int v = rval >> 4;
+                gui::item_size(LABEL_SIZE);
+                gui::text("Q %X", v);
+                gui::same_line();
+                app::slider(SLIDER_W, v, 0, 0xf, &rval);
+                rval = (rval & 0x0f) | (v << 4);
+            }
+            else if (mode == 1) {
+                // set freq
+                gui::item_size(LABEL_SIZE);
+                gui::text(" %02X", rval);
+                gui::same_line();
+                app::slider(SLIDER_W, rval, 0, 0xff);
+            }
+            else {
+                // step freq
+                gui::item_size(LABEL_SIZE);
+                gui::text(" %02X", lval);
+                gui::same_line();
+                app::slider(SLIDER_W, lval, 1, 0x7f);
+                int v = int8_t(rval);
+                gui::item_size(LABEL_SIZE);
+                gui::text("%c%02X", "+-"[v < 0], abs(v));
+                gui::same_line();
+                app::slider(SLIDER_W, v, -0x20, 0x20, &rval);
+                rval = v;
+            }
 
         }
     }
@@ -546,10 +611,7 @@ void draw_hard() {
     }
     gui::button_style(gui::ButtonStyle::Normal);
 
-
-
     gui::DrawContext& dc = gui::draw_context();
-
     ivec2 cursor = gui::cursor();
     int table_page = (app::canvas_height() - cursor.y - piano::HEIGHT - app::BUTTON_HEIGHT * 3) / settings.row_height;
     int text_offset = (settings.row_height - 7) / 2;
@@ -570,9 +632,7 @@ void draw_hard() {
             }
         }
 
-        TagTable used = {};
         int pos = instr.ptr[t] - 1;
-        tag_used(t, used, pos);
 
 
         auto& ltable = song.ltable[t];
@@ -605,7 +665,7 @@ void draw_hard() {
             // row number
             sprintf(str, "%02X", row + 1);
             dc.text(num_box.pos + ivec2(5, text_offset), str);
-            dc.rgb(used[row] ? color::HIGHLIGHT_ROW : color::BACKGROUND_ROW);
+            dc.rgb(color::BACKGROUND_ROW);
             dc.fill(box);
 
 

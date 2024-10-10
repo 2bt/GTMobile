@@ -145,7 +145,7 @@ bool draw(bool* follow) {
     // draw black keys
     loop_keys([&](int i, int n, int note) {
         if (n < 0 || n % 2 == 0) return;
-        dc.rgb(0x262626);
+        dc.rgb(0x111111);
         if (g_gate && g_note == note) {
             dc.rgb(color::BUTTON_ACTIVE);
         }

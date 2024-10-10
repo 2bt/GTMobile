@@ -351,10 +351,11 @@ bool button(Icon icon, bool active) {
 bool button(char const* label, bool active) {
     Box box = item_box();
     ButtonState state = button_state(box);
-
     if (g_button_style == ButtonStyle::TableCell) {
+        box.pos  = box.pos + 1;
+        box.size = box.size - 2;
         g_dc.rgb(color::BACKGROUND_ROW);
-        g_dc.fill({ box.pos + 1, box.size - 2 });
+        g_dc.fill(box);
 
         if (active || state != ButtonState::Normal) {
             button_color(state, active);

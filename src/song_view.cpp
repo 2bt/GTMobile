@@ -192,11 +192,6 @@ void draw() {
         dc.rgb(color::ROW_NUMBER);
         dc.text(box.pos + ivec2(6, text_offset), str);
 
-        if (r == song.song_loop) {
-            dc.rgb(color::BUTTON_HELD);
-            dc.text(box.pos + ivec2(0, text_offset), "\x04");
-        }
-
         gui::item_size({ COL_W, settings.row_height });
         for (int c = 0; c < 3; ++c) {
             gui::same_line();
@@ -241,6 +236,12 @@ void draw() {
             sprintf(str, "   %02X", row.pattnum);
             dc.rgb(color::WHITE);
             dc.text(box.pos + ivec2(5, text_offset), str);
+        }
+
+        // loop marker
+        if (r == song.song_loop) {
+            dc.rgb(color::BUTTON_HELD);
+            dc.text(box.pos + ivec2(NUM_W + COL_W * 3 - 9, text_offset), "\x05");
         }
     }
 
