@@ -74,6 +74,7 @@ void init() {
     sid::init(MIXRATE);
     gfx::init();
     gui::init();
+    set_view(View::project);
 
     g_song.clear();
     // simple beep instrument
@@ -84,8 +85,8 @@ void init() {
     g_song.ltable[0][1] = 0xff;
 
     // DEBUB
-    // set_view(View::instrument);
     // g_song.load("songs/Endgame.sng");
+    // set_view(View::instrument);
 
     g_initialized = true;
 }

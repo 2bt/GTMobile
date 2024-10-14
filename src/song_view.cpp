@@ -228,8 +228,7 @@ void draw() {
             }
 
             int prev_trans = r == 0 ? 0 : song.song_order[c][r - 1].trans;
-            if (row.trans >= 0) sprintf(str, "+%X", row.trans);
-            else                sprintf(str, "-%X", -row.trans);
+            sprintf(str, "%c%X", "+-"[row.trans < 0], abs(row.trans));
             dc.rgb(color::WHITE);
             if (row.trans == prev_trans)  dc.rgb(color::DARK_GREY);
             dc.text(box.pos + ivec2(5, text_offset), str);
@@ -352,24 +351,18 @@ void draw() {
         // int max_scroll = std::max(0, max_song_len - page);
         int max_scroll = std::max(0, song.song_len - page);
         gui::item_size({ app::SCROLL_WIDTH, page * settings.row_height });
-        if (gui::vertical_drag_bar(g_song_scroll, 0, max_scroll, page)) {
-            g_follow = false;
-        }
+        if (gui::vertical_drag_bar(g_song_scroll, 0, max_scroll, page)) g_follow = false;
     }
     {
         gui::item_size({ app::SCROLL_WIDTH, app::BUTTON_HEIGHT });
         static int dy = 0;
-        if (gui::vertical_drag_button(dy)) {
-            g_song_page += dy;
-        }
+        if (gui::vertical_drag_button(dy)) g_song_page += dy;
     }
     {
         int page = pattern_page;
         int max_scroll = std::max<int>(0, max_pattern_len - page);
         gui::item_size({ app::SCROLL_WIDTH, page * settings.row_height });
-        if (gui::vertical_drag_bar(g_pattern_scroll, 0, max_scroll, page)) {
-            g_follow = false;
-        }
+        if (gui::vertical_drag_bar(g_pattern_scroll, 0, max_scroll, page)) g_follow = false;
     }
 
 
@@ -406,6 +399,7 @@ void draw() {
         gui::disabled(!(len > 1 && pos < len));
         if (gui::button(gui::Icon::DeleteRow)) {
             for (auto& order : song.song_order) {
+                order[pos] = {};
                 std::rotate(order.begin() + pos, order.begin() + pos + 1, order.end());
             }
             --len;

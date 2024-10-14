@@ -238,7 +238,6 @@ void draw_easy() {
     gui::vertical_drag_bar(g_scroll, 0, max_scroll - table_page, table_page);
 
 
-
     int free_row = ltable.size();
     while (free_row > 0 && ltable[free_row - 1] == 0 && rtable[free_row - 1] == 0) {
         --free_row;
@@ -365,13 +364,13 @@ void draw_easy() {
                 mode = (rval < 0x80) ? 0 : (rval > 0x80) ? 1 : 2;
                 gui::item_size({ PANEL_W / 3 + 1, app::BUTTON_HEIGHT });
                 gui::button_style(gui::ButtonStyle::RadioLeft);
-                if (gui::button("RELATIVE NOTE", mode == 0) && mode != 0) {
+                if (gui::button("RELATIVE \x09", mode == 0) && mode != 0) {
                     mode = 0;
                     rval = 0;
                 }
                 gui::same_line();
                 gui::button_style(gui::ButtonStyle::RadioCenter);
-                if (gui::button("ABSOLUTE NOTE", mode == 1) && mode != 1) {
+                if (gui::button("ABSOLUTE \x09", mode == 1) && mode != 1) {
                     mode = 1;
                     rval = 0x80 + 48;
                 }
@@ -477,7 +476,7 @@ void draw_easy() {
             gui::same_line();
             gui::item_size({ PANEL_W / 3 + 1, app::BUTTON_HEIGHT });
             gui::button_style(gui::ButtonStyle::RadioCenter);
-            if (gui::button("SET FREQ", mode == 1) && mode != 1) {
+            if (gui::button("SET CUTOFF", mode == 1) && mode != 1) {
                 mode = 1;
                 lval = 0x00;
                 rval = 0x20;
@@ -485,7 +484,7 @@ void draw_easy() {
             gui::same_line();
             gui::item_size({ PANEL_W / 3, app::BUTTON_HEIGHT });
             gui::button_style(gui::ButtonStyle::RadioRight);
-            if (gui::button("STEP FREQ", mode == 2) && mode != 2) {
+            if (gui::button("STEP CUTOFF", mode == 2) && mode != 2) {
                 mode = 2;
                 lval = 0x01;
                 rval = 0x00;
@@ -512,22 +511,26 @@ void draw_easy() {
                 gui::item_size({ PANEL_W / 3, app::BUTTON_HEIGHT });
                 if (gui::button("VOICE 3", rval & 0x4)) rval ^= 0x4;
 
+                enum {
+                    LABEL_W = 12 + 8*5,
+                    SLIDER_W = PANEL_W - LABEL_W,
+                };
                 int v = rval >> 4;
-                gui::item_size(LABEL_SIZE);
-                gui::text("Q %X", v);
+                gui::item_size({ LABEL_W, app::BUTTON_HEIGHT });
+                gui::text("RES %X", v);
                 gui::same_line();
                 app::slider(SLIDER_W, v, 0, 0xf, &rval);
                 rval = (rval & 0x0f) | (v << 4);
             }
             else if (mode == 1) {
-                // set freq
+                // set cutoff
                 gui::item_size(LABEL_SIZE);
                 gui::text(" %02X", rval);
                 gui::same_line();
                 app::slider(SLIDER_W, rval, 0, 0xff);
             }
             else {
-                // step freq
+                // step cutoff
                 gui::item_size(LABEL_SIZE);
                 gui::text(" %02X", lval);
                 gui::same_line();
