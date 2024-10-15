@@ -11,6 +11,8 @@ class Player {
 public:
     Player(gt::Song const& song);
 
+    void reset();
+
     void play_song() { m_action = Action::start; }
     void stop_song() { m_action = Action::stop; }
     void pause_song() { m_action = Action::pause; }

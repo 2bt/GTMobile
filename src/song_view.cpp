@@ -204,8 +204,9 @@ void draw() {
             gt::OrderRow& row = song.song_order[c][r];
 
             dc.rgb(color::BACKGROUND_ROW);
-            if (row.pattnum == patt_nums[c]) dc.rgb(color::HIGHLIGHT_ROW);
+            // if (row.pattnum == patt_nums[c]) dc.rgb(color::HIGHLIGHT_ROW);
             if (r == player_song_rows[c]) dc.rgb(color::PLAYER_ROW);
+            else if (r == g_cursor_song_row) dc.rgb(color::HIGHLIGHT_ROW);
             dc.fill(box);
 
             if (state == gui::ButtonState::Released) {
@@ -355,8 +356,7 @@ void draw() {
     }
     {
         gui::item_size({ app::SCROLL_WIDTH, app::BUTTON_HEIGHT });
-        static int dy = 0;
-        if (gui::vertical_drag_button(dy)) g_song_page += dy;
+        gui::vertical_drag_button(g_song_page, settings.row_height);
     }
     {
         int page = pattern_page;
@@ -384,16 +384,16 @@ void draw() {
                 order[pos] = order[pos + 1];
             }
             if (song.song_loop >= pos) ++song.song_loop;
-            ++pos;
             ++len;
         }
         gui::same_line();
         if (gui::button(gui::Icon::AddRowBelow)) {
+            ++pos;
             for (auto& order : song.song_order) {
-                std::rotate(order.begin() + pos + 1, order.end() - 1, order.end());
-                order[pos + 1] = order[pos];
+                std::rotate(order.begin() + pos, order.end() - 1, order.end());
+                order[pos] = order[pos - 1];
             }
-            if (song.song_loop > pos) ++song.song_loop;
+            if (song.song_loop >= pos) ++song.song_loop;
             ++len;
         }
         gui::disabled(!(len > 1 && pos < len));
@@ -434,14 +434,14 @@ void draw() {
         if (gui::button(gui::Icon::AddRowAbove)) {
             std::rotate(rows.begin() + pos, rows.end() - 1, rows.end());
             rows[pos] = {};
-            ++pos;
             ++len;
         }
         gui::same_line();
         if (gui::button(gui::Icon::AddRowBelow)) {
-            std::rotate(rows.begin() + pos + 1, rows.end() - 1, rows.end());
-            rows[pos + 1] = {};
+            ++pos;
             ++len;
+            std::rotate(rows.begin() + pos, rows.end() - 1, rows.end());
+            rows[pos] = {};
         }
         gui::disabled(!(len > 1));
         if (gui::button(gui::Icon::DeleteRow)) {

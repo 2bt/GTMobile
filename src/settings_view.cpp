@@ -1,6 +1,7 @@
 #include "settings_view.hpp"
 #include "gui.hpp"
 #include "app.hpp"
+#include "piano.hpp"
 
 
 namespace settings_view {
@@ -12,39 +13,27 @@ Settings const& settings() { return g_settings; }
 Settings&       mutable_settings() { return g_settings; }
 
 void draw() {
+    enum {
+        C1W = 12 + 21 * 8,
+        C2W = app::CANVAS_WIDTH - C1W,
+    };
 
-    gui::item_size({ 12 + 18 * 8, app::BUTTON_HEIGHT });
-    gui::text("PLAY IN BACKGROUND");
-    gui::same_line();
-    gui::item_size(app::BUTTON_HEIGHT);
-    if (gui::button(g_settings.play_in_background ? gui::Icon::On : gui::Icon::Off,
-                    g_settings.play_in_background)) {
+    gui::item_size({ app::CANVAS_WIDTH, app::BUTTON_HEIGHT });
+    if (gui::button("PLAY IN BACKGROUND", g_settings.play_in_background)) {
         g_settings.play_in_background ^= 1;
     }
 
-    gui::item_size({ 12 + 18 * 8, app::BUTTON_HEIGHT });
-    gui::text("ROW HIGHLIGHT STEP");
+    gui::item_size({ C1W , app::BUTTON_HEIGHT });
+    gui::text("ROW HIGHLIGHT STEP %02X", g_settings.row_highlight);
     gui::same_line();
-    gui::item_size(app::BUTTON_HEIGHT);
-    if (gui::button(gui::Icon::Left) && g_settings.row_highlight > 2) --g_settings.row_highlight;
-    gui::same_line();
-    if (gui::button(gui::Icon::Right) && g_settings.row_highlight < 32) ++g_settings.row_highlight;
-    gui::same_line();
-    gui::item_size({ 12 + 2 * 8, app::BUTTON_HEIGHT });
-    gui::text("%2d", g_settings.row_highlight);
+    app::slider(C2W, g_settings.row_highlight, 2, 16);
 
+    gui::item_size({ C1W , app::BUTTON_HEIGHT });
+    gui::text("ROW HEIGHT         %02X", g_settings.row_height);
+    gui::same_line();
+    app::slider(C2W, g_settings.row_height, 8, app::MAX_ROW_HEIGHT);
 
-    gui::item_size({ 12 + 18 * 8, app::BUTTON_HEIGHT });
-    gui::text("ROW HEIGHT");
-    gui::same_line();
-    gui::item_size(app::BUTTON_HEIGHT);
-    if (gui::button(gui::Icon::Left) && g_settings.row_height > 8) --g_settings.row_height;
-    gui::same_line();
-    if (gui::button(gui::Icon::Right) && g_settings.row_height < app::MAX_ROW_HEIGHT) ++g_settings.row_height;
-    gui::same_line();
-    gui::item_size({ 12 + 2 * 8, app::BUTTON_HEIGHT });
-    gui::text("%2d", g_settings.row_height);
-    gui::same_line();
+    piano::draw();
 }
 
 } // namespace settings_view

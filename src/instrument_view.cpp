@@ -11,21 +11,115 @@ namespace {
 
 bool g_easy_mode = true;
 
+gt::Song& g_song = app::song();
+
+enum class CursorSelect {
+    Adsr,
+    //...
+    Table,
+};
+CursorSelect g_cursor_select = {};
+int          g_table         = 0;
+int          g_cursor_row    = 0;
+int          g_scroll        = 0;
+
+
+void add_table_row(int pos) {
+    // shift instr pointer
+    for (gt::Instrument& instr : g_song.instruments) {
+        if (instr.ptr[g_table] > pos + 1) {
+            ++instr.ptr[g_table];
+        }
+    }
+
+    // shift pointers in wave table
+    auto& wav_ltable = g_song.ltable[gt::WTBL];
+    auto& wav_rtable = g_song.rtable[gt::WTBL];
+    for (int i = 0; i < gt::MAX_TABLELEN; ++i) {
+        if (wav_ltable[i] == 8 + g_table && wav_rtable[i] > pos + 1) {
+            ++wav_rtable[i];
+        }
+    }
+
+    // shift pointers in patterns
+    for (gt::Pattern& pat : g_song.patterns) {
+        for (gt::PatternRow& r : pat.rows) {
+            if (r.command == 8 + g_table && r.data > pos + 1) {
+                ++r.data;
+            }
+        }
+    }
+
+    // shift table jump pointers
+    auto& ltable = g_song.ltable[g_table];
+    auto& rtable = g_song.rtable[g_table];
+    for (int i = pos + 1; i < gt::MAX_TABLELEN; ++i) {
+        if (ltable[i] == 0xff && rtable[i] >= pos + 1) {
+            ++rtable[i];
+        }
+    }
+    // new row
+    std::rotate(ltable.begin() + pos, ltable.end() - 1, ltable.end());
+    std::rotate(rtable.begin() + pos, rtable.end() - 1, rtable.end());
+}
+
+void delete_table_row(int pos) {
+    auto& ltable = g_song.ltable[g_table];
+    auto& rtable = g_song.rtable[g_table];
+
+    // check if we're deleting the jump row
+    // in that case, we want to also clear pointers in instruments, wave table, and patterns
+    bool is_jump_row = ltable[pos] == 0xff;
+    // TODO
+    printf("TODO\n");
+
+    // shift instr pointer
+    for (gt::Instrument& instr : g_song.instruments) {
+        if (is_jump_row && instr.ptr[g_table] == pos + 1) {
+            instr.ptr[g_table] = 0; // reset pointer
+        }
+        else if (instr.ptr[g_table] > pos + 1) {
+            --instr.ptr[g_table];
+        }
+    }
+
+    // shift pointers in wave table
+    auto& wav_ltable = g_song.ltable[gt::WTBL];
+    auto& wav_rtable = g_song.rtable[gt::WTBL];
+    for (int i = 0; i < gt::MAX_TABLELEN; ++i) {
+        if (wav_ltable[i] == 8 + g_table && wav_rtable[i] > pos + 1) {
+            --wav_rtable[i];
+        }
+    }
+
+    // shift pointers in patterns
+    for (gt::Pattern& pat : g_song.patterns) {
+        for (gt::PatternRow& r : pat.rows) {
+            if (r.command == 8 + g_table && r.data > pos + 1) {
+                --r.data;
+            }
+        }
+    }
+
+    // shift table jump pointers
+    for (int i = pos + 1; i < gt::MAX_TABLELEN; ++i) {
+        if (ltable[i] == 0xff && rtable[i] > pos + 1) {
+            --rtable[i];
+        }
+    }
+    // delete row
+    ltable[pos] = 0;
+    rtable[pos] = 0;
+    std::rotate(ltable.begin() + pos, ltable.begin() + pos + 1, ltable.end());
+    std::rotate(rtable.begin() + pos, rtable.begin() + pos + 1, rtable.end());
+}
+
+
+
 
 void draw_easy() {
-    enum class CursorSelect {
-        Adsr,
-        //...
-        Table,
-    };
-    static CursorSelect g_cursor_select = CursorSelect::Adsr;
-    static int          g_table         = 0;
-    static int          g_cursor_row    = 0;
-    static int          g_scroll        = 0;
-
-    gt::Song&       song     = app::song();
     int             instr_nr = piano::instrument();
-    gt::Instrument& instr    = song.instruments[instr_nr];
+    gt::Instrument& instr    = g_song.instruments[instr_nr];
     char str[32];
 
 
@@ -61,9 +155,9 @@ void draw_easy() {
     gui::item_size({ app::CANVAS_WIDTH / 3, app::BUTTON_HEIGHT });
     for (int t = 0; t < 3; ++t) {
         constexpr char const* LABELS[] = { "WAVE", "PULSE", "FILTER" };
-
         gui::button_style(instr.ptr[t] > 0 ? gui::ButtonStyle::Tab : gui::ButtonStyle::ShadedTab );
         if (gui::button(LABELS[t], t == g_table)) {
+            g_cursor_select = CursorSelect::Table;
             g_table = t;
         }
         gui::same_line();
@@ -78,8 +172,8 @@ void draw_easy() {
     int   text_offset = (app::MAX_ROW_HEIGHT - 7) / 2;
 
 
-    auto& ltable = song.ltable[g_table];
-    auto& rtable = song.rtable[g_table];
+    auto& ltable = g_song.ltable[g_table];
+    auto& rtable = g_song.rtable[g_table];
     int start_row = 0;
     int end_row = 0;
     int len = 0;
@@ -97,6 +191,14 @@ void draw_easy() {
         assert(loop == 0 || (loop - 1 >= start_row && loop - 1 < end_row));
         max_scroll = std::max(max_scroll, len);
     }
+    else {
+        // find first free row
+        start_row = ltable.size();
+        while (start_row > 0 && ltable[start_row - 1] == 0 && rtable[start_row - 1] == 0) {
+            --start_row;
+        }
+
+    }
     g_cursor_row = std::min(g_cursor_row, len - 1);
     g_cursor_row = std::max(g_cursor_row, 0);
 
@@ -112,11 +214,16 @@ void draw_easy() {
 
         gui::item_size({ CW_DATA, app::MAX_ROW_HEIGHT });
         box = gui::item_box();
-        if (r >= len) continue;
-
-        gui::ButtonState state = gui::button_state(box);
         box.pos.x += 1;
         box.size.x -= 2;
+
+        // draw cursor if table is empty
+        if (g_cursor_select == CursorSelect::Table && len == 0 && r == 0) {
+            dc.rgb(color::BUTTON_ACTIVE);
+            dc.box(box, gui::BoxStyle::Cursor);
+        }
+
+        if (r >= len) continue;
 
         dc.rgb(color::BACKGROUND_ROW);
         dc.fill(box);
@@ -127,6 +234,7 @@ void draw_easy() {
             dc.text(box.pos + ivec2(box.size.x - 8, text_offset), "\x05");
         }
 
+        gui::ButtonState state = gui::button_state(box);
         if (state == gui::ButtonState::Released) {
             g_cursor_row = r;
             g_cursor_select = CursorSelect::Table;
@@ -238,42 +346,63 @@ void draw_easy() {
     gui::vertical_drag_bar(g_scroll, 0, max_scroll - table_page, table_page);
 
 
-    int free_row = ltable.size();
-    while (free_row > 0 && ltable[free_row - 1] == 0 && rtable[free_row - 1] == 0) {
-        --free_row;
-    }
-    int num_free_rows = ltable.size() - free_row;
-    // we need two free rows to add a single row to an emtpy instr table
-    bool can_add_row = len == 0 ? num_free_rows >= 2 : num_free_rows > 0;
+    // table buttons
+    if (g_cursor_select == CursorSelect::Table) {
+        int num_free_rows = ltable.size() - start_row;
 
-    gui::cursor({ app::CANVAS_WIDTH - app::BUTTON_HEIGHT * 2, cursor.y });
-    gui::item_size(app::BUTTON_HEIGHT);
-    // gui::disabled(!can_add_row);
-    if (gui::button(gui::Icon::AddRowAbove)) {
-        // TODO
-    }
-    gui::same_line();
-    // gui::disabled(!(len < MAX_SONG_ROWS  && pos < len));
-    if (gui::button(gui::Icon::AddRowBelow)) {
-        // TODO
+        gui::cursor({ app::CANVAS_WIDTH - app::BUTTON_HEIGHT * 2, cursor.y });
+        gui::item_size(app::BUTTON_HEIGHT);
+        gui::disabled(num_free_rows <= 1);
+        if (gui::button(gui::Icon::AddRowAbove)) {
+            // add jump
+            if (len == 0) {
+                instr.ptr[g_table] = start_row + g_cursor_row + 1;
+                add_table_row(start_row + g_cursor_row);
+                ltable[start_row + g_cursor_row] = 0xff;
+                ++len;
+            }
+            add_table_row(start_row + g_cursor_row);
+            if (g_table == gt::PTBL) ltable[start_row + g_cursor_row] = 0x88; // set pw
+            ++len;
+        }
+        gui::same_line();
+        gui::disabled(len == 0 || num_free_rows == 0);
+        if (gui::button(gui::Icon::AddRowBelow)) {
+            ++g_cursor_row;
+            ++len;
+            add_table_row(start_row + g_cursor_row);
+            if (g_table == gt::PTBL) ltable[start_row + g_cursor_row] = 0x88; // set pw
+        }
+
+        gui::disabled(g_cursor_row >= len);
+        if (gui::button(gui::Icon::DeleteRow)) {
+            delete_table_row(start_row + g_cursor_row);
+            --len;
+            --end_row;
+            if (len == 0) {
+                // delete jump row
+                delete_table_row(start_row + g_cursor_row);
+            }
+            else {
+                // clamp jump pointer
+                auto& loop = rtable[end_row];
+                if (loop > 0) loop = clamp<int>(loop, start_row + 1, end_row);
+                g_cursor_row = std::min(g_cursor_row, len - 1);
+            }
+        }
+        gui::same_line();
+        bool is_loop = rtable[end_row] == start_row + g_cursor_row + 1;
+        if (gui::button(gui::Icon::JumpBack)) {
+            if (is_loop) rtable[end_row] = 0;
+            else rtable[end_row] = start_row + g_cursor_row + 1;
+        }
+        gui::disabled(false);
     }
 
-    gui::disabled(g_cursor_row >= len);
-    if (gui::button(gui::Icon::DeleteRow)) {
-        // TODO
-    }
-    gui::same_line();
-    bool is_loop = rtable[end_row] == start_row + g_cursor_row + 1;
-    if (gui::button(gui::Icon::JumpBack)) {
-        if (is_loop) rtable[end_row] = 0;
-        else rtable[end_row] = start_row + g_cursor_row + 1;
-    }
-    gui::disabled(false);
-
-
-    // draw frame
+    // draw box
     dc.rgb(color::BUTTON_NORMAL);
-    dc.box({ { -1, y - 1 }, { app::CANVAS_WIDTH + 2, 12 + app::BUTTON_HEIGHT * 4 } }, gui::BoxStyle::Window);
+    // dc.box({ { -1, y - 1 }, { app::CANVAS_WIDTH + 2, 12 + app::BUTTON_HEIGHT * 4 } }, gui::BoxStyle::Window);
+    dc.box({ { 0, y }, { app::CANVAS_WIDTH, 10 + app::BUTTON_HEIGHT * 4 } }, gui::BoxStyle::Frame);
     gui::cursor({ 5, y + 5 });
 
     if (g_cursor_select == CursorSelect::Adsr) {
@@ -307,18 +436,18 @@ void draw_easy() {
             // + E0-EF inaudible waveform 00-0F
             // + F0-FE pattern command
             // + FF    jump
-            int mode = (lval <= 0x0f) ? 1 : (lval <= 0xef) ? 0 : 2;
+            int mode = (lval <= 0x0f) ? 0 : (lval <= 0xef) ? 1 : 2;
             gui::item_size({ PANEL_W / 3 + 1, app::BUTTON_HEIGHT });
             gui::button_style(gui::ButtonStyle::RadioLeft);
-            if (gui::button("WAVE", mode == 0) && mode != 0) {
+            if (gui::button("WAIT", mode == 0) && mode != 0) {
                 mode = 0;
-                lval = 0x11;
+                lval = 0;
             }
             gui::same_line();
             gui::button_style(gui::ButtonStyle::RadioCenter);
-            if (gui::button("WAIT", mode == 1) && mode != 1) {
+            if (gui::button("WAVE", mode == 1) && mode != 1) {
                 mode = 1;
-                lval = 0;
+                lval = 0x11;
             }
             gui::same_line();
             gui::item_size({ PANEL_W / 3, app::BUTTON_HEIGHT });
@@ -331,6 +460,15 @@ void draw_easy() {
 
             gui::button_style(gui::ButtonStyle::Normal);
             if (mode == 0) {
+                // wait
+                int v = lval;
+                gui::item_size(LABEL_SIZE);
+                gui::text("  %X", v);
+                gui::same_line();
+                app::slider(SLIDER_W, v, 0, 0xf, &lval);
+                lval = v;
+            }
+            else if (mode == 1) {
                 // wave
                 uint8_t v = lval;
                 if (v >= 0xe0) v -= 0xe0;
@@ -344,15 +482,6 @@ void draw_easy() {
                 gui::same_line(false);
                 if (v > 0xdf) v ^= 0x80;
                 if (v < 0x10) v += 0xe0;
-                lval = v;
-            }
-            else if (mode == 1) {
-                // wait
-                int v = lval;
-                gui::item_size(LABEL_SIZE);
-                gui::text("  %X", v);
-                gui::same_line();
-                app::slider(SLIDER_W, v, 0, 0xf, &lval);
                 lval = v;
             }
             if (mode != 2) {
@@ -413,14 +542,14 @@ void draw_easy() {
             int mode = lval >= 0x80 ? 0 : 1;
             gui::item_size({ PANEL_W / 2, app::BUTTON_HEIGHT });
             gui::button_style(gui::ButtonStyle::RadioLeft);
-            if (gui::button("SET PW", mode == 0) && mode != 0) {
+            if (gui::button("SET PULSE WIDTH", mode == 0) && mode != 0) {
                 mode = 0;
                 lval = 0x88;
                 rval = 0x00;
             }
             gui::same_line();
             gui::button_style(gui::ButtonStyle::RadioRight);
-            if (gui::button("STEP PW", mode == 1) && mode != 1) {
+            if (gui::button("STEP PULSE WIDTH", mode == 1) && mode != 1) {
                 mode = 1;
                 lval = 0x20;
                 rval = 0x40;
@@ -470,8 +599,8 @@ void draw_easy() {
             gui::button_style(gui::ButtonStyle::RadioLeft);
             if (gui::button("SET PARAMS", mode == 0) && mode != 0) {
                 mode = 0;
-                lval = 0x90; // low pass
-                rval = 0xF1; // res F, voice 0
+                lval = 0x80;
+                rval = 0xF0;
             }
             gui::same_line();
             gui::item_size({ PANEL_W / 3 + 1, app::BUTTON_HEIGHT });
@@ -571,8 +700,7 @@ void draw_hard() {
     static int          g_table_scroll[4];
 
     int             instr_nr = piano::instrument();
-    gt::Song&       song     = app::song();
-    gt::Instrument& instr    = song.instruments[instr_nr];
+    gt::Instrument& instr    = g_song.instruments[instr_nr];
     settings_view::Settings const& settings = settings_view::settings();
     char str[32];
 
@@ -638,8 +766,8 @@ void draw_hard() {
         int pos = instr.ptr[t] - 1;
 
 
-        auto& ltable = song.ltable[t];
-        auto& rtable = song.rtable[t];
+        auto& ltable = g_song.ltable[t];
+        auto& rtable = g_song.rtable[t];
 
         int& scroll = g_table_scroll[t];
         for (int i = 0; i < table_page; ++i) {
@@ -866,8 +994,8 @@ void draw_hard() {
     case CursorSelect::SpeedTable: {
         int t = int(g_cursor_select);
         uint8_t* data[] = {
-            &song.ltable[t][g_cursor_row],
-            &song.rtable[t][g_cursor_row],
+            &g_song.ltable[t][g_cursor_row],
+            &g_song.rtable[t][g_cursor_row],
         };
 
         gui::align(gui::Align::Center);

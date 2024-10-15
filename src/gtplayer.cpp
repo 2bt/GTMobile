@@ -32,6 +32,10 @@ constexpr uint8_t FREQ_HI[] = {
 
 
 Player::Player(Song const& song) : m_song(song) {
+    reset();
+}
+
+void Player::reset() {
     for (int c = 0; c < MAX_CHN; c++) {
         m_channels[c].trans = 0;
         m_channels[c].instr = 1;

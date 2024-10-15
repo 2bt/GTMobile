@@ -102,6 +102,7 @@ enum class BoxStyle {
     RadioLeft,
     RadioCenter,
     RadioRight,
+    Frame,
 };
 
 
@@ -304,7 +305,7 @@ void input_text(char* str, int len);
 template<size_t L>void input_text(std::array<char, L>& t) { input_text(t.data(), L - 1); }
 bool horizontal_drag_bar(int& value, int min, int max, int page);
 bool vertical_drag_bar(int& value, int min, int max, int page);
-bool vertical_drag_button(int& value);
+bool vertical_drag_button(int& pos, int row_height);
 
 template<class T>
 bool horizontal_drag_bar(T& value, int min, int max, int page) {

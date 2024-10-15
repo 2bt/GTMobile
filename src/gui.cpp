@@ -478,16 +478,15 @@ bool vertical_drag_bar(int& value, int min, int max, int page) {
     }
     return value != old_value;
 }
-bool vertical_drag_button(int& value) {
+bool vertical_drag_button(int& pos, int row_height) {
     Box box = item_box();
-    ButtonState state = button_state(box, &value);
+    ButtonState state = button_state(box, &pos);
     bool is_active = state != ButtonState::Normal;
 
-    int old_value = value;
+    int old_pos = pos;
     if (is_active) {
-        int dy = g_touch_pos.y - box.pos.y;
-        value = dy / box.size.y;
-        value -= dy < 0;
+        int dy = g_touch_pos.y - (box.pos.y + box.size.y / 2);
+        pos += dy / row_height;
     }
 
     g_dc.rgb(is_active ? color::DRAG_HANDLE_ACTIVE : color::DRAG_HANDLE_NORMAL);
@@ -496,7 +495,7 @@ bool vertical_drag_button(int& value) {
     g_dc.rgb(color::DRAG_ICON);
     int i = int(Icon::VGrab);
     g_dc.rect(box.pos + box.size / 2 - 8, 16, { i % 8 * 16, i / 8 * 16 });
-    return value != old_value;
+    return pos != old_pos;
 }
 
 
