@@ -254,7 +254,9 @@ void init() {
         if (entry.path().extension().string() != FILE_SUFFIX) continue;
         g_file_names.emplace_back(entry.path().stem().string());
     }
-    std::sort(g_file_names.begin(), g_file_names.end());
+    std::sort(g_file_names.begin(), g_file_names.end(), [](std::string const& a, std::string const& b) {
+        return strcasecmp(a.c_str(), b.c_str()) < 0;
+    });
     g_status_msg = "";
 }
 

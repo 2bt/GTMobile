@@ -1,7 +1,9 @@
 #include <cstdio>
 #include <cstring>
 #include <fstream>
+#include <vector>
 #include <cassert>
+#include <algorithm>
 #include "gtsong.hpp"
 #include "log.hpp"
 
@@ -166,6 +168,97 @@ bool Song::load(std::istream& stream) {
             else if (instr > 0 && row.note <= LASTNOTE) row.instr = instr;
             patt.rows[i] = row;
         }
+    }
+
+
+    // set up speed table
+    // 01 - 20: vibrato
+    // 21 - 40: portamento
+    // 41 - 50: funk tempo
+    auto& lspeed = ltable[STBL];
+    auto& rspeed = rtable[STBL];
+    std::vector<uint16_t> porta;
+    std::vector<uint16_t> vib;
+    std::vector<uint16_t> funk;
+    for (Instrument& instr : instruments) {
+        int i = instr.ptr[STBL];
+        if (i == 0) continue;
+        uint16_t v = (lspeed[i - 1] << 8) | rspeed[i - 1];
+        auto it = std::find(vib.begin(), vib.end(), v);
+        if (it == vib.end()) {
+            vib.push_back(v);
+            instr.ptr[STBL] = vib.size();
+        }
+        else {
+            instr.ptr[STBL] = 0x01 + (it - vib.begin());
+        }
+    }
+    for (Pattern& patt : patterns) {
+        for (PatternRow& row : patt.rows) {
+            if (row.data == 0) continue;
+            if (row.command == 0x4) {
+                uint16_t v = (lspeed[row.data - 1] << 8) | rspeed[row.data - 1];
+                auto it = std::find(vib.begin(), vib.end(), v);
+                if (it == vib.end()) {
+                    row.data = 0x01 + vib.size();
+                    vib.push_back(v);
+                }
+                else {
+                    row.data = 0x01 + (it - vib.begin());
+                }
+            }
+            if (row.command >= 0x1 && row.command <= 0x3) {
+                uint16_t v = (lspeed[row.data - 1] << 8) | rspeed[row.data - 1];
+                auto it = std::find(porta.begin(), porta.end(), v);
+                if (it == porta.end()) {
+                    row.data = 0x21 + porta.size();
+                    porta.push_back(v);
+                }
+                else {
+                    row.data = 0x21 + (it - porta.begin());
+                }
+            }
+            if (row.command == 0xe) {
+                uint16_t v = (lspeed[row.data - 1] << 8) | rspeed[row.data - 1];
+                auto it = std::find(funk.begin(), funk.end(), v);
+                if (it == funk.end()) {
+                    row.data = 0x41 + funk.size();
+                    funk.push_back(v);
+                }
+                else {
+                    row.data = 0x41 + (it - funk.begin());
+                }
+            }
+        }
+    }
+    if (vib.size() >= 0x20) {
+        LOGE("Song::load: too many different vibratos");
+        clear();
+        return false;
+    }
+    if (porta.size() >= 0x20) {
+        LOGE("Song::load: too many different portamenti");
+        clear();
+        return false;
+    }
+    if (funk.size() >= 0x10) {
+        LOGE("Song::load: too many different funk tempi");
+        clear();
+        return false;
+    }
+    lspeed = {};
+    rspeed = {};
+    for (size_t i = 0; i < vib.size(); ++i) {
+        lspeed[i] = vib[i] >> 8;
+        rspeed[i] = vib[i] & 0xff;
+    }
+    for (size_t i = 0; i < porta.size(); ++i) {
+        lspeed[0x20 + i] = porta[i] >> 8;
+        rspeed[0x20 + i] = porta[i] & 0xff;
+    }
+    for (size_t i = 0; i < funk.size(); ++i) {
+        lspeed[0x40 + i] = funk[i] >> 8;
+        rspeed[0x40 + i] = funk[i] & 0xff;
     }
 
     return true;

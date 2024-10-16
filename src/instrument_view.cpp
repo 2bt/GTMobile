@@ -486,7 +486,6 @@ void draw_easy() {
                 int icon = int(gui::Icon::Noise) + i;
                 if (gui::button(gui::Icon(icon), v & mask)) {
                     v ^= mask;
-                    // if ((v & 0xe0) == 0xe0) v ^= (i == 0) ? 0x20 : 0x80;
                 }
                 gui::same_line();
             }
