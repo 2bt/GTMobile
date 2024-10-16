@@ -120,10 +120,8 @@ void delete_table_row(int pos) {
 
 
 void draw_easy() {
-    int             instr_nr = piano::instrument();
-    gt::Instrument& instr    = g_song.instruments[instr_nr];
+    gt::Instrument& instr = g_song.instruments[piano::instrument()];
     char str[32];
-
 
     gui::same_line();
     gui::align(gui::Align::Left);
@@ -163,13 +161,11 @@ void draw_easy() {
         CW_DATA = app::CANVAS_WIDTH - CW_NUM - app::SCROLL_WIDTH - app::BUTTON_HEIGHT * 2,
         PANEL_W = app::CANVAS_WIDTH - 10,
     };
-
-
+    constexpr char const* TABLE_LABELS[] = { "WAVE", "PULSE", "FILTER" };
     gui::item_size({ app::CANVAS_WIDTH / 3, app::BUTTON_HEIGHT });
     for (int t = 0; t < 3; ++t) {
-        constexpr char const* LABELS[] = { "WAVE", "PULSE", "FILTER" };
         gui::button_style(instr.ptr[t] > 0 ? gui::ButtonStyle::Tab : gui::ButtonStyle::ShadedTab );
-        if (gui::button(LABELS[t], t == g_table)) {
+        if (gui::button(TABLE_LABELS[t], t == g_table)) {
             g_cursor_select = CursorSelect::Table;
             g_table = t;
         }
@@ -360,11 +356,29 @@ void draw_easy() {
     gui::vertical_drag_bar(g_scroll, 0, max_scroll - table_page, table_page);
 
 
+    // instr sharing
+    static bool draw_share_window = false;
+    size_t      share_count       = 0;
+    if (instr.ptr[g_table] > 0) {
+        for (size_t i = 0; i < gt::MAX_INSTR; ++i) {
+            gt::Instrument const& in = g_song.instruments[i];
+            if (in.ptr[g_table] == instr.ptr[g_table]) {
+                ++share_count;
+            }
+        }
+    }
+
+
     // table buttons
     if (g_cursor_select == CursorSelect::Table) {
-        int num_free_rows = ltable.size() - start_row;
-
         gui::cursor({ app::CANVAS_WIDTH - app::BUTTON_HEIGHT * 2, cursor.y });
+
+        gui::item_size({ app::BUTTON_HEIGHT * 2, app::BUTTON_HEIGHT });
+        if (gui::button(gui::Icon::Share, share_count >= 2)) {
+            draw_share_window = true;
+        }
+
+        int num_free_rows = ltable.size() - start_row;
         gui::item_size(app::BUTTON_HEIGHT);
         gui::disabled(num_free_rows <= 1);
         if (gui::button(gui::Icon::AddRowAbove)) {
@@ -438,11 +452,11 @@ void draw_easy() {
 
         gui::item_size({ PANEL_W / 2, app::BUTTON_HEIGHT });
         gui::button_style(gui::ButtonStyle::Normal);
-        if (gui::button("HARD RESTART", !(instr.gatetimer & 0x80))) {
+        if (gui::button("DISABLE HARD RESTART", instr.gatetimer & 0x80)) {
             instr.gatetimer ^= 0x80;
         }
         gui::same_line();
-        if (gui::button("GATE OFF", !(instr.gatetimer & 0x40))) {
+        if (gui::button("DISABLE GATE OFF", instr.gatetimer & 0x40)) {
             instr.gatetimer ^= 0x40;
         }
         int v = instr.gatetimer & 0x3f;
@@ -452,8 +466,6 @@ void draw_easy() {
     else if (g_cursor_select == CursorSelect::FirstWave) {
         gui::item_size({ PANEL_W, app::BUTTON_HEIGHT });
         gui::text("1ST WAVE");
-
-
         gui::item_size({ PANEL_W / 4 + 1, app::BUTTON_HEIGHT });
         gui::button_style(gui::ButtonStyle::RadioLeft);
         if (gui::button("WAVE", instr.firstwave > 0 && instr.firstwave < 0xfe)) {
@@ -712,6 +724,59 @@ void draw_easy() {
         }
     }
 
+
+
+    // table sharing window
+    if (draw_share_window) {
+        int space = app::canvas_height() - 12 - app::BUTTON_HEIGHT * 2;
+        int row_h = std::min<int>(space / 32, app::MAX_ROW_HEIGHT);
+        enum {
+            COL_W = 12 + 8 * 18,
+        };
+        gui::begin_window({ COL_W * 2, row_h * 32 + app::BUTTON_HEIGHT * 2 });
+        gui::item_size({ COL_W * 2, app::BUTTON_HEIGHT });
+        gui::text("%s TABLE SHARING", TABLE_LABELS[g_table]);
+
+        gui::align(gui::Align::Left);
+        gui::item_size({ COL_W, row_h });
+        for (int n = 0; n < gt::MAX_INSTR; ++n) {
+            gui::same_line(n % 2 == 1);
+            if (n == 0) {
+                gui::item_box();
+                continue;
+            }
+            int i = n % 2 * 32 + n / 2;
+            gt::Instrument const& in = g_song.instruments[i];
+            sprintf(str, "%02X %s", i, in.name.data());
+            gui::disabled(in.ptr[g_table] == 0);
+            if (gui::button(str, in.ptr[g_table] > 0 && in.ptr[g_table] == instr.ptr[g_table])) {
+                draw_share_window = false;
+                // TODO
+            }
+        }
+        gui::align(gui::Align::Center);
+        gui::button_style(gui::ButtonStyle::Normal);
+
+        gui::item_size({ COL_W * 2 / 3, app::BUTTON_HEIGHT });
+        gui::disabled(share_count < 2);
+        if (gui::button("CLONE")) {
+            draw_share_window = false;
+            // TODO
+        }
+        gui::same_line();
+        gui::disabled(instr.ptr[g_table] == 0);
+        if (gui::button("DELETE")) {
+            draw_share_window = false;
+            // TODO
+        }
+        gui::disabled(false);
+        gui::same_line();
+        if (gui::button("CANCEL")) {
+            draw_share_window = false;
+            // TODO
+        }
+        gui::end_window();
+    }
 }
 
 

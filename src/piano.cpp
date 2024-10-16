@@ -7,6 +7,7 @@
 namespace piano {
 namespace {
 
+gt::Song& g_song = app::song();
 int  g_instrument = 1;
 int  g_scroll     = 14 * 3; // show octave 3 and 4
 bool g_gate;
@@ -27,7 +28,6 @@ bool draw(bool* follow) {
     bool note_on = false;
 
     int piano_y = app::canvas_height() - HEIGHT;
-    gt::Song& song = app::song();
     gui::DrawContext& dc = gui::draw_context();
     char str[32];
 
@@ -37,7 +37,7 @@ bool draw(bool* follow) {
     // instrument button
     gui::item_size({ 8 * 18 + 12, app::BUTTON_HEIGHT });
     gui::align(gui::Align::Left);
-    sprintf(str, "%02X %s", g_instrument, song.instruments[g_instrument].name.data());
+    sprintf(str, "%02X %s", g_instrument, g_song.instruments[g_instrument].name.data());
     gui::button_style(gui::ButtonStyle::Normal);
     if (gui::button(str)) show_instrument_select = true;
     gui::align(gui::Align::Center);
@@ -54,15 +54,14 @@ bool draw(bool* follow) {
         int space = app::canvas_height() - 12 - app::BUTTON_HEIGHT * 2;
         int row_h = std::min<int>(space / 32, app::MAX_ROW_HEIGHT);
         enum {
-            INST_BUTTON_W = 8 * 19,
+            COL_W = 12 + 8 * 18,
         };
-        gui::Box box = gui::begin_window({ INST_BUTTON_W * 2, row_h * 32 + app::BUTTON_HEIGHT * 2 });
-
-        gui::item_size({ box.size.x, app::BUTTON_HEIGHT });
+        gui::begin_window({ COL_W * 2, row_h * 32 + app::BUTTON_HEIGHT * 2 });
+        gui::item_size({ COL_W * 2, app::BUTTON_HEIGHT });
         gui::text("SELECT INSTRUMENT");
 
         gui::align(gui::Align::Left);
-        gui::item_size({ INST_BUTTON_W, row_h });
+        gui::item_size({ COL_W, row_h });
         for (int n = 0; n < gt::MAX_INSTR; ++n) {
             gui::same_line(n % 2 == 1);
             if (n == 0) {
@@ -70,7 +69,7 @@ bool draw(bool* follow) {
                 continue;
             }
             int i = n % 2 * 32 + n / 2;
-            auto const& instr = song.instruments[i];
+            gt::Instrument const& instr = g_song.instruments[i];
             sprintf(str, "%02X %s", i, instr.name.data());
             bool set = instr.ptr[0] | instr.ptr[1] | instr.ptr[2] | instr.ptr[3];
             gui::button_style(set ? gui::ButtonStyle::Normal : gui::ButtonStyle::Shaded);
@@ -80,7 +79,7 @@ bool draw(bool* follow) {
             }
         }
         gui::button_style(gui::ButtonStyle::Normal);
-        gui::item_size({ box.size.x, app::BUTTON_HEIGHT });
+        gui::item_size({ COL_W * 2, app::BUTTON_HEIGHT });
         gui::align(gui::Align::Center);
         if (gui::button("CANCEL")) show_instrument_select = false;
         gui::end_window();
@@ -219,7 +218,7 @@ bool draw(bool* follow) {
     gui::same_line();
     if (gui::button(gui::Icon::FastForward)) {
         for (int& x : player.m_start_song_pos) {
-            if (x < song.song_len - 1) ++x;
+            if (x < g_song.song_len - 1) ++x;
             else x = 0;
         }
         player.m_start_patt_pos = {};
