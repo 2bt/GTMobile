@@ -223,6 +223,7 @@ enum class Icon {
 
     Copy = 48,
     Paste,
+    Share,
 
     Noise = 56,
     Pulse,
