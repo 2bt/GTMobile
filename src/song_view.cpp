@@ -86,11 +86,8 @@ void draw_order_edit() {
     }
     gui::button_style(gui::ButtonStyle::Normal);
 
-    gui::item_size({ 26 * 4, app::BUTTON_HEIGHT });
     sprintf(str, "TRANSPOSE %c%X", "+-"[g_transpose < 0], abs(g_transpose));
-    gui::text(str);
-    gui::same_line();
-    app::slider(26 * 9, g_transpose, -0xf, 0xe);
+    app::slider(26 * 13, str, g_transpose, -0xf, 0xe);
     gui::item_size({ box.size.x, app::BUTTON_HEIGHT });
     if (gui::button("CLOSE")) exit_order_edit();
     gui::end_window();

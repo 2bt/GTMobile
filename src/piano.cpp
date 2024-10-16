@@ -40,6 +40,7 @@ bool draw(bool* follow) {
     sprintf(str, "%02X %s", g_instrument, song.instruments[g_instrument].name.data());
     gui::button_style(gui::ButtonStyle::Normal);
     if (gui::button(str)) show_instrument_select = true;
+    gui::align(gui::Align::Center);
 
     // piano scroll bar
     gui::same_line();
@@ -57,7 +58,6 @@ bool draw(bool* follow) {
         };
         gui::Box box = gui::begin_window({ INST_BUTTON_W * 2, row_h * 32 + app::BUTTON_HEIGHT * 2 });
 
-        gui::align(gui::Align::Center);
         gui::item_size({ box.size.x, app::BUTTON_HEIGHT });
         gui::text("SELECT INSTRUMENT");
 

@@ -15,7 +15,7 @@ Settings&       mutable_settings() { return g_settings; }
 void draw() {
     enum {
         C1W = 12 + 21 * 8,
-        C2W = app::CANVAS_WIDTH - C1W,
+        C2W =  - C1W,
     };
 
     gui::item_size({ app::CANVAS_WIDTH, app::BUTTON_HEIGHT });
@@ -23,15 +23,8 @@ void draw() {
         g_settings.play_in_background ^= 1;
     }
 
-    gui::item_size({ C1W , app::BUTTON_HEIGHT });
-    gui::text("ROW HIGHLIGHT STEP %02X", g_settings.row_highlight);
-    gui::same_line();
-    app::slider(C2W, g_settings.row_highlight, 2, 16);
-
-    gui::item_size({ C1W , app::BUTTON_HEIGHT });
-    gui::text("ROW HEIGHT         %02X", g_settings.row_height);
-    gui::same_line();
-    app::slider(C2W, g_settings.row_height, 8, app::MAX_ROW_HEIGHT);
+    app::slider(app::CANVAS_WIDTH, "ROW HIGHLIGHT STEP %02X", g_settings.row_highlight, 2, 16);
+    app::slider(app::CANVAS_WIDTH, "ROW HEIGHT         %02X", g_settings.row_height, 8, app::MAX_ROW_HEIGHT);
 
     piano::draw();
 }

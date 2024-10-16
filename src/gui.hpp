@@ -127,7 +127,9 @@ public:
     }
 
     void character(ivec2 pos, uint8_t g) {
-        ivec2 uv(g % 16 * m_char_size.x, g / 16 * m_char_size.x + m_font_offset);
+        if (g >= 128) return;
+        int o = g < 32 ? 256 : m_font_offset;
+        ivec2 uv(g % 16 * m_char_size.x, g / 16 * m_char_size.x + o);
         rect(pos, m_char_size, uv);
     }
 
@@ -149,7 +151,7 @@ public:
     void text(ivec2 pos, char const* text) {
         ivec2 p = pos;
         while (uint8_t c = *text++) {
-            if (c < 128) character(p, c);
+            character(p, c);
             if (c == '\n') {
                 p.x = pos.x;
                 p.y += m_char_size.y;

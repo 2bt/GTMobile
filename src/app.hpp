@@ -1,6 +1,7 @@
 #pragma once
 #include <cstdint>
 #include <string>
+#include <cstring>
 #include "gtplayer.hpp"
 #include "gtsong.hpp"
 #include "gui.hpp"
@@ -26,11 +27,17 @@ namespace app {
     };
 
     template<class T>
-    bool slider(int width, T& value, int min, int max, void const* addr=nullptr) {
+    bool slider(int width, char const* fmt, T& value, int min, int max, void const* addr=nullptr) {
         int v = value;
         int old_v = value;
+        char str[64] = {};
+        snprintf(str, sizeof(str), fmt, v);
+        int const text_width = 12 + strlen(str) * 8;
+        gui::item_size({ text_width, BUTTON_HEIGHT });
+        gui::text(str);
+        gui::same_line();
         gui::drag_bar_style(gui::DragBarStyle::Normal);
-        gui::item_size({ width - BUTTON_HEIGHT * 2, BUTTON_HEIGHT });
+        gui::item_size({ width - text_width - BUTTON_HEIGHT * 2, BUTTON_HEIGHT });
         gui::id(addr ? addr : &value);
         gui::horizontal_drag_bar(v, min, max, 1);
         gui::same_line();
