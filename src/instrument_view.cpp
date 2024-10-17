@@ -162,7 +162,7 @@ void draw_easy() {
         PANEL_W = app::CANVAS_WIDTH - 10,
     };
     constexpr char const* TABLE_LABELS[] = { "WAVE", "PULSE", "FILTER" };
-    gui::item_size({ app::CANVAS_WIDTH / 3, app::BUTTON_HEIGHT });
+    gui::item_size({ (app::CANVAS_WIDTH - app::BUTTON_HEIGHT * 2) / 3, app::BUTTON_HEIGHT });
     for (int t = 0; t < 3; ++t) {
         gui::button_style(instr.ptr[t] > 0 ? gui::ButtonStyle::Tab : gui::ButtonStyle::ShadedTab );
         if (gui::button(TABLE_LABELS[t], t == g_table)) {
@@ -172,12 +172,26 @@ void draw_easy() {
         gui::same_line();
     }
     gui::button_style(gui::ButtonStyle::Normal);
-    gui::same_line(false);
+
+    // instr sharing
+    static bool draw_share_window = false;
+    size_t      share_count       = 0;
+    if (instr.ptr[g_table] > 0) {
+        for (size_t i = 0; i < gt::MAX_INSTR; ++i) {
+            gt::Instrument const& in = g_song.instruments[i];
+            if (in.ptr[g_table] == instr.ptr[g_table]) {
+                ++share_count;
+            }
+        }
+    }
+    gui::item_size({ app::BUTTON_HEIGHT * 2, app::BUTTON_HEIGHT });
+    if (gui::button(gui::Icon::Share, share_count >= 2)) {
+        draw_share_window = true;
+    }
 
     ivec2 cursor      = gui::cursor();
     int   table_space = app::canvas_height() - cursor.y - piano::HEIGHT - app::BUTTON_HEIGHT * 4 - 10;
     int   table_page  = table_space / app::MAX_ROW_HEIGHT;
-    int   max_scroll  = 0;
     int   text_offset = (app::MAX_ROW_HEIGHT - 7) / 2;
 
 
@@ -198,16 +212,18 @@ void draw_easy() {
         assert(len > 0);
         int loop = rtable[end_row];
         assert(loop == 0 || (loop - 1 >= start_row && loop - 1 < end_row));
-        max_scroll = std::max(max_scroll, len);
     }
-    else {
-        // find first free row
-        start_row = ltable.size();
-        while (start_row > 0 && ltable[start_row - 1] == 0 && rtable[start_row - 1] == 0) {
-            --start_row;
-        }
 
+    // find free row
+    int num_free_rows = 0;
+    while (num_free_rows < int(ltable.size()) &&
+           ltable[ltable.size() - num_free_rows - 1] == 0 &&
+           rtable[ltable.size() - num_free_rows - 1] == 0)
+    {
+        ++num_free_rows;
     }
+
+    g_scroll = clamp(g_scroll, 0, len - table_page);
     g_cursor_row = std::min(g_cursor_row, len - 1);
     g_cursor_row = std::max(g_cursor_row, 0);
 
@@ -353,40 +369,23 @@ void draw_easy() {
     gui::cursor({ CW_NUM + CW_DATA, cursor.y });
     gui::item_size({ app::SCROLL_WIDTH, app::MAX_ROW_HEIGHT * table_page });
     gui::drag_bar_style(gui::DragBarStyle::Scrollbar);
-    gui::vertical_drag_bar(g_scroll, 0, max_scroll - table_page, table_page);
-
-
-    // instr sharing
-    static bool draw_share_window = false;
-    size_t      share_count       = 0;
-    if (instr.ptr[g_table] > 0) {
-        for (size_t i = 0; i < gt::MAX_INSTR; ++i) {
-            gt::Instrument const& in = g_song.instruments[i];
-            if (in.ptr[g_table] == instr.ptr[g_table]) {
-                ++share_count;
-            }
-        }
-    }
+    gui::vertical_drag_bar(g_scroll, 0, len - table_page, table_page);
 
 
     // table buttons
     if (g_cursor_select == CursorSelect::Table) {
         gui::cursor({ app::CANVAS_WIDTH - app::BUTTON_HEIGHT * 2, cursor.y });
 
-        gui::item_size({ app::BUTTON_HEIGHT * 2, app::BUTTON_HEIGHT });
-        if (gui::button(gui::Icon::Share, share_count >= 2)) {
-            draw_share_window = true;
-        }
-
-        int num_free_rows = ltable.size() - start_row;
         gui::item_size(app::BUTTON_HEIGHT);
-        gui::disabled(num_free_rows <= 1);
+        gui::disabled(len == 0 ? num_free_rows <= 1 : num_free_rows == 0);
         if (gui::button(gui::Icon::AddRowAbove)) {
             // add jump
             if (len == 0) {
-                instr.ptr[g_table] = start_row + g_cursor_row + 1;
-                add_table_row(start_row + g_cursor_row);
-                ltable[start_row + g_cursor_row] = 0xff;
+                assert(num_free_rows >= 2);
+                start_row = ltable.size() - num_free_rows;
+                instr.ptr[g_table] = start_row + 1;
+                add_table_row(start_row);
+                ltable[start_row] = 0xff;
                 ++len;
             }
             add_table_row(start_row + g_cursor_row);
@@ -409,7 +408,7 @@ void draw_easy() {
             --end_row;
             if (len == 0) {
                 // delete jump row
-                delete_table_row(start_row + g_cursor_row);
+                delete_table_row(start_row);
             }
             else {
                 // clamp jump pointer
@@ -465,7 +464,7 @@ void draw_easy() {
     }
     else if (g_cursor_select == CursorSelect::FirstWave) {
         gui::item_size({ PANEL_W, app::BUTTON_HEIGHT });
-        gui::text("1ST WAVE");
+        gui::text("FIRST WAVE");
         gui::item_size({ PANEL_W / 4 + 1, app::BUTTON_HEIGHT });
         gui::button_style(gui::ButtonStyle::RadioLeft);
         if (gui::button("WAVE", instr.firstwave > 0 && instr.firstwave < 0xfe)) {
@@ -649,17 +648,7 @@ void draw_easy() {
             // 01-7F filter mod step time/speed
             // 80-F0 set params
 
-            //     // new modulation step
-            //     if (m_song.ltable[FTBL][m_filterptr - 1]) m_filtertime = m_song.ltable[FTBL][m_filterptr - 1];
-            //     else {
-            //         // cutoff set
-            //         m_filtercutoff = m_song.rtable[FTBL][m_filterptr - 1];
-            //         m_filterptr++;
-            //     }
-            // }
-
             int mode = (lval >= 0x80) ? 0 : (lval == 0x00) ? 1 : 2;
-
             gui::item_size({ PANEL_W / 3 + 1, app::BUTTON_HEIGHT });
             gui::button_style(gui::ButtonStyle::RadioLeft);
             if (gui::button("SET PARAMS", mode == 0) && mode != 0) {
@@ -751,30 +740,49 @@ void draw_easy() {
             gui::disabled(in.ptr[g_table] == 0);
             if (gui::button(str, in.ptr[g_table] > 0 && in.ptr[g_table] == instr.ptr[g_table])) {
                 draw_share_window = false;
-                // TODO
+                if (share_count == 1) {
+                    // TODO: confirmation dialog
+                    // delete table
+                    for (int i = 0; i <= len; ++i) delete_table_row(start_row);
+                }
+                instr.ptr[g_table] = in.ptr[g_table];
             }
         }
         gui::align(gui::Align::Center);
         gui::button_style(gui::ButtonStyle::Normal);
 
         gui::item_size({ COL_W * 2 / 3, app::BUTTON_HEIGHT });
-        gui::disabled(share_count < 2);
+        gui::disabled(share_count < 2 || num_free_rows < (len + 1));
         if (gui::button("CLONE")) {
             draw_share_window = false;
-            // TODO
+            // copy
+            int new_start_row = ltable.size() - num_free_rows;
+            for (int i = 0; i <= len; ++i) {
+                ltable[new_start_row + i] = ltable[start_row + i];
+                rtable[new_start_row + i] = rtable[start_row + i];
+            }
+            assert(ltable[end_row] == 0xff);
+
+            // fix jump address
+            if (rtable[end_row] > 0) {
+                rtable[new_start_row + len] += new_start_row - start_row;
+            }
+            instr.ptr[g_table] = new_start_row + 1;
+            // TODO: update pointers in pattern and wave table
         }
         gui::same_line();
         gui::disabled(instr.ptr[g_table] == 0);
         if (gui::button("DELETE")) {
             draw_share_window = false;
-            // TODO
+            if (share_count == 1) {
+                // delete table
+                for (int i = 0; i <= len; ++i) delete_table_row(start_row);
+            }
+            instr.ptr[g_table] = 0;
         }
         gui::disabled(false);
         gui::same_line();
-        if (gui::button("CANCEL")) {
-            draw_share_window = false;
-            // TODO
-        }
+        if (gui::button("CANCEL")) draw_share_window = false;
         gui::end_window();
     }
 }
