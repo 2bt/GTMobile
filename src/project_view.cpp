@@ -33,14 +33,14 @@ void draw_confirm() {
         return;
     }
     gui::item_size({ box.size.x / 2, app::BUTTON_HEIGHT });
-    if (gui::button("CANCEL")) {
-        g_confirm_msg.clear();
-        g_confirm_callback(false);
-    }
-    gui::same_line();
     if (gui::button("OK")) {
         g_confirm_msg.clear();
         g_confirm_callback(true);
+    }
+    gui::same_line();
+    if (gui::button("CANCEL")) {
+        g_confirm_msg.clear();
+        g_confirm_callback(false);
     }
     gui::end_window();
 }
@@ -120,9 +120,6 @@ void draw_load_window() {
 
     gui::align(gui::Align::Center);
     gui::item_size({ box.size.x / 2, app::BUTTON_HEIGHT });
-    if (gui::button("CANCEL")) g_dialog = Dialog::none;
-    gui::same_line();
-
     gui::disabled(!file_selected);
     if (gui::button("LOAD")) {
         app::player().stop_song();
@@ -134,6 +131,8 @@ void draw_load_window() {
         g_dialog = Dialog::none;
     }
     gui::disabled(false);
+    gui::same_line();
+    if (gui::button("CANCEL")) g_dialog = Dialog::none;
 
     // scrollbar
     gui::cursor(box.pos + ivec2(box.size.x - app::SCROLL_WIDTH, app::BUTTON_HEIGHT));
@@ -190,9 +189,6 @@ void draw_save_window() {
 
     gui::align(gui::Align::Center);
     gui::item_size({ box.size.x / 2, app::BUTTON_HEIGHT });
-    if (gui::button("CANCEL")) g_dialog = Dialog::none;
-    gui::same_line();
-
     gui::disabled(g_file_name[0] == '\0');
     if (gui::button("SAVE")) {
         if (file_selected) {
@@ -205,6 +201,8 @@ void draw_save_window() {
         }
     }
     gui::disabled(false);
+    gui::same_line();
+    if (gui::button("CANCEL")) g_dialog = Dialog::none;
 
     // scrollbar
     gui::cursor(box.pos + ivec2(box.size.x - app::SCROLL_WIDTH, app::BUTTON_HEIGHT));

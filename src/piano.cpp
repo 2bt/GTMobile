@@ -58,7 +58,7 @@ bool draw(bool* follow) {
         };
         gui::begin_window({ COL_W * 2, row_h * 32 + app::BUTTON_HEIGHT * 2 });
         gui::item_size({ COL_W * 2, app::BUTTON_HEIGHT });
-        gui::text("SELECT INSTRUMENT");
+        gui::text("INSTRUMENT SELECT");
 
         gui::align(gui::Align::Left);
         gui::item_size({ COL_W, row_h });
@@ -81,7 +81,7 @@ bool draw(bool* follow) {
         gui::button_style(gui::ButtonStyle::Normal);
         gui::item_size({ COL_W * 2, app::BUTTON_HEIGHT });
         gui::align(gui::Align::Center);
-        if (gui::button("CANCEL")) show_instrument_select = false;
+        if (gui::button("CLOSE")) show_instrument_select = false;
         gui::end_window();
     }
 

@@ -376,7 +376,7 @@ void draw_easy() {
     if (g_cursor_select == CursorSelect::Table) {
         gui::cursor({ app::CANVAS_WIDTH - app::BUTTON_HEIGHT * 2, cursor.y });
 
-        gui::item_size(app::BUTTON_HEIGHT);
+        gui::item_size({ app::BUTTON_HEIGHT * 2, app::BUTTON_HEIGHT });
         gui::disabled(len == 0 ? num_free_rows <= 1 : num_free_rows == 0);
         if (gui::button(gui::Icon::AddRowAbove)) {
             // add jump
@@ -392,7 +392,6 @@ void draw_easy() {
             if (g_table == gt::PTBL) ltable[start_row + g_cursor_row] = 0x88; // set pw
             ++len;
         }
-        gui::same_line();
         gui::disabled(len == 0 || num_free_rows == 0);
         if (gui::button(gui::Icon::AddRowBelow)) {
             ++g_cursor_row;
@@ -417,7 +416,6 @@ void draw_easy() {
                 g_cursor_row = std::min(g_cursor_row, len - 1);
             }
         }
-        gui::same_line();
         bool is_loop = rtable[end_row] == start_row + g_cursor_row + 1;
         if (gui::button(gui::Icon::JumpBack)) {
             if (is_loop) rtable[end_row] = 0;
@@ -782,7 +780,7 @@ void draw_easy() {
         }
         gui::disabled(false);
         gui::same_line();
-        if (gui::button("CANCEL")) draw_share_window = false;
+        if (gui::button("CLOSE")) draw_share_window = false;
         gui::end_window();
     }
 }
