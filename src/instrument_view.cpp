@@ -190,7 +190,7 @@ void draw_easy() {
     }
 
     ivec2 cursor      = gui::cursor();
-    int   table_space = app::canvas_height() - cursor.y - piano::HEIGHT - app::BUTTON_HEIGHT * 4 - 10;
+    int   table_space = app::canvas_height() - cursor.y - piano::HEIGHT - app::BUTTON_HEIGHT * 4 - gui::FRAME_WIDTH * 2 - 2;
     int   table_page  = table_space / app::MAX_ROW_HEIGHT;
     int   text_offset = (app::MAX_ROW_HEIGHT - 7) / 2;
 
@@ -227,6 +227,7 @@ void draw_easy() {
     g_cursor_row = std::min(g_cursor_row, len - 1);
     g_cursor_row = std::max(g_cursor_row, 0);
 
+    gui::cursor({ 0, cursor.y + 1 });
     gui::DrawContext& dc = gui::draw_context();
     for (int i = 0; i < table_page; ++i) {
         int r = i + g_scroll;
@@ -363,11 +364,11 @@ void draw_easy() {
         dc.text(p, str);
 
     }
-    int y = gui::cursor().y;
+    int y = gui::cursor().y + 1;
 
     // scrolling
     gui::cursor({ CW_NUM + CW_DATA, cursor.y });
-    gui::item_size({ app::SCROLL_WIDTH, app::MAX_ROW_HEIGHT * table_page });
+    gui::item_size({ app::SCROLL_WIDTH, app::MAX_ROW_HEIGHT * table_page + 2 });
     gui::drag_bar_style(gui::DragBarStyle::Scrollbar);
     gui::vertical_drag_bar(g_scroll, 0, len - table_page, table_page);
 

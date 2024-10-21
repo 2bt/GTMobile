@@ -523,7 +523,7 @@ bool vertical_drag_button(int& pos, int row_height) {
 // DrawContext //
 /////////////////
 void DrawContext::box(Box const& box, BoxStyle style) {
-    if (box.size.x <= 0 || box.size.y <= 0) return;
+    if (box.size.x < 4 || box.size.y < 4) return;
     i16vec2 p0 = box.pos;
     i16vec2 p1 = box.pos + 8;
     i16vec2 p2 = box.pos + box.size - 8;

@@ -226,10 +226,15 @@ void draw() {
     };
 
     ivec2 cursor = gui::cursor();
-    int height_left = app::canvas_height() - cursor.y - piano::HEIGHT - app::BUTTON_HEIGHT;
-    int total_rows = height_left / settings.row_height;
-    g_song_page = clamp(g_song_page, 0, total_rows);
-    int pattern_page = total_rows - g_song_page;
+    gui::cursor({ 0, cursor.y + 1 }); // 1px padding
+
+    int pattern_page;
+    {
+        int height_left = app::canvas_height() - cursor.y - piano::HEIGHT - app::BUTTON_HEIGHT;
+        int total_rows = (height_left - 4) / settings.row_height;
+        g_song_page = clamp(g_song_page, 0, total_rows);
+        pattern_page = total_rows - g_song_page;
+    }
 
     bool is_playing = player.is_playing();
     std::array<int, 3> patt_nums;
@@ -328,6 +333,8 @@ void draw() {
         }
     }
 
+    gui::cursor({ 0, gui::cursor().y + 1 }); // 1px padding
+
     // pattern bar
     gui::item_size({ NUM_W, settings.row_height });
     gui::item_box();
@@ -346,6 +353,8 @@ void draw() {
         dc.rgb(color::WHITE);
         dc.fill({ p + ivec2(27, 12), ivec2(sid::chan_level(c) * 50.0f + 0.9f, 6) });
     }
+
+    gui::cursor({ 0, gui::cursor().y + 1 }); // 1px padding
 
     // patterns
     for (int i = 0; i < pattern_page; ++i) {
@@ -434,7 +443,7 @@ void draw() {
         int page = g_song_page;
         // int max_scroll = std::max(0, max_song_len - page);
         int max_scroll = std::max(0, g_song.song_len - page);
-        gui::item_size({ app::SCROLL_WIDTH, page * settings.row_height });
+        gui::item_size({ app::SCROLL_WIDTH, page * settings.row_height + 2 });
         if (gui::vertical_drag_bar(g_song_scroll, 0, max_scroll, page)) g_follow = false;
     }
     {
@@ -444,7 +453,7 @@ void draw() {
     {
         int page = pattern_page;
         int max_scroll = std::max<int>(0, max_pattern_len - page);
-        gui::item_size({ app::SCROLL_WIDTH, page * settings.row_height });
+        gui::item_size({ app::SCROLL_WIDTH, page * settings.row_height + 2});
         if (gui::vertical_drag_bar(g_pattern_scroll, 0, max_scroll, page)) g_follow = false;
     }
 

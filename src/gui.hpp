@@ -120,6 +120,7 @@ public:
     }
 
     void rect(ivec2 pos, ivec2 size, ivec2 uv) {
+        if (size.x < 4 || size.y < 4) return;
         uint16_t i0 = add_vertex(pos, uv);
         uint16_t i1 = add_vertex(pos + ivec2(size.x, 0), uv + ivec2(size.x, 0));
         uint16_t i2 = add_vertex(pos + size, uv + size);
