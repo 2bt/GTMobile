@@ -95,20 +95,88 @@ void draw_order_edit() {
 }
 
 
+int             g_command          = 3;
+int             g_command_data[16] = {};
+
+
 void draw_command_edit() {
     if (g_dialog != Dialog::CommandEdit) return;
 
-    gui::Box box = gui::begin_window({ 13 * 26, (16 + 3) * app::BUTTON_HEIGHT });
-    gui::item_size({ box.size.x, app::BUTTON_HEIGHT });
-    gui::text("COMMAND");
+    enum {
+        WIDTH = 13 * 26,
+        HEIGHT = app::BUTTON_HEIGHT * 5 + app::MAX_ROW_HEIGHT * 15 + gui::FRAME_WIDTH,
+        C1W = 12 + 8 * 3,
+    };
+    gui::Box box = gui::begin_window({ WIDTH, HEIGHT });
+    gui::item_size({ WIDTH, app::BUTTON_HEIGHT });
+    gui::text("COMMAND EDIT");
 
-    auto&         order = g_song.song_order[g_cursor_chan];
-    gt::OrderRow& row   = order[g_cursor_song_row];
+    constexpr char const* TABLE_LABELS[] = {
+        "",
+        "PORTAMENTO UP",
+        "PORTAMENTO DOWN",
+        "TONE PORTAMENTO",
+        "VIBRATO",
+        "ATTACK & DECAY",
+        "SUSTAIN & RELEASE",
+        "WAVE",
+        "WAVE TABLE",
+        "PULSE TABLE",
+        "FILTER TABLE",
+        "FILTER CONTROL",
+        "FILTER CUTOFF",
+        "MASTER VOLUME",
+        "FUNK TEMPO",
+        "TEMPO",
+    };
 
-    char str[32];
+    gui::align(gui::Align::Left);
+    for (int i = 0x1; i <= 0xf; ++i) {
+        gui::item_size({ C1W, app::MAX_ROW_HEIGHT });
+        gui::text("%X%02X", i, g_command_data[i]);
+        gui::same_line();
+        gui::item_size({ WIDTH - C1W, app::MAX_ROW_HEIGHT });
+        if (gui::button(TABLE_LABELS[i], i == g_command)) {
+            g_command = i;
+        }
+    }
+    gui::align(gui::Align::Center);
+    gui::item_size({ WIDTH, app::BUTTON_HEIGHT });
+    gui::separator(false);
 
-    gui::item_size({ box.size.x, app::BUTTON_HEIGHT });
-    if (gui::button("CLOSE")) exit_order_edit();
+    // CMD_PORTAUP         = 1,
+    // CMD_PORTADOWN       = 2,
+    // CMD_TONEPORTA       = 3,
+    // CMD_VIBRATO         = 4,
+    // CMD_SETWAVE         = 7,
+    // CMD_SETWAVEPTR      = 8,
+    // CMD_SETPULSEPTR     = 9,
+    // CMD_SETFILTERPTR    = 10,
+    // CMD_SETFILTERCTRL   = 11,
+    // CMD_SETFILTERCUTOFF = 12,
+    // CMD_SETMASTERVOL    = 13,
+    // CMD_FUNKTEMPO       = 14,
+    // CMD_SETTEMPO        = 15,
+    // TODO
+    if (g_command == gt::CMD_SETAD) {
+        int a = g_command_data[gt::CMD_SETAD] >> 4;
+        int d = g_command_data[gt::CMD_SETAD] & 0xf;
+        app::slider(WIDTH, "ATTACK  %X", a, 0, 15);
+        app::slider(WIDTH, "DECAY   %X", d, 0, 15);
+        g_command_data[gt::CMD_SETAD] = (a << 4) | d;
+    }
+    else if (g_command == gt::CMD_SETSR) {
+        int s = g_command_data[gt::CMD_SETSR] >> 4;
+        int r = g_command_data[gt::CMD_SETSR] & 0xf;
+        app::slider(WIDTH, "SUSTAIN %X", s, 0, 15);
+        app::slider(WIDTH, "RELEASE %X", r, 0, 15);
+        g_command_data[gt::CMD_SETSR] = (s << 4) | r;
+    }
+
+
+    gui::cursor({ box.pos.x, box.pos.y + box.size.y - app::BUTTON_HEIGHT });
+    gui::item_size({ WIDTH, app::BUTTON_HEIGHT });
+    if (gui::button("CLOSE")) g_dialog = Dialog::None;
     gui::end_window();
 }
 
@@ -157,8 +225,8 @@ void draw() {
         COL_W = 84,
     };
 
-    gui::cursor({ 0, app::TAB_HEIGHT });
-    int height_left = app::canvas_height() - gui::cursor().y - piano::HEIGHT - app::BUTTON_HEIGHT;
+    ivec2 cursor = gui::cursor();
+    int height_left = app::canvas_height() - cursor.y - piano::HEIGHT - app::BUTTON_HEIGHT;
     int total_rows = height_left / settings.row_height;
     g_song_page = clamp(g_song_page, 0, total_rows);
     int pattern_page = total_rows - g_song_page;
@@ -330,7 +398,7 @@ void draw() {
                 dc.text(t, "\x01\x01\x01");
             }
             else if (row.note == gt::KEYOFF) {
-                dc.text(t, "\x02\x02\x02");
+                dc.text(t, "\x0b\x0c\x0d");
             }
             else if (row.note == gt::KEYON) {
                 dc.text(t, "\x03\x03\x03");
@@ -360,7 +428,7 @@ void draw() {
 
 
     // scroll bars
-    gui::cursor({ app::CANVAS_WIDTH - 80, app::TAB_HEIGHT });
+    gui::cursor({ app::CANVAS_WIDTH - 80, cursor.y });
     gui::drag_bar_style(gui::DragBarStyle::Scrollbar);
     {
         int page = g_song_page;
@@ -382,7 +450,7 @@ void draw() {
 
 
     // buttons
-    gui::cursor({ app::CANVAS_WIDTH - app::BUTTON_HEIGHT * 2, app::TAB_HEIGHT });
+    gui::cursor({ app::CANVAS_WIDTH - app::BUTTON_HEIGHT * 2, cursor.y });
     gui::align(gui::Align::Center);
 
     // order edit
@@ -427,7 +495,7 @@ void draw() {
         }
         gui::disabled(false);
 
-        if (gui::button(gui::Icon::Pen)) {
+        if (gui::button(gui::Icon::EditRow)) {
             init_order_edit();
         }
 
@@ -462,27 +530,78 @@ void draw() {
         }
         gui::disabled(false);
 
-        if (gui::button(gui::Icon::Record, g_recording)) {
-            g_recording = !g_recording;
-        }
+
 
         gt::PatternRow& row  = patt.rows[pos];
-        bool is_keyoff = row.note == gt::KEYOFF;
-        if (gui::button(is_keyoff ? "\x03\x03\x03" : "\x02\x02\x02")) {
-            row.note  = is_keyoff ? gt::KEYON : gt::KEYOFF;
-            row.instr = 0;
+        // note edit buttons
+        {
+            gui::item_size({ app::BUTTON_HEIGHT * 2, app::BUTTON_HEIGHT * 3 + 10 });
+            gui::Box box = gui::item_box();
+            dc.rgb(color::FRAME);
+            dc.box(box, gui::BoxStyle::Frame);
+            ivec2 cursor = gui::cursor();
+            gui::cursor(box.pos + ivec2(5));
+            gui::item_size({ app::BUTTON_HEIGHT * 2 - 10, app::BUTTON_HEIGHT });
+
+            if (gui::button(gui::Icon::Record, g_recording)) {
+                g_recording = !g_recording;
+            }
+
+            gui::disabled(row.note == gt::KEYOFF);
+            if (gui::button("\x0b\x0c\x0d")) {
+                row.note  = gt::KEYOFF;
+                row.instr = 0;
+            }
+
+            gui::disabled(row.note == gt::REST);
+            if (gui::button(gui::Icon::X)) {
+                row.note  = gt::REST;
+                row.instr = 0;
+            }
+            gui::disabled(false);
+
+            gui::cursor(cursor);
+            // gui::cursor({ cursor.x, cursor.y - 5 });
+
+        }
+        // command edit buttons
+        {
+            gui::item_size({ app::BUTTON_HEIGHT * 2, app::BUTTON_HEIGHT * 4 + app::MAX_ROW_HEIGHT + 10 });
+            gui::Box box = gui::item_box();
+            dc.rgb(color::FRAME);
+            dc.box(box, gui::BoxStyle::Frame);
+            ivec2 cursor = gui::cursor();
+            gui::cursor(box.pos + ivec2(5));
+
+            gui::item_size({ app::BUTTON_HEIGHT * 2 - 10, app::MAX_ROW_HEIGHT });
+            sprintf(str, "%X%02X", g_command, g_command_data[g_command]);
+            gui::text(str);
+
+            gui::item_size({ app::BUTTON_HEIGHT * 2 - 10, app::BUTTON_HEIGHT });
+            if (gui::button(gui::Icon::Settings)) {
+                g_dialog = Dialog::CommandEdit;
+            }
+
+            gui::disabled(row.command == 0);
+            if (gui::button(gui::Icon::Copy)) {
+                g_command = row.command;
+                g_command_data[g_command] = row.data;
+
+            }
+            gui::disabled(false);
+            if (gui::button(gui::Icon::Paste)) {
+                row.command = g_command;
+                row.data = g_command_data[g_command];
+            }
+            gui::disabled(row.command == 0);
+            if (gui::button(gui::Icon::X)) {
+                row.command = 0;
+                row.data = 0;
+            }
+            gui::disabled(false);
+            gui::cursor({ cursor.x, cursor.y - 5 });
         }
 
-        gui::disabled(row.note == gt::REST);
-        if (gui::button("\x01\x01\x01")) {
-            row.note  = gt::REST;
-            row.instr = 0;
-        }
-        gui::disabled(false);
-
-        if (gui::button(gui::Icon::Pen)) {
-            g_dialog = Dialog::CommandEdit;
-        }
     }
 
 

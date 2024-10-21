@@ -230,7 +230,7 @@ void draw_easy() {
     gui::DrawContext& dc = gui::draw_context();
     for (int i = 0; i < table_page; ++i) {
         int r = i + g_scroll;
-        sprintf(str, "%02X", r + 1);
+        sprintf(str, "%02X", r);
         gui::item_size({ CW_NUM, app::MAX_ROW_HEIGHT });
         gui::Box box = gui::item_box();
         dc.rgb(color::ROW_NUMBER);
@@ -425,7 +425,7 @@ void draw_easy() {
     }
 
     // draw box
-    dc.rgb(color::BUTTON_NORMAL);
+    dc.rgb(color::FRAME);
     dc.box({ { 0, y }, { app::CANVAS_WIDTH, 10 + app::BUTTON_HEIGHT * 4 } }, gui::BoxStyle::Frame);
     gui::cursor({ 5, y + 5 });
 

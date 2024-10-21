@@ -63,8 +63,6 @@ ivec2 text_pos(Box const& box, char const* text) {
         return box.pos + ivec2(6, y);
     case Align::Center:
         return box.pos + ivec2(box.size.x / 2 - strlen(text) * 4, y);
-    case Align::Right:
-        return box.pos + ivec2(box.size.x - box.size.y - strlen(text) * 8 - 6, y);
     default: assert(0);
     }
 }
@@ -273,7 +271,8 @@ void begin_window() {
 Box begin_window(ivec2 size) {
     begin_window();
     ivec2 pos  = ivec2(app::CANVAS_WIDTH, app::canvas_height()) / 2 - size / 2;
-    g_dc.rgb(color::BUTTON_NORMAL);
+    // g_dc.rgb(color::BUTTON_NORMAL);
+    g_dc.rgb(color::FRAME);
     g_dc.box({ pos - 6, size + 12 }, BoxStyle::Window);
     cursor(pos);
     return { pos, size };
@@ -335,6 +334,27 @@ inline BoxStyle box_style(ButtonStyle s) {
         default:
         case ButtonStyle::Normal: return BoxStyle::Normal;
     }
+}
+
+void separator(bool leave_gap) {
+    ivec2 size = g_item_size;
+    ivec2 pos;
+    ivec2 padding = 1;
+    if (g_same_line) {
+        size.x = FRAME_WIDTH;
+        if (!leave_gap) padding.y = -1;
+        pos = {g_cursor_max.x, g_cursor_min.y};
+        g_cursor_max = max(g_cursor_max, pos + size);
+    }
+    else {
+        size.y = FRAME_WIDTH;
+        if (!leave_gap) padding.x = -1;
+        pos = {g_cursor_min.x, g_cursor_max.y};
+        g_cursor_min.y = g_cursor_max.y;
+        g_cursor_max = pos + size;
+    }
+    g_dc.rgb(color::FRAME);
+    g_dc.fill({ pos + padding, size - padding * 2 });
 }
 
 bool button(Icon icon, bool active) {

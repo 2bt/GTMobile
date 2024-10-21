@@ -27,12 +27,12 @@ bool draw(bool* follow) {
     static bool show_instrument_select = false;
     bool note_on = false;
 
-    int piano_y = app::canvas_height() - HEIGHT;
     gui::DrawContext& dc = gui::draw_context();
     char str[32];
 
-    gui::cursor({ 0, piano_y });
-    piano_y += app::BUTTON_HEIGHT;
+    gui::cursor({ 0, app::canvas_height() - HEIGHT });
+    gui::item_size(app::CANVAS_WIDTH);
+    gui::separator();
 
     // instrument button
     gui::item_size({ 8 * 18 + 12, app::BUTTON_HEIGHT });
@@ -101,10 +101,12 @@ bool draw(bool* follow) {
 
     g_gate = false;
 
+    int y_pos = gui::cursor().y;
+
     if (!gui::has_active_item() && gui::touch::pressed()) {
         loop_keys([&](int i, int n, int note) {
             gui::Box b = {
-                { i * KEY_HALF_WIDTH, piano_y },
+                { i * KEY_HALF_WIDTH, y_pos },
                 { KEY_HALF_WIDTH * 2, KEY_HALF_HEIGHT },
             };
             if (n % 2 == 0) b.pos.y += KEY_HALF_HEIGHT;
@@ -131,14 +133,14 @@ bool draw(bool* follow) {
             dc.rgb(color::BUTTON_ACTIVE);
         }
         gui::Box b = {
-            { i * KEY_HALF_WIDTH, piano_y },
+            { i * KEY_HALF_WIDTH, y_pos },
             { KEY_HALF_WIDTH * 2, KEY_HALF_HEIGHT * 2 - 1 },
         };
         dc.box(b, gui::BoxStyle::PianoKey);
         if (note % 12 == 0) {
             char str[2] = { char('0' + note / 12) };
             dc.rgb(color::DARK_GREY);
-            dc.text({ b.pos.x + KEY_HALF_WIDTH - 4, piano_y + KEY_HALF_HEIGHT * 2 - 13 }, str);
+            dc.text({ b.pos.x + KEY_HALF_WIDTH - 4, y_pos + KEY_HALF_HEIGHT * 2 - 13 }, str);
         }
     });
     // draw black keys
@@ -149,7 +151,7 @@ bool draw(bool* follow) {
             dc.rgb(color::BUTTON_ACTIVE);
         }
         gui::Box b = {
-            { i * KEY_HALF_WIDTH, piano_y },
+            { i * KEY_HALF_WIDTH, y_pos },
             { KEY_HALF_WIDTH * 2, KEY_HALF_HEIGHT },
         };
         dc.box(b, gui::BoxStyle::PianoKey);
@@ -157,8 +159,10 @@ bool draw(bool* follow) {
 
     // player buttons
     gt::Player& player = app::player();
-    piano_y += KEY_HALF_HEIGHT * 2;
-    gui::cursor({ 0, piano_y });
+    y_pos += KEY_HALF_HEIGHT * 2;
+    gui::cursor({ 0, y_pos });
+    gui::item_size(app::CANVAS_WIDTH);
+    gui::separator();
     gui::item_size(app::TAB_HEIGHT);
 
 

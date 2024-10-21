@@ -34,6 +34,7 @@ namespace color {
     constexpr uint32_t DRAG_HANDLE_ACTIVE = 0x666666;
     constexpr uint32_t DRAG_ICON          = 0x777777;
 
+    constexpr uint32_t FRAME              = mix(DARK_GREY, BLACK, 0.3f);
     constexpr uint32_t BUTTON_NORMAL      = DARK_GREY;
     constexpr uint32_t BUTTON_ACTIVE      = mix(ORANGE, BLACK, 0.3f);
     constexpr uint32_t BUTTON_PRESSED     = mix(ORANGE, YELLOW, 0.3f);
@@ -133,32 +134,11 @@ public:
         rect(pos, m_char_size, uv);
     }
 
-    ivec2 text_size(char const* text) {
-        int y = 1;
-        int x = 0;
-        int mx = 0;
-        while (uint8_t c = *text++) {
-            if (c == '\n') {
-                ++y;
-                x = 0;
-            }
-            else {
-                mx = std::max(mx, ++x);
-            }
-        }
-        return {x * m_char_size.x, y * m_char_size.y};
-    }
     void text(ivec2 pos, char const* text) {
         ivec2 p = pos;
         while (uint8_t c = *text++) {
             character(p, c);
-            if (c == '\n') {
-                p.x = pos.x;
-                p.y += m_char_size.y;
-            }
-            else {
-                p.x += m_char_size.x;
-            }
+            p.x += m_char_size.x;
         }
     }
 
@@ -201,17 +181,16 @@ enum class Icon {
     Down,
     VGrab,
     HGrab,
-    Off,
-    On,
 
     AddRowAbove = 24,
     AddRowBelow,
     DeleteRow,
-    Pen,
+    EditRow,
     Trash,
     Settings,
     Sliders,
     JumpBack,
+    X,
 
     Loop = 40,
     Stop,
@@ -239,7 +218,7 @@ enum class Icon {
     Highpass,
 };
 
-enum class Align { Left, Center, Right };
+enum class Align { Left, Center };
 
 enum class ButtonStyle {
     Normal,
@@ -259,6 +238,9 @@ enum class DragBarStyle {
 enum {
     KEYCODE_ENTER = 66,
     KEYCODE_DEL   = 67,
+};
+enum {
+    FRAME_WIDTH = 5,
 };
 
 
@@ -299,6 +281,7 @@ void align(Align a);
 void button_style(ButtonStyle style);
 void drag_bar_style(DragBarStyle style);
 
+void separator(bool leave_gap = true);
 bool hold();
 void text(char const* fmt, ...);
 bool button(Icon icon, bool active = false);

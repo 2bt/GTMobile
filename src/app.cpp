@@ -169,6 +169,8 @@ void draw() {
     if (gui::button(gui::Icon::Settings, g_view == View::settings)) {
         set_view(View::settings);
     }
+    gui::item_size({ CANVAS_WIDTH, BUTTON_HEIGHT });
+    gui::separator();
     gui::button_style(gui::ButtonStyle::Normal);
 
     switch (g_view) {
