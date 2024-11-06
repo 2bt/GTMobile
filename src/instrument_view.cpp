@@ -73,7 +73,6 @@ void delete_table_row(int pos) {
     // in that case, we want to also clear pointers in instruments, wave table, and patterns
     bool is_jump_row = ltable[pos] == 0xff;
     // TODO
-    printf("TODO\n");
 
     // shift instr pointer
     for (gt::Instrument& instr : g_song.instruments) {
@@ -496,7 +495,6 @@ void draw_easy() {
             }
             gui::same_line(false);
             instr.firstwave = v;
-
         }
     }
     else if (g_cursor_select == CursorSelect::Table && g_cursor_row < len) {

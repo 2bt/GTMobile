@@ -175,6 +175,7 @@ void draw_save_window() {
     gui::item_size({ box.size.x, app::BUTTON_HEIGHT });
     gui::align(gui::Align::Center);
     gui::text("SAVE SONG");
+    gui::input_text(g_file_name);
     gui::separator();
 
     gui::align(gui::Align::Left);
@@ -198,7 +199,6 @@ void draw_save_window() {
 
     gui::item_size({ box.size.x, app::BUTTON_HEIGHT });
     gui::separator();
-    gui::input_text(g_file_name);
 
     gui::align(gui::Align::Center);
     gui::item_size({ box.size.x / 2, app::BUTTON_HEIGHT });
@@ -218,7 +218,7 @@ void draw_save_window() {
     if (gui::button("CANCEL")) g_dialog = Dialog::none;
 
     // scrollbar
-    gui::cursor(box.pos + ivec2(box.size.x - app::SCROLL_WIDTH, app::BUTTON_HEIGHT + gui::FRAME_WIDTH));
+    gui::cursor(box.pos + ivec2(box.size.x - app::SCROLL_WIDTH, app::BUTTON_HEIGHT * 2 + gui::FRAME_WIDTH));
     gui::item_size({ app::SCROLL_WIDTH, table_height });
     int max_scroll = std::max(0, int(g_file_names.size()) - page);
     gui::drag_bar_style(gui::DragBarStyle::Scrollbar);
