@@ -120,7 +120,6 @@ public:
     }
 
     void rect(ivec2 pos, ivec2 size, ivec2 uv) {
-        if (size.x < 4 || size.y < 4) return;
         uint16_t i0 = add_vertex(pos, uv);
         uint16_t i1 = add_vertex(pos + ivec2(size.x, 0), uv + ivec2(size.x, 0));
         uint16_t i2 = add_vertex(pos + size, uv + size);
@@ -192,6 +191,7 @@ enum class Icon {
     Sliders,
     JumpBack,
     X,
+    DotDotDot,
 
     Loop = 40,
     Stop,
@@ -282,7 +282,7 @@ void align(Align a);
 void button_style(ButtonStyle style);
 void drag_bar_style(DragBarStyle style);
 
-void separator(bool leave_gap = true);
+void separator(bool leave_gap = false);
 bool hold();
 void text(char const* fmt, ...);
 bool button(Icon icon, bool active = false);

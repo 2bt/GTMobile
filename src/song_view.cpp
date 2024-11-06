@@ -18,18 +18,21 @@ namespace {
 enum class Dialog { None, OrderEdit, CommandEdit };
 enum class EditMode { Song, Pattern };
 
-gt::Song& g_song               = app::song();
-int       g_song_page          = 8;
-int       g_song_scroll        = 0;
-int       g_pattern_scroll     = 0;
-bool      g_follow             = false;
-bool      g_recording          = false;
-int       g_cursor_chan        = 0;
-int       g_cursor_pattern_row = 0;
-int       g_cursor_song_row    = 0;
-int       g_transpose          = 0;
-EditMode  g_edit_mode          = EditMode::Song;
-Dialog    g_dialog             = Dialog::None;
+gt::Song&       g_song               = app::song();
+int             g_song_page          = 8;
+int             g_song_scroll        = 0;
+int             g_pattern_scroll     = 0;
+bool            g_follow             = false;
+bool            g_recording          = false;
+int             g_cursor_chan        = 0;
+int             g_cursor_pattern_row = 0;
+int             g_cursor_song_row    = 0;
+int             g_transpose          = 0;
+EditMode        g_edit_mode          = EditMode::Song;
+Dialog          g_dialog             = Dialog::None;
+int             g_command            = 0;
+int             g_command_data[16]   = {};
+gt::PatternRow* g_command_row        = nullptr;
 
 std::array<bool, gt::MAX_PATT> g_pattern_empty;
 
@@ -95,24 +98,23 @@ void draw_order_edit() {
 }
 
 
-int             g_command          = 3;
-int             g_command_data[16] = {};
-
-
 void draw_command_edit() {
     if (g_dialog != Dialog::CommandEdit) return;
 
     enum {
         WIDTH = 13 * 26,
-        HEIGHT = app::BUTTON_HEIGHT * 5 + app::MAX_ROW_HEIGHT * 15 + gui::FRAME_WIDTH,
-        C1W = 12 + 8 * 3,
+        HEIGHT = app::BUTTON_HEIGHT * 4 + app::MAX_ROW_HEIGHT * 16 + gui::FRAME_WIDTH,
+        C1W = 17 * 8 + 12,
+        C2W = 3 * 8 + 12,
     };
+    gui::DrawContext& dc = gui::draw_context();
+
     gui::Box box = gui::begin_window({ WIDTH, HEIGHT });
     gui::item_size({ WIDTH, app::BUTTON_HEIGHT });
     gui::text("COMMAND EDIT");
 
     constexpr char const* TABLE_LABELS[] = {
-        "",
+        "DO NOTHING",
         "PORTAMENTO UP",
         "PORTAMENTO DOWN",
         "TONE PORTAMENTO",
@@ -131,18 +133,35 @@ void draw_command_edit() {
     };
 
     gui::align(gui::Align::Left);
-    for (int i = 0x1; i <= 0xf; ++i) {
+    for (int i = 0; i <= 0xf; ++i) {
         gui::item_size({ C1W, app::MAX_ROW_HEIGHT });
-        gui::text("%X%02X", i, g_command_data[i]);
-        gui::same_line();
-        gui::item_size({ WIDTH - C1W, app::MAX_ROW_HEIGHT });
         if (gui::button(TABLE_LABELS[i], i == g_command)) {
             g_command = i;
         }
+        gui::same_line();
+
+        gui::item_size({ C2W, app::MAX_ROW_HEIGHT });
+        gui::Box b = gui::item_box();
+        b.pos = b.pos + 1;
+        b.size = b.size - 2;
+        dc.rgb(color::BACKGROUND_ROW);
+        dc.fill(b);
+        char str[8];
+        sprintf(str, "%X%02X", i, g_command_data[i]);
+        dc.rgb(color::CMDS[i]);
+        dc.text(b.pos + 5, str);
     }
     gui::align(gui::Align::Center);
     gui::item_size({ WIDTH, app::BUTTON_HEIGHT });
     gui::separator(false);
+
+    dc.rgb(color::FRAME);
+    dc.box({
+            { box.pos + ivec2(C1W + C2W, app::BUTTON_HEIGHT) },
+            { WIDTH - (C1W + C2W) + 5, app::MAX_ROW_HEIGHT * 16 + 5 },
+        }, gui::BoxStyle::Frame);
+
+
 
     // CMD_PORTAUP         = 1,
     // CMD_PORTADOWN       = 2,
@@ -176,7 +195,11 @@ void draw_command_edit() {
 
     gui::cursor({ box.pos.x, box.pos.y + box.size.y - app::BUTTON_HEIGHT });
     gui::item_size({ WIDTH, app::BUTTON_HEIGHT });
-    if (gui::button("CLOSE")) g_dialog = Dialog::None;
+    if (gui::button("CLOSE")) {
+        g_dialog = Dialog::None;
+        g_command_row->command = g_command;
+        g_command_row->data    = g_command_data[g_command];
+    }
     gui::end_window();
 }
 
@@ -540,7 +563,6 @@ void draw() {
         gui::disabled(false);
 
 
-
         gt::PatternRow& row  = patt.rows[pos];
         // note edit buttons
         {
@@ -551,61 +573,54 @@ void draw() {
             ivec2 cursor = gui::cursor();
             gui::cursor(box.pos + ivec2(5));
             gui::item_size({ app::BUTTON_HEIGHT * 2 - 10, app::BUTTON_HEIGHT });
-
             if (gui::button(gui::Icon::Record, g_recording)) {
                 g_recording = !g_recording;
             }
-
             gui::disabled(row.note == gt::KEYOFF);
             if (gui::button("\x0b\x0c\x0d")) {
                 row.note  = gt::KEYOFF;
                 row.instr = 0;
             }
-
             gui::disabled(row.note == gt::REST);
             if (gui::button(gui::Icon::X)) {
                 row.note  = gt::REST;
                 row.instr = 0;
             }
             gui::disabled(false);
-
             gui::cursor(cursor);
-            // gui::cursor({ cursor.x, cursor.y - 5 });
-
         }
         // command edit buttons
         {
-            gui::item_size({ app::BUTTON_HEIGHT * 2, app::BUTTON_HEIGHT * 4 + app::MAX_ROW_HEIGHT + 10 });
+            gui::item_size({ app::BUTTON_HEIGHT * 2, app::BUTTON_HEIGHT * 4 + 10 });
             gui::Box box = gui::item_box();
             dc.rgb(color::FRAME);
             dc.box(box, gui::BoxStyle::Frame);
             ivec2 cursor = gui::cursor();
             gui::cursor(box.pos + ivec2(5));
 
-            gui::item_size({ app::BUTTON_HEIGHT * 2 - 10, app::MAX_ROW_HEIGHT });
-            sprintf(str, "%X%02X", g_command, g_command_data[g_command]);
-            gui::text(str);
-
             gui::item_size({ app::BUTTON_HEIGHT * 2 - 10, app::BUTTON_HEIGHT });
-            if (gui::button(gui::Icon::Settings)) {
+            if (gui::button(gui::Icon::DotDotDot)) {
                 g_dialog = Dialog::CommandEdit;
-            }
-
-            gui::disabled(row.command == 0);
-            if (gui::button(gui::Icon::Copy)) {
                 g_command = row.command;
                 g_command_data[g_command] = row.data;
-
-            }
-            gui::disabled(false);
-            if (gui::button(gui::Icon::Paste)) {
-                row.command = g_command;
-                row.data = g_command_data[g_command];
+                g_command_row = &row;
             }
             gui::disabled(row.command == 0);
             if (gui::button(gui::Icon::X)) {
                 row.command = 0;
                 row.data = 0;
+            }
+
+            static int copy_command      = -1;
+            static int copy_command_data = 0;
+            if (gui::button(gui::Icon::Copy)) {
+                copy_command      = row.command;
+                copy_command_data = row.data;
+            }
+            gui::disabled(copy_command == -1);
+            if (gui::button(gui::Icon::Paste)) {
+                row.command = copy_command;
+                row.data    = copy_command_data;
             }
             gui::disabled(false);
             gui::cursor({ cursor.x, cursor.y - 5 });

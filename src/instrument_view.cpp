@@ -159,7 +159,6 @@ void draw_easy() {
     enum {
         CW_NUM = 28,
         CW_DATA = app::CANVAS_WIDTH - CW_NUM - app::SCROLL_WIDTH - app::BUTTON_HEIGHT * 2,
-        PANEL_W = app::CANVAS_WIDTH - 10,
     };
     constexpr char const* TABLE_LABELS[] = { "WAVE", "PULSE", "FILTER" };
     gui::item_size({ (app::CANVAS_WIDTH - app::BUTTON_HEIGHT * 2) / 3, app::BUTTON_HEIGHT });
@@ -190,10 +189,9 @@ void draw_easy() {
     }
 
     ivec2 cursor      = gui::cursor();
-    int   table_space = app::canvas_height() - cursor.y - piano::HEIGHT - app::BUTTON_HEIGHT * 4 - gui::FRAME_WIDTH * 2 - 2;
+    int   table_space = app::canvas_height() - cursor.y - piano::HEIGHT - app::BUTTON_HEIGHT * 4 - gui::FRAME_WIDTH - 2;
     int   table_page  = table_space / app::MAX_ROW_HEIGHT;
     int   text_offset = (app::MAX_ROW_HEIGHT - 7) / 2;
-
 
     auto& ltable = g_song.ltable[g_table];
     auto& rtable = g_song.rtable[g_table];
@@ -364,7 +362,7 @@ void draw_easy() {
         dc.text(p, str);
 
     }
-    int y = gui::cursor().y + 1;
+    int y = gui::cursor().y + 1; // 1px padding
 
     // scrolling
     gui::cursor({ CW_NUM + CW_DATA, cursor.y });
@@ -426,9 +424,9 @@ void draw_easy() {
     }
 
     // draw box
-    dc.rgb(color::FRAME);
-    dc.box({ { 0, y }, { app::CANVAS_WIDTH, 10 + app::BUTTON_HEIGHT * 4 } }, gui::BoxStyle::Frame);
-    gui::cursor({ 5, y + 5 });
+    gui::cursor({ 0, y });
+    gui::item_size({ app::CANVAS_WIDTH, app::BUTTON_HEIGHT });
+    gui::separator();
 
     if (g_cursor_select == CursorSelect::Adsr) {
         int adsr[] = {
@@ -439,16 +437,16 @@ void draw_easy() {
         };
         constexpr char const* LABELS[] = { "ATTACK  %X", "DECAY   %X", "SUSTAIN %X", "RELEASE %X" };
         for (int i = 0; i < 4; ++i) {
-            app::slider(PANEL_W, LABELS[i], adsr[i], 0, 0xf);
+            app::slider(app::CANVAS_WIDTH, LABELS[i], adsr[i], 0, 0xf);
         }
         instr.ad = (adsr[0] << 4) | adsr[1];
         instr.sr = (adsr[2] << 4) | adsr[3];
     }
     else if (g_cursor_select == CursorSelect::GateTimer) {
-        gui::item_size({ PANEL_W, app::BUTTON_HEIGHT });
+        gui::item_size({ app::CANVAS_WIDTH, app::BUTTON_HEIGHT });
         gui::text("GATE TIMER");
 
-        gui::item_size({ PANEL_W / 2, app::BUTTON_HEIGHT });
+        gui::item_size({ app::CANVAS_WIDTH / 2, app::BUTTON_HEIGHT });
         gui::button_style(gui::ButtonStyle::Normal);
         if (gui::button("DISABLE HARD RESTART", instr.gatetimer & 0x80)) {
             instr.gatetimer ^= 0x80;
@@ -458,30 +456,27 @@ void draw_easy() {
             instr.gatetimer ^= 0x40;
         }
         int v = instr.gatetimer & 0x3f;
-        app::slider(PANEL_W, "%X", v, 1, 0xf, &instr.gatetimer);
+        app::slider(app::CANVAS_WIDTH, "%X", v, 1, 0xf, &instr.gatetimer);
         instr.gatetimer = (instr.gatetimer & 0xc0) | v;
     }
     else if (g_cursor_select == CursorSelect::FirstWave) {
-        gui::item_size({ PANEL_W, app::BUTTON_HEIGHT });
+        gui::item_size({ app::CANVAS_WIDTH, app::BUTTON_HEIGHT });
         gui::text("FIRST WAVE");
-        gui::item_size({ PANEL_W / 4 + 1, app::BUTTON_HEIGHT });
+        gui::item_size({ app::CANVAS_WIDTH / 4, app::BUTTON_HEIGHT });
         gui::button_style(gui::ButtonStyle::RadioLeft);
         if (gui::button("WAVE", instr.firstwave > 0 && instr.firstwave < 0xfe)) {
             instr.firstwave = 0x09;
         }
         gui::same_line();
-        gui::item_size({ PANEL_W / 4, app::BUTTON_HEIGHT });
         gui::button_style(gui::ButtonStyle::RadioCenter);
         if (gui::button("GATE ON", instr.firstwave == 0xfe)) {
             instr.firstwave = 0xfe;
         }
         gui::same_line();
-        gui::item_size({ PANEL_W / 4 + 1, app::BUTTON_HEIGHT });
         if (gui::button("GATE OFF", instr.firstwave == 0xff)) {
             instr.firstwave = 0xff;
         }
         gui::same_line();
-        gui::item_size({ PANEL_W / 4, app::BUTTON_HEIGHT });
         gui::button_style(gui::ButtonStyle::RadioRight);
         if (gui::button("NO CHANGE", instr.firstwave == 0x00)) {
             instr.firstwave = 0x00;
@@ -491,7 +486,7 @@ void draw_easy() {
             // show wave buttons
             uint8_t v = instr.firstwave;
             for (int i = 0; i < 8; ++i) {
-                gui::item_size({ PANEL_W / 8 + (i % 4 < 3), app::BUTTON_HEIGHT });
+                gui::item_size({ app::CANVAS_WIDTH / 8, app::BUTTON_HEIGHT });
                 int mask = 0x80 >> i;
                 int icon = int(gui::Icon::Noise) + i;
                 if (gui::button(gui::Icon(icon), v & mask)) {
@@ -515,7 +510,7 @@ void draw_easy() {
             // + F0-FE pattern command
             // + FF    jump
             int mode = (lval <= 0x0f) ? 0 : (lval <= 0xef) ? 1 : 2;
-            gui::item_size({ PANEL_W / 3 + 1, app::BUTTON_HEIGHT });
+            gui::item_size({ app::CANVAS_WIDTH / 3, app::BUTTON_HEIGHT });
             gui::button_style(gui::ButtonStyle::RadioLeft);
             if (gui::button("WAIT", mode == 0) && mode != 0) {
                 mode = 0;
@@ -528,7 +523,6 @@ void draw_easy() {
                 lval = 0x11;
             }
             gui::same_line();
-            gui::item_size({ PANEL_W / 3, app::BUTTON_HEIGHT });
             gui::button_style(gui::ButtonStyle::RadioRight);
             if (gui::button("COMMAND", mode == 2) && mode != 2) {
                 mode = 2;
@@ -540,7 +534,7 @@ void draw_easy() {
             if (mode == 0) {
                 // wait
                 int v = lval;
-                app::slider(PANEL_W, "  %X", v, 0, 0xf, &lval);
+                app::slider(app::CANVAS_WIDTH, "  %X", v, 0, 0xf, &lval);
                 lval = v;
             }
             else if (mode == 1) {
@@ -548,7 +542,7 @@ void draw_easy() {
                 uint8_t v = lval;
                 if (v >= 0xe0) v -= 0xe0;
                 for (int i = 0; i < 8; ++i) {
-                    gui::item_size({ PANEL_W / 8 + (i % 4 < 3), app::BUTTON_HEIGHT });
+                    gui::item_size({ app::CANVAS_WIDTH / 8, app::BUTTON_HEIGHT });
                     int mask = 0x80 >> i;
                     int icon = int(gui::Icon::Noise) + i;
                     if (gui::button(gui::Icon(icon), v & mask)) {
@@ -568,7 +562,7 @@ void draw_easy() {
                 // + 80    do nothing
                 // + 81-DD absolute notes C#0 - B-7
                 mode = (rval < 0x80) ? 0 : (rval > 0x80) ? 1 : 2;
-                gui::item_size({ PANEL_W / 3 + 1, app::BUTTON_HEIGHT });
+                gui::item_size({ app::CANVAS_WIDTH / 3, app::BUTTON_HEIGHT });
                 gui::button_style(gui::ButtonStyle::RadioLeft);
                 if (gui::button("RELATIVE \x09", mode == 0) && mode != 0) {
                     mode = 0;
@@ -581,7 +575,6 @@ void draw_easy() {
                     rval = 0x80 + 48;
                 }
                 gui::same_line();
-                gui::item_size({ PANEL_W / 3, app::BUTTON_HEIGHT });
                 gui::button_style(gui::ButtonStyle::RadioRight);
                 if (gui::button("NO CHANGE", mode == 2) && mode != 2) {
                     mode = 2;
@@ -591,12 +584,12 @@ void draw_easy() {
                 if (mode == 0) {
                     int v = rval < 0x60 ? rval : rval - 0x80;
                     sprintf(str, "%c%02X", "+-"[v < 0], abs(v));
-                    app::slider(PANEL_W, str, v, -0x20, 0x20, &rval);
+                    app::slider(app::CANVAS_WIDTH, str, v, -0x20, 0x20, &rval);
                     rval = v >= 0 ? v : v + 0x80;
                 }
                 else if (mode == 1) {
                     int v = rval - 0x80;
-                    app::slider(PANEL_W, " %02X", v, 1, 95, &rval);
+                    app::slider(app::CANVAS_WIDTH, " %02X", v, 1, 95, &rval);
                     rval = v + 0x80;
                 }
             }
@@ -611,7 +604,7 @@ void draw_easy() {
             // 01-7F pulse mod step time/speed
             // 8X-FX set pulsewidth XYY
             int mode = lval >= 0x80 ? 0 : 1;
-            gui::item_size({ PANEL_W / 2, app::BUTTON_HEIGHT });
+            gui::item_size({ app::CANVAS_WIDTH / 2, app::BUTTON_HEIGHT });
             gui::button_style(gui::ButtonStyle::RadioLeft);
             if (gui::button("SET PULSE WIDTH", mode == 0) && mode != 0) {
                 mode = 0;
@@ -628,16 +621,16 @@ void draw_easy() {
             if (mode == 0) {
                 // set pw
                 int v = ((lval & 0xf) << 8) | rval;
-                app::slider(PANEL_W, "%03X", v, 0, 0xfff, &rval);
+                app::slider(app::CANVAS_WIDTH, "%03X", v, 0, 0xfff, &rval);
                 lval = 0x80 | (v >> 8);
                 rval = v & 0xff;
             }
             else {
                 // step pw
-                app::slider(PANEL_W, " %02X", lval, 1, 0x7f);
+                app::slider(app::CANVAS_WIDTH, " %02X", lval, 1, 0x7f);
                 int v = int8_t(rval);
                 sprintf(str, "%c%02X", "+-"[v < 0], abs(v));
-                app::slider(PANEL_W, str, v, -128, 127, &rval);
+                app::slider(app::CANVAS_WIDTH, str, v, -128, 127, &rval);
                 rval = v;
             }
 
@@ -648,7 +641,7 @@ void draw_easy() {
             // 80-F0 set params
 
             int mode = (lval >= 0x80) ? 0 : (lval == 0x00) ? 1 : 2;
-            gui::item_size({ PANEL_W / 3 + 1, app::BUTTON_HEIGHT });
+            gui::item_size({ app::CANVAS_WIDTH / 3, app::BUTTON_HEIGHT });
             gui::button_style(gui::ButtonStyle::RadioLeft);
             if (gui::button("SET PARAMS", mode == 0) && mode != 0) {
                 mode = 0;
@@ -656,7 +649,6 @@ void draw_easy() {
                 rval = 0xF0;
             }
             gui::same_line();
-            gui::item_size({ PANEL_W / 3 + 1, app::BUTTON_HEIGHT });
             gui::button_style(gui::ButtonStyle::RadioCenter);
             if (gui::button("SET CUTOFF", mode == 1) && mode != 1) {
                 mode = 1;
@@ -664,7 +656,6 @@ void draw_easy() {
                 rval = 0x20;
             }
             gui::same_line();
-            gui::item_size({ PANEL_W / 3, app::BUTTON_HEIGHT });
             gui::button_style(gui::ButtonStyle::RadioRight);
             if (gui::button("STEP CUTOFF", mode == 2) && mode != 2) {
                 mode = 2;
@@ -675,38 +666,33 @@ void draw_easy() {
             if (mode == 0) {
                 // set params
                 gui::button_style(gui::ButtonStyle::Normal);
-                gui::item_size({ PANEL_W / 3 + 1, app::BUTTON_HEIGHT });
+                gui::item_size({ app::CANVAS_WIDTH / 3, app::BUTTON_HEIGHT });
                 if (gui::button(gui::Icon::Lowpass, lval & 0x10)) lval ^= 0x10;
                 gui::same_line();
-                gui::item_size({ PANEL_W / 3 + 1, app::BUTTON_HEIGHT });
                 if (gui::button(gui::Icon::Bandpass, lval & 0x20)) lval ^= 0x20;
                 gui::same_line();
-                gui::item_size({ PANEL_W / 3, app::BUTTON_HEIGHT });
                 if (gui::button(gui::Icon::Highpass, lval & 0x40)) lval ^= 0x40;
 
-                gui::item_size({ PANEL_W / 3 + 1, app::BUTTON_HEIGHT });
                 if (gui::button("VOICE 1", rval & 0x1)) rval ^= 0x1;
                 gui::same_line();
-                gui::item_size({ PANEL_W / 3 + 1, app::BUTTON_HEIGHT });
                 if (gui::button("VOICE 2", rval & 0x2)) rval ^= 0x2;
                 gui::same_line();
-                gui::item_size({ PANEL_W / 3, app::BUTTON_HEIGHT });
                 if (gui::button("VOICE 3", rval & 0x4)) rval ^= 0x4;
 
                 int v = rval >> 4;
-                app::slider(PANEL_W, "RES %X", v, 0, 0xf, &rval);
+                app::slider(app::CANVAS_WIDTH, "RES %X", v, 0, 0xf, &rval);
                 rval = (rval & 0x0f) | (v << 4);
             }
             else if (mode == 1) {
                 // set cutoff
-                app::slider(PANEL_W, " %02X", rval, 0, 0xff);
+                app::slider(app::CANVAS_WIDTH, " %02X", rval, 0, 0xff);
             }
             else {
                 // step cutoff
-                app::slider(PANEL_W, " %02X", lval, 1, 0x7f);
+                app::slider(app::CANVAS_WIDTH, " %02X", lval, 1, 0x7f);
                 int v = int8_t(rval);
                 sprintf(str, "%c%02X", "+-"[v < 0], abs(v));
-                app::slider(PANEL_W, str, v, -0x20, 0x20, &rval);
+                app::slider(app::CANVAS_WIDTH, str, v, -0x20, 0x20, &rval);
                 rval = v;
             }
         }
