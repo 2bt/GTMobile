@@ -129,7 +129,7 @@ void draw_easy() {
     gui::align(gui::Align::Center);
 
     // adsr
-    gui::button_style(gui::ButtonStyle::TableCell);
+    gui::button_style(gui::ButtonStyle::PaddedTableCell);
     gui::same_line();
     gui::item_size({ 12 + 4 * 8, app::BUTTON_HEIGHT });
     sprintf(str, "%02X%02X", instr.ad, instr.sr);
@@ -803,7 +803,7 @@ void draw_hard() {
     gui::input_text(instr.name);
     gui::align(gui::Align::Center);
 
-    gui::button_style(gui::ButtonStyle::TableCell);
+    gui::button_style(gui::ButtonStyle::PaddedTableCell);
     gui::item_size(app::BUTTON_HEIGHT);
     uint8_t adsr[] = {
         uint8_t(instr.ad >> 4),

@@ -371,9 +371,13 @@ bool button(Icon icon, bool active) {
 bool button(char const* label, bool active) {
     Box box = item_box();
     ButtonState state = button_state(box);
-    if (g_button_style == ButtonStyle::TableCell) {
-        box.pos  = box.pos + 1;
-        box.size = box.size - 2;
+    if (g_button_style == ButtonStyle::TableCell || g_button_style == ButtonStyle::PaddedTableCell) {
+        if (g_button_style == ButtonStyle::PaddedTableCell) {
+            box.pos.y  += 1;
+            box.size.y -= 2;
+        }
+        box.pos.x  += 1;
+        box.size.x -= 2;
         g_dc.rgb(color::BACKGROUND_ROW);
         g_dc.fill(box);
 

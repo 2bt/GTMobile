@@ -226,6 +226,7 @@ enum class ButtonStyle {
     Shaded,
     Tab,
     ShadedTab,
+    PaddedTableCell,
     TableCell,
     RadioLeft,
     RadioCenter,
