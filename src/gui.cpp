@@ -522,6 +522,36 @@ bool vertical_drag_button(int& pos, int row_height) {
     return pos != old_pos;
 }
 
+bool slider(int width, char const* fmt, int& value, int min, int max, void const* addr) {
+    enum { BUTTON_HEIGHT = 30 };
+    int v = value;
+    int old_v = value;
+    int text_width = 0;
+    if (fmt != nullptr) {
+        char str[64] = {};
+        snprintf(str, sizeof(str), fmt, v);
+        text_width = 12 + strlen(str) * 8;
+        item_size({ text_width, BUTTON_HEIGHT });
+        text(str);
+        same_line();
+    }
+    drag_bar_style(DragBarStyle::Normal);
+    item_size({ width - text_width - BUTTON_HEIGHT * 2, BUTTON_HEIGHT });
+    id(addr ? addr : &value);
+    horizontal_drag_bar(v, min, max, 1);
+    same_line();
+    button_style(ButtonStyle::Normal);
+    item_size(BUTTON_HEIGHT);
+    disabled(v == min);
+    if (button(Icon::Decrease)) v = std::max(min, v - 1);
+    same_line();
+    disabled(v == max);
+    if (button(Icon::Increase)) v = std::min(max, v + 1);
+    disabled(false);
+    value = v;
+    return v != old_v;
+}
+
 
 /////////////////
 // DrawContext //

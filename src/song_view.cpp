@@ -91,7 +91,7 @@ void draw_order_edit() {
     gui::button_style(gui::ButtonStyle::Normal);
 
     sprintf(str, "TRANSPOSE %c%X", "+-"[g_transpose < 0], abs(g_transpose));
-    app::slider(26 * 13, str, g_transpose, -0xf, 0xe);
+    gui::slider(26 * 13, str, g_transpose, -0xf, 0xe);
     gui::item_size({ box.size.x, app::BUTTON_HEIGHT });
     if (gui::button("CLOSE")) exit_order_edit();
     gui::end_window();
@@ -194,15 +194,15 @@ void draw_command_edit() {
     if (g_command == gt::CMD_SETAD) {
         int a = g_command_data[gt::CMD_SETAD] >> 4;
         int d = g_command_data[gt::CMD_SETAD] & 0xf;
-        app::slider(WIDTH, "ATTACK  %X", a, 0, 15);
-        app::slider(WIDTH, "DECAY   %X", d, 0, 15);
+        gui::slider(WIDTH, "ATTACK  %X", a, 0, 15);
+        gui::slider(WIDTH, "DECAY   %X", d, 0, 15);
         g_command_data[gt::CMD_SETAD] = (a << 4) | d;
     }
     else if (g_command == gt::CMD_SETSR) {
         int s = g_command_data[gt::CMD_SETSR] >> 4;
         int r = g_command_data[gt::CMD_SETSR] & 0xf;
-        app::slider(WIDTH, "SUSTAIN %X", s, 0, 15);
-        app::slider(WIDTH, "RELEASE %X", r, 0, 15);
+        gui::slider(WIDTH, "SUSTAIN %X", s, 0, 15);
+        gui::slider(WIDTH, "RELEASE %X", r, 0, 15);
         g_command_data[gt::CMD_SETSR] = (s << 4) | r;
     }
 
@@ -633,6 +633,15 @@ void draw() {
             gui::disabled(false);
         }
 
+
+        // navigation
+        gui::separator();
+        if (gui::button(gui::Icon::MoveUp)) {
+
+        }
+        if (gui::button(gui::Icon::MoveDown)) {
+
+        }
     }
 
 

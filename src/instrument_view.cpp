@@ -72,7 +72,6 @@ void delete_table_row(int pos) {
     // check if we're deleting the jump row
     // in that case, we want to also clear pointers in instruments, wave table, and patterns
     bool is_jump_row = ltable[pos] == 0xff;
-    // TODO
 
     // shift instr pointer
     for (gt::Instrument& instr : g_song.instruments) {
@@ -85,6 +84,7 @@ void delete_table_row(int pos) {
     }
 
     // shift pointers in wave table
+    // TODO: reset pointers
     auto& wav_ltable = g_song.ltable[gt::WTBL];
     auto& wav_rtable = g_song.rtable[gt::WTBL];
     for (int i = 0; i < gt::MAX_TABLELEN; ++i) {
@@ -94,6 +94,7 @@ void delete_table_row(int pos) {
     }
 
     // shift pointers in patterns
+    // TODO: reset pointers
     for (gt::Pattern& pat : g_song.patterns) {
         for (gt::PatternRow& r : pat.rows) {
             if (r.command == 8 + g_table && r.data > pos + 1) {
@@ -101,6 +102,7 @@ void delete_table_row(int pos) {
             }
         }
     }
+
 
     // shift table jump pointers
     for (int i = pos + 1; i < gt::MAX_TABLELEN; ++i) {
@@ -441,7 +443,7 @@ void draw_easy() {
         };
         constexpr char const* LABELS[] = { "ATTACK  %X", "DECAY   %X", "SUSTAIN %X", "RELEASE %X" };
         for (int i = 0; i < 4; ++i) {
-            app::slider(app::CANVAS_WIDTH, LABELS[i], adsr[i], 0, 0xf);
+            gui::slider(app::CANVAS_WIDTH, LABELS[i], adsr[i], 0, 0xf);
         }
         instr.ad = (adsr[0] << 4) | adsr[1];
         instr.sr = (adsr[2] << 4) | adsr[3];
@@ -460,7 +462,7 @@ void draw_easy() {
             instr.gatetimer ^= 0x40;
         }
         int v = instr.gatetimer & 0x3f;
-        app::slider(app::CANVAS_WIDTH, "%X", v, 1, 0xf, &instr.gatetimer);
+        gui::slider(app::CANVAS_WIDTH, "%X", v, 1, 0xf, &instr.gatetimer);
         instr.gatetimer = (instr.gatetimer & 0xc0) | v;
     }
     else if (g_cursor_select == CursorSelect::FirstWave) {
@@ -537,7 +539,7 @@ void draw_easy() {
             if (mode == 0) {
                 // wait
                 int v = lval;
-                app::slider(app::CANVAS_WIDTH, "  %X", v, 0, 0xf, &lval);
+                gui::slider(app::CANVAS_WIDTH, "  %X", v, 0, 0xf, &lval);
                 lval = v;
             }
             else if (mode == 1) {
@@ -587,12 +589,12 @@ void draw_easy() {
                 if (mode == 0) {
                     int v = rval < 0x60 ? rval : rval - 0x80;
                     sprintf(str, "%c%02X", "+-"[v < 0], abs(v));
-                    app::slider(app::CANVAS_WIDTH, str, v, -0x20, 0x20, &rval);
+                    gui::slider(app::CANVAS_WIDTH, str, v, -0x20, 0x20, &rval);
                     rval = v >= 0 ? v : v + 0x80;
                 }
                 else if (mode == 1) {
                     int v = rval - 0x80;
-                    app::slider(app::CANVAS_WIDTH, " %02X", v, 1, 95, &rval);
+                    gui::slider(app::CANVAS_WIDTH, " %02X", v, 1, 95, &rval);
                     rval = v + 0x80;
                 }
             }
@@ -624,16 +626,16 @@ void draw_easy() {
             if (mode == 0) {
                 // set pw
                 int v = ((lval & 0xf) << 8) | rval;
-                app::slider(app::CANVAS_WIDTH, "%03X", v, 0, 0xfff, &rval);
+                gui::slider(app::CANVAS_WIDTH, "%03X", v, 0, 0xfff, &rval);
                 lval = 0x80 | (v >> 8);
                 rval = v & 0xff;
             }
             else {
                 // step pw
-                app::slider(app::CANVAS_WIDTH, " %02X", lval, 1, 0x7f);
+                gui::slider(app::CANVAS_WIDTH, " %02X", lval, 1, 0x7f);
                 int v = int8_t(rval);
                 sprintf(str, "%c%02X", "+-"[v < 0], abs(v));
-                app::slider(app::CANVAS_WIDTH, str, v, -128, 127, &rval);
+                gui::slider(app::CANVAS_WIDTH, str, v, -128, 127, &rval);
                 rval = v;
             }
 
@@ -683,19 +685,19 @@ void draw_easy() {
                 if (gui::button("VOICE 3", rval & 0x4)) rval ^= 0x4;
 
                 int v = rval >> 4;
-                app::slider(app::CANVAS_WIDTH, "RES %X", v, 0, 0xf, &rval);
+                gui::slider(app::CANVAS_WIDTH, "RES %X", v, 0, 0xf, &rval);
                 rval = (rval & 0x0f) | (v << 4);
             }
             else if (mode == 1) {
                 // set cutoff
-                app::slider(app::CANVAS_WIDTH, " %02X", rval, 0, 0xff);
+                gui::slider(app::CANVAS_WIDTH, " %02X", rval, 0, 0xff);
             }
             else {
                 // step cutoff
-                app::slider(app::CANVAS_WIDTH, " %02X", lval, 1, 0x7f);
+                gui::slider(app::CANVAS_WIDTH, " %02X", lval, 1, 0x7f);
                 int v = int8_t(rval);
                 sprintf(str, "%c%02X", "+-"[v < 0], abs(v));
-                app::slider(app::CANVAS_WIDTH, str, v, -0x20, 0x20, &rval);
+                gui::slider(app::CANVAS_WIDTH, str, v, -0x20, 0x20, &rval);
                 rval = v;
             }
         }
@@ -777,20 +779,11 @@ void draw_easy() {
 
 
 void draw_hard() {
-
     enum class CursorSelect {
         WaveTable,
         PulseTable,
         FilterTable,
         SpeedTable,
-
-        Attack,
-        Decay,
-        Sustain,
-        Release,
-        VibDelay,
-        GateTimer,
-        FirstWave,
     };
 
     static CursorSelect g_cursor_select = CursorSelect::WaveTable;
@@ -801,44 +794,6 @@ void draw_hard() {
     gt::Instrument& instr    = g_song.instruments[instr_nr];
     settings_view::Settings const& settings = settings_view::settings();
     char str[32];
-
-    gui::same_line();
-    gui::align(gui::Align::Left);
-    gui::item_size({ 16 * 8 + 12, app::BUTTON_HEIGHT });
-    gui::input_text(instr.name);
-    gui::align(gui::Align::Center);
-
-    gui::button_style(gui::ButtonStyle::PaddedTableCell);
-    gui::item_size(app::BUTTON_HEIGHT);
-    uint8_t adsr[] = {
-        uint8_t(instr.ad >> 4),
-        uint8_t(instr.ad & 0xf),
-        uint8_t(instr.sr >> 4),
-        uint8_t(instr.sr & 0xf),
-    };
-    for (int i = 0; i < 4; ++i) {
-        sprintf(str, "%X", adsr[i]);
-        gui::same_line();
-        CursorSelect x = CursorSelect(i + int(CursorSelect::Attack));
-        if (gui::button(str, g_cursor_select == x)) {
-            g_cursor_select = x;
-        }
-    }
-    uint8_t data[] = {
-        instr.vibdelay,
-        instr.gatetimer,
-        instr.firstwave,
-    };
-    gui::item_size({ app::BUTTON_HEIGHT + 8, app::BUTTON_HEIGHT });
-    for (int i = 0; i < 3; ++i) {
-        sprintf(str, "%02X", data[i]);
-        gui::same_line();
-        CursorSelect x = CursorSelect(i + int(CursorSelect::VibDelay));
-        if (gui::button(str, g_cursor_select == x)) {
-            g_cursor_select = x;
-        }
-    }
-    gui::button_style(gui::ButtonStyle::Normal);
 
     gui::DrawContext& dc = gui::draw_context();
     ivec2 cursor = gui::cursor();
@@ -862,8 +817,6 @@ void draw_hard() {
         }
 
         int pos = instr.ptr[t] - 1;
-
-
         auto& ltable = g_song.ltable[t];
         auto& rtable = g_song.rtable[t];
 
@@ -1015,77 +968,6 @@ void draw_hard() {
     gui::cursor({ 0, cursor.y + settings.row_height * table_page + app::BUTTON_HEIGHT });
 
     switch (g_cursor_select) {
-    case CursorSelect::Attack:
-    case CursorSelect::Decay:
-    case CursorSelect::Sustain:
-    case CursorSelect::Release: {
-        int i = int(g_cursor_select) - int(CursorSelect::Attack);
-        constexpr char const* labels[] = {
-            "ATTACK",
-            "DECAY",
-            "SUSTAIN",
-            "RELEASE",
-        };
-        int v = adsr[i];
-        gui::item_size({ 12 + 8 * 8, app::BUTTON_HEIGHT });
-        gui::text(labels[i]);
-        gui::item_size(app::BUTTON_HEIGHT);
-        gui::same_line();
-        if (gui::button(gui::Icon::Left) && v > 0) --v;
-        gui::same_line();
-        if (gui::button(gui::Icon::Right) && v < 0xf) ++v;
-        gui::same_line();
-        gui::item_size({ app::CANVAS_WIDTH - gui::cursor().x, app::BUTTON_HEIGHT });
-        gui::drag_bar_style(gui::DragBarStyle::Normal);
-        gui::horizontal_drag_bar(v, 0, 0xf, 1);
-        adsr[i] = v;
-        instr.ad = (adsr[0] << 4) | adsr[1];
-        instr.sr = (adsr[2] << 4) | adsr[3];
-        break;
-    }
-
-    case CursorSelect::VibDelay:
-    case CursorSelect::GateTimer: {
-        char const* label = g_cursor_select == CursorSelect::VibDelay ? "VIBDELAY" : "HR TIMER";
-        uint8_t&    v     = g_cursor_select == CursorSelect::VibDelay ? instr.vibdelay : instr.gatetimer;
-        gui::item_size({ 12 + 8 * 8, app::BUTTON_HEIGHT });
-        gui::text(label);
-        gui::item_size(app::BUTTON_HEIGHT);
-        gui::same_line();
-        if (gui::button(gui::Icon::Left) && v > 0) --v;
-        gui::same_line();
-        if (gui::button(gui::Icon::Right) && v < 0xff) ++v;
-        gui::same_line();
-        gui::item_size({ app::CANVAS_WIDTH - gui::cursor().x, app::BUTTON_HEIGHT });
-        gui::drag_bar_style(gui::DragBarStyle::Normal);
-        gui::horizontal_drag_bar(v, 0, 0xff, 1);
-        break;
-    }
-
-    case CursorSelect::FirstWave: {
-        gui::item_size({ 12 + 8 * 8, app::BUTTON_HEIGHT });
-        gui::text("1ST WAVE");
-        uint8_t& v = instr.firstwave;
-        gui::item_size(app::BUTTON_HEIGHT);
-        gui::same_line();
-        if (gui::button(gui::Icon::Noise, v & 0x80)) v ^= 0x80;
-        gui::same_line();
-        if (gui::button(gui::Icon::Pulse, v & 0x40)) v ^= 0x40;
-        gui::same_line();
-        if (gui::button(gui::Icon::Saw, v & 0x20)) v ^= 0x20;
-        gui::same_line();
-        if (gui::button(gui::Icon::Triangle, v & 0x10)) v ^= 0x10;
-        gui::same_line();
-        if (gui::button(gui::Icon::Test, v & 0x08)) v ^= 0x08;
-        gui::same_line();
-        if (gui::button(gui::Icon::Ring, v & 0x04)) v ^= 0x04;
-        gui::same_line();
-        if (gui::button(gui::Icon::Sync, v & 0x02)) v ^= 0x02;
-        gui::same_line();
-        if (gui::button(gui::Icon::Gate, v & 0x01)) v ^= 0x01;
-        break;
-    }
-
     case CursorSelect::WaveTable:
     case CursorSelect::PulseTable:
     case CursorSelect::FilterTable:
@@ -1095,7 +977,6 @@ void draw_hard() {
             &g_song.ltable[t][g_cursor_row],
             &g_song.rtable[t][g_cursor_row],
         };
-
         gui::align(gui::Align::Center);
         for (int n = 0; n < 2; ++ n) {
             for (int i = 0; i < 16; ++i) {
@@ -1108,13 +989,10 @@ void draw_hard() {
                 }
             }
         }
-
         break;
     }
-
     default: assert(false);
     }
-
 }
 
 

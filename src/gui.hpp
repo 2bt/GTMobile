@@ -175,10 +175,10 @@ private:
 
 
 enum class Icon {
-    Left = 16,
-    Right,
-    Up,
-    Down,
+    Decrease = 16,
+    Increase,
+    MoveUp,
+    MoveDown,
     VGrab,
     HGrab,
 
@@ -303,6 +303,17 @@ bool horizontal_drag_bar(T& value, int min, int max, int page) {
     if (b) value = v;
     return b;
 }
+
+bool slider(int width, char const* fmt, int& value, int min, int max, void const* addr=nullptr);
+
+template<class T>
+bool slider(int width, char const* fmt, T& value, int min, int max, void const* addr=nullptr) {
+    int v = value;
+    bool res = slider(width, fmt, v, min, max, &value);
+    value = v;
+    return res;
+}
+
 
 
 // low level functions

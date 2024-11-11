@@ -26,36 +26,6 @@ namespace app {
         settings,
     };
 
-    template<class T>
-    bool slider(int width, char const* fmt, T& value, int min, int max, void const* addr=nullptr) {
-        int v = value;
-        int old_v = value;
-        int text_width = 0;
-        if (fmt != nullptr) {
-            char str[64] = {};
-            snprintf(str, sizeof(str), fmt, v);
-            text_width = 12 + strlen(str) * 8;
-            gui::item_size({ text_width, BUTTON_HEIGHT });
-            gui::text(str);
-            gui::same_line();
-        }
-
-        gui::drag_bar_style(gui::DragBarStyle::Normal);
-        gui::item_size({ width - text_width - BUTTON_HEIGHT * 2, BUTTON_HEIGHT });
-        gui::id(addr ? addr : &value);
-        gui::horizontal_drag_bar(v, min, max, 1);
-        gui::same_line();
-        gui::button_style(gui::ButtonStyle::Normal);
-        gui::item_size(BUTTON_HEIGHT);
-        if (gui::button(gui::Icon::Left)) v = std::max(min, v - 1);
-        gui::same_line();
-        if (gui::button(gui::Icon::Right)) v = std::min(max, v + 1);
-        value = v;
-        return v != old_v;
-    }
-
-
-
 
     gt::Song&   song();
     gt::Player& player();

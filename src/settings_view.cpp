@@ -23,8 +23,8 @@ void draw() {
         g_settings.play_in_background ^= 1;
     }
 
-    app::slider(app::CANVAS_WIDTH, "ROW HIGHLIGHT STEP %02X", g_settings.row_highlight, 2, 16);
-    app::slider(app::CANVAS_WIDTH, "ROW HEIGHT         %02X", g_settings.row_height, 8, app::MAX_ROW_HEIGHT);
+    gui::slider(app::CANVAS_WIDTH, "ROW HIGHLIGHT STEP %02X", g_settings.row_highlight, 2, 16);
+    gui::slider(app::CANVAS_WIDTH, "ROW HEIGHT         %02X", g_settings.row_height, 8, app::MAX_ROW_HEIGHT);
 
     piano::draw();
 }
