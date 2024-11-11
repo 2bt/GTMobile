@@ -386,9 +386,10 @@ void draw() {
             player.set_channel_active(c, !active);
         }
         dc.rgb(color::BLACK);
-        dc.fill({ p + ivec2(27, 11), { 50, 8 } });
-        dc.rgb(color::WHITE);
-        dc.fill({ p + ivec2(27, 12), ivec2(sid::chan_level(c) * 50.0f + 0.9f, 6) });
+        dc.fill({ p + ivec2(28, 11), { 48, 8 } });
+        dc.fill({ p + ivec2(27, 12), { 50, 6 } });
+        dc.rgb(color::mix(color::GREEN, 0, 0.2f));
+        dc.fill({ p + ivec2(29, 13), ivec2(sid::chan_level(c) * 46.0f + 0.9f, 4) });
     }
 
     gui::cursor({ 0, gui::cursor().y + 1 }); // 1px padding
@@ -481,7 +482,6 @@ void draw() {
     gui::drag_bar_style(gui::DragBarStyle::Scrollbar);
     {
         int page = g_song_page;
-        // int max_scroll = std::max(0, max_song_len - page);
         int max_scroll = std::max(0, g_song.song_len - page);
         gui::item_size({ app::SCROLL_WIDTH, page * settings.row_height + 2 });
         if (gui::vertical_drag_bar(g_song_scroll, 0, max_scroll, page)) g_follow = false;
@@ -639,11 +639,13 @@ void draw() {
         gui::disabled(g_cursor_pattern_row == 0);
         if (gui::button(gui::Icon::MoveUp)) {
             --g_cursor_pattern_row;
+            g_follow = false;
             g_pattern_scroll = clamp(g_pattern_scroll, g_cursor_pattern_row - pattern_page + 1, g_cursor_pattern_row);
         }
         gui::disabled(g_cursor_pattern_row >= patt.len - 1);
         if (gui::button(gui::Icon::MoveDown)) {
             ++g_cursor_pattern_row;
+            g_follow = false;
             g_pattern_scroll = clamp(g_pattern_scroll, g_cursor_pattern_row - pattern_page + 1, g_cursor_pattern_row);
         }
         gui::disabled(false);

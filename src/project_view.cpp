@@ -272,9 +272,6 @@ void draw() {
     }
 
 
-
-
-
     draw_confirm();
 
     piano::draw();
