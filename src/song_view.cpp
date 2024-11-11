@@ -636,12 +636,17 @@ void draw() {
 
         // navigation
         gui::separator();
+        gui::disabled(g_cursor_pattern_row == 0);
         if (gui::button(gui::Icon::MoveUp)) {
-
+            --g_cursor_pattern_row;
+            g_pattern_scroll = clamp(g_pattern_scroll, g_cursor_pattern_row - pattern_page + 1, g_cursor_pattern_row);
         }
+        gui::disabled(g_cursor_pattern_row >= patt.len - 1);
         if (gui::button(gui::Icon::MoveDown)) {
-
+            ++g_cursor_pattern_row;
+            g_pattern_scroll = clamp(g_pattern_scroll, g_cursor_pattern_row - pattern_page + 1, g_cursor_pattern_row);
         }
+        gui::disabled(false);
     }
 
 
