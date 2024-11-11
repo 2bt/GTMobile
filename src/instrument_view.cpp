@@ -186,6 +186,8 @@ void draw_easy() {
     if (gui::button(gui::Icon::Share, share_count >= 2)) {
         draw_share_window = true;
     }
+    gui::item_size(app::CANVAS_WIDTH);
+    gui::separator();
 
     ivec2 cursor      = gui::cursor();
     int   table_space = app::canvas_height() - cursor.y - piano::HEIGHT - app::BUTTON_HEIGHT * 4 - gui::FRAME_WIDTH - 2;
@@ -368,13 +370,16 @@ void draw_easy() {
     gui::item_size({ app::SCROLL_WIDTH, app::MAX_ROW_HEIGHT * table_page + 2 });
     gui::drag_bar_style(gui::DragBarStyle::Scrollbar);
     gui::vertical_drag_bar(g_scroll, 0, len - table_page, table_page);
+    gui::same_line();
+    gui::separator();
+    gui::same_line(false);
 
 
     // table buttons
     if (g_cursor_select == CursorSelect::Table) {
-        gui::cursor({ app::CANVAS_WIDTH - app::BUTTON_HEIGHT * 2, cursor.y });
+        gui::cursor({ app::CANVAS_WIDTH - 55, cursor.y });
 
-        gui::item_size({ app::BUTTON_HEIGHT * 2, app::BUTTON_HEIGHT });
+        gui::item_size({ 55, app::BUTTON_HEIGHT });
         gui::disabled(len == 0 ? num_free_rows <= 1 : num_free_rows == 0);
         if (gui::button(gui::Icon::AddRowAbove)) {
             // add jump

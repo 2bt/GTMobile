@@ -457,6 +457,9 @@ void draw() {
             }
         }
     }
+    gui::cursor({ 0, gui::cursor().y + 1 });
+    gui::item_size({ app::CANVAS_WIDTH, app::BUTTON_HEIGHT });
+    gui::separator();
 
 
     // scroll bars
@@ -479,19 +482,25 @@ void draw() {
         gui::item_size({ app::SCROLL_WIDTH, page * settings.row_height + 2});
         if (gui::vertical_drag_bar(g_pattern_scroll, 0, max_scroll, page)) g_follow = false;
     }
-
-
-    // buttons
-    gui::cursor({ app::CANVAS_WIDTH - app::BUTTON_HEIGHT * 2, cursor.y });
     gui::align(gui::Align::Center);
 
+
+    int total_table_height = gui::cursor().y - cursor.y;
+    gui::cursor({ 280 + app::SCROLL_WIDTH, cursor.y });
+    gui::same_line();
+    gui::item_size({ 75, total_table_height });
+    gui::separator();
+    gui::cursor(gui::cursor());
+
+    // buttons
+
     // order edit
+    gui::item_size({ 55, app::BUTTON_HEIGHT });
     if (g_edit_mode == EditMode::Song && !(is_playing && g_follow)) {
         int& pos = g_cursor_song_row;
         int& len = g_song.song_len;
         assert(pos < len);
 
-        gui::item_size({ app::BUTTON_HEIGHT * 2, app::BUTTON_HEIGHT });
         gui::disabled(!(len < MAX_SONG_ROWS && pos <= len));
         if (gui::button(gui::Icon::AddRowAbove)) {
             for (auto& order : g_song.song_order) {
@@ -530,9 +539,8 @@ void draw() {
         if (gui::button(gui::Icon::EditRow)) {
             init_order_edit();
         }
-
-
     }
+
 
     // pattern edit
     gt::Pattern& patt = g_song.patterns[patt_nums[g_cursor_chan]];
@@ -541,7 +549,6 @@ void draw() {
         int&  len  = patt.len;
         int&  pos  = g_cursor_pattern_row;
 
-        gui::item_size({ app::BUTTON_HEIGHT * 2, app::BUTTON_HEIGHT });
         gui::disabled(!(len < gt::MAX_PATTROWS));
         if (gui::button(gui::Icon::AddRowAbove)) {
             std::rotate(rows.begin() + pos, rows.end() - 1, rows.end());
@@ -566,13 +573,7 @@ void draw() {
         gt::PatternRow& row  = patt.rows[pos];
         // note edit buttons
         {
-            gui::item_size({ app::BUTTON_HEIGHT * 2, app::BUTTON_HEIGHT * 3 + 10 });
-            gui::Box box = gui::item_box();
-            dc.rgb(color::FRAME);
-            dc.box(box, gui::BoxStyle::Frame);
-            ivec2 cursor = gui::cursor();
-            gui::cursor(box.pos + ivec2(5));
-            gui::item_size({ app::BUTTON_HEIGHT * 2 - 10, app::BUTTON_HEIGHT });
+            gui::separator();
             if (gui::button(gui::Icon::Record, g_recording)) {
                 g_recording = !g_recording;
             }
@@ -587,18 +588,10 @@ void draw() {
                 row.instr = 0;
             }
             gui::disabled(false);
-            gui::cursor(cursor);
         }
         // command edit buttons
         {
-            gui::item_size({ app::BUTTON_HEIGHT * 2, app::BUTTON_HEIGHT * 4 + 10 });
-            gui::Box box = gui::item_box();
-            dc.rgb(color::FRAME);
-            dc.box(box, gui::BoxStyle::Frame);
-            ivec2 cursor = gui::cursor();
-            gui::cursor(box.pos + ivec2(5));
-
-            gui::item_size({ app::BUTTON_HEIGHT * 2 - 10, app::BUTTON_HEIGHT });
+            gui::separator();
             if (gui::button(gui::Icon::DotDotDot)) {
                 g_dialog = Dialog::CommandEdit;
                 g_command = row.command;
@@ -623,7 +616,6 @@ void draw() {
                 row.data    = copy_command_data;
             }
             gui::disabled(false);
-            gui::cursor({ cursor.x, cursor.y - 5 });
         }
 
     }

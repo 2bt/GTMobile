@@ -164,7 +164,6 @@ void draw() {
     gui::item_size({ C2, app::BUTTON_HEIGHT });
     gui::input_text(g_file_name);
 
-
     gui::item_size({ app::CANVAS_WIDTH, app::BUTTON_HEIGHT });
     gui::separator();
 
@@ -179,8 +178,9 @@ void draw() {
     gui::separator();
     ivec2 table_cursor = gui::cursor();
     gui::same_line(false);
-    gui::item_size({ app::CANVAS_WIDTH, app::MAX_ROW_HEIGHT });
+    gui::item_size(app::CANVAS_WIDTH);
     gui::separator();
+    gui::item_size({ app::CANVAS_WIDTH, app::canvas_height() - gui::cursor().y - piano::HEIGHT });
     gui::align(gui::Align::Left);
     gui::text("%s", g_status_msg.c_str());
     g_status_age += gui::get_frame_time();
@@ -189,7 +189,7 @@ void draw() {
     }
 
 
-
+    // file table
     gui::cursor(table_cursor + ivec2(0, 1));
     gui::item_size({ C2 - app::SCROLL_WIDTH, app::MAX_ROW_HEIGHT });
     gui::button_style(gui::ButtonStyle::TableCell);
@@ -216,6 +216,7 @@ void draw() {
 
 
 
+    // button column
     gui::cursor(cursor);
     gui::align(gui::Align::Center);
     gui::item_size({ C1 - gui::FRAME_WIDTH, app::BUTTON_HEIGHT });
