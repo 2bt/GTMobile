@@ -102,9 +102,11 @@ void draw_command_edit() {
     if (g_dialog != Dialog::CommandEdit) return;
 
     enum {
-        WIDTH = 13 * 26,
-        HEIGHT = app::BUTTON_HEIGHT * 4 + app::MAX_ROW_HEIGHT * 16 + gui::FRAME_WIDTH,
-        C1W = 17 * 8 + 12,
+        // WIDTH = 13 * 26,
+        // HEIGHT = app::BUTTON_HEIGHT * 4 + app::MAX_ROW_HEIGHT * 16 + gui::FRAME_WIDTH,
+        WIDTH = app::CANVAS_WIDTH - 12,
+        HEIGHT = app::CANVAS_MIN_HEIGHT - 12,
+        C1W = 15 * 8 + 12,
         C2W = 3 * 8 + 12,
     };
     gui::DrawContext& dc = gui::draw_context();
@@ -119,8 +121,8 @@ void draw_command_edit() {
         "PORTAMENTO DOWN",
         "TONE PORTAMENTO",
         "VIBRATO",
-        "ATTACK & DECAY",
-        "SUSTAIN & RELEASE",
+        "ATTACK/DECAY",
+        "SUSTAIN/RELEASE",
         "WAVE",
         "WAVE TABLE",
         "PULSE TABLE",
@@ -132,14 +134,8 @@ void draw_command_edit() {
         "TEMPO",
     };
 
-    gui::align(gui::Align::Left);
-    for (int i = 0; i <= 0xf; ++i) {
-        gui::item_size({ C1W, app::MAX_ROW_HEIGHT });
-        if (gui::button(TABLE_LABELS[i], i == g_command)) {
-            g_command = i;
-        }
-        gui::same_line();
-
+    auto cmd_label = [&dc](int i) {
+        gui::disabled(g_command != i);
         gui::item_size({ C2W, app::MAX_ROW_HEIGHT });
         gui::Box b = gui::item_box();
         b.pos = b.pos + 1;
@@ -150,16 +146,34 @@ void draw_command_edit() {
         sprintf(str, "%X%02X", i, g_command_data[i]);
         dc.rgb(color::CMDS[i]);
         dc.text(b.pos + 5, str);
+        gui::disabled(false);
+    };
+
+    ivec2 cursor = gui::cursor();
+    gui::align(gui::Align::Left);
+    for (int i = 0; i < 8; ++i) {
+        gui::item_size({ C1W, app::MAX_ROW_HEIGHT });
+        if (gui::button(TABLE_LABELS[i], i == g_command)) {
+            g_command = i;
+        }
+        gui::same_line();
+        cmd_label(i);
     }
+    gui::cursor(cursor + ivec2(C1W + C2W, 0));
+    for (int i = 8; i < 16; ++i) {
+        cmd_label(i);
+        gui::same_line();
+        gui::item_size({ C1W, app::MAX_ROW_HEIGHT });
+        if (gui::button(TABLE_LABELS[i], i == g_command)) {
+            g_command = i;
+        }
+    }
+    gui::cursor(cursor + ivec2(0, app::MAX_ROW_HEIGHT * 8));
+
+
     gui::align(gui::Align::Center);
     gui::item_size({ WIDTH, app::BUTTON_HEIGHT });
-    gui::separator(false);
-
-    dc.rgb(color::FRAME);
-    dc.box({
-            { box.pos + ivec2(C1W + C2W, app::BUTTON_HEIGHT) },
-            { WIDTH - (C1W + C2W) + 5, app::MAX_ROW_HEIGHT * 16 + 5 },
-        }, gui::BoxStyle::Frame);
+    gui::separator();
 
 
 
@@ -339,12 +353,12 @@ void draw() {
                 dc.box(box, gui::BoxStyle::Cursor);
             }
 
+            sprintf(str, "   %c%X", "+-"[row.trans < 0], abs(row.trans));
             int prev_trans = r == 0 ? 0 : g_song.song_order[c][r - 1].trans;
-            sprintf(str, "%c%X", "+-"[row.trans < 0], abs(row.trans));
-            dc.rgb(color::WHITE);
-            if (row.trans == prev_trans)  dc.rgb(color::DARK_GREY);
+            dc.rgb(row.trans == prev_trans ? color::DARK_GREY : color::WHITE);
             dc.text(box.pos + ivec2(5, text_offset), str);
-            sprintf(str, "   %02X", row.pattnum);
+
+            sprintf(str, "%02X", row.pattnum);
             dc.rgb(color::WHITE);
             dc.text(box.pos + ivec2(5, text_offset), str);
         }
@@ -491,6 +505,7 @@ void draw() {
     gui::item_size({ 75, total_table_height });
     gui::separator();
     gui::cursor(gui::cursor());
+    gui::same_line(false);
 
     // buttons
 

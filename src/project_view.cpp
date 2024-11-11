@@ -220,17 +220,6 @@ void draw() {
     gui::cursor(cursor);
     gui::align(gui::Align::Center);
     gui::item_size({ C1 - gui::FRAME_WIDTH, app::BUTTON_HEIGHT });
-    if (gui::button("RESET")) {
-        confirm("LOSE CHANGES TO THE CURRENT SONG?", [](bool ok) {
-            if (!ok) return;
-            app::player().stop_song();
-            app::player().reset();
-            g_song.clear();
-            song_view::reset();
-            status("SONG WAS RESET");
-        });
-    }
-
     bool file_selected = false;
     for (std::string const& n : g_file_names) {
         if (strcmp(n.c_str(), g_file_name.data()) == 0) {
@@ -271,6 +260,17 @@ void draw() {
         });
     }
     gui::disabled(false);
+    if (gui::button("RESET")) {
+        confirm("LOSE CHANGES TO THE CURRENT SONG?", [](bool ok) {
+            if (!ok) return;
+            app::player().stop_song();
+            app::player().reset();
+            g_song.clear();
+            song_view::reset();
+            status("SONG WAS RESET");
+        });
+    }
+
 
 
 

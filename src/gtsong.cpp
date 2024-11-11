@@ -184,10 +184,19 @@ bool Song::load(std::istream& stream) {
     for (Pattern& patt : patterns) {
         for (PatternRow& row : patt.rows) {
             if (row.data == 0) continue;
-            if (row.command == 0x4) vib[row.data - 1] = 1;
+            if (row.command == 0x4)                       vib[row.data - 1] = 1;
             if (row.command >= 0x1 && row.command <= 0x3) porta[row.data - 1] = 1;
-            if (row.command == 0xe) funk[row.data - 1] = 1;
+            if (row.command == 0xe)                       funk[row.data - 1] = 1;
         }
+    }
+    for (int i = 0; i < MAX_TABLELEN; ++i) {
+        if ((ltable[WTBL][i] & 0xf0) != 0xf0) continue;
+        uint8_t data = rtable[WTBL][i];
+        if (data == 0) continue;
+        uint8_t cmd = ltable[WTBL][i] & 0xf;
+        if (cmd == 0x4)               vib[data - 1] = 1;
+        if (cmd >= 0x1 && cmd <= 0x3) porta[data - 1] = 1;
+        if (cmd == 0xe)               funk[data - 1] = 1;
     }
     std::array<uint8_t, MAX_TABLELEN> lspeed = ltable[STBL];
     std::array<uint8_t, MAX_TABLELEN> rspeed = rtable[STBL];
@@ -223,7 +232,7 @@ bool Song::load(std::istream& stream) {
         clear();
         return false;
     }
-    if (funk_pos > 0x50) {
+    if (funk_pos > 0x60) {
         LOGE("Song::load: too many funk tempi");
         clear();
         return false;
@@ -239,8 +248,15 @@ bool Song::load(std::istream& stream) {
             if (row.command == 0xe)                       row.data = funk[row.data - 1] + 1;
         }
     }
-
-
+    for (int i = 0; i < MAX_TABLELEN; ++i) {
+        if ((ltable[WTBL][i] & 0xf0) != 0xf0) continue;
+        uint8_t& data = rtable[WTBL][i];
+        if (data == 0) continue;
+        uint8_t cmd = ltable[WTBL][i] & 0xf;
+        if (cmd == 0x4)               data = vib[data - 1] + 1;
+        if (cmd >= 0x1 && cmd <= 0x3) data = porta[data - 1] + 1;
+        if (cmd == 0xe)               data = funk[data - 1] + 1;
+    }
     return true;
 }
 
