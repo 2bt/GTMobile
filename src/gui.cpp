@@ -317,7 +317,7 @@ bool hold() {
 }
 void disabled(bool disabled) {
     g_disabled = disabled;
-    g_dc.alpha(disabled ? 80 : 255);
+    g_dc.alpha(disabled ? 100 : 255);
 }
 bool get_disabled() {
     return g_disabled;

@@ -29,8 +29,12 @@ int             g_cursor_pattern_row = 0;
 int             g_cursor_song_row    = 0;
 int             g_transpose          = 0;
 EditMode        g_edit_mode          = EditMode::Song;
+
 Dialog          g_dialog             = Dialog::None;
 int             g_command            = 0;
+// Dialog          g_dialog             = Dialog::CommandEdit;
+// int             g_command            = 1;
+
 int             g_command_data[16]   = {};
 gt::PatternRow* g_command_row        = nullptr;
 
@@ -69,30 +73,38 @@ void exit_order_edit() {
 void draw_order_edit() {
     if (g_dialog != Dialog::OrderEdit) return;
 
-    gui::Box box = gui::begin_window({ 13 * 26, (16 + 3) * app::BUTTON_HEIGHT });
-    gui::item_size({ box.size.x, app::BUTTON_HEIGHT });
+    enum {
+        MIN_HEIGHT = 3 * app::BUTTON_HEIGHT,
+        CW = (app::CANVAS_WIDTH - 12) / 8,
+        WIDTH = 8 * CW,
+    };
+    int space = app::canvas_height() - MIN_HEIGHT - 12;
+    int row_h = std::min<int>(space / 26, app::BUTTON_HEIGHT);
+    int height = MIN_HEIGHT + row_h * 26;
+
+    gui::begin_window({ WIDTH, height });
+    gui::item_size({ WIDTH, app::BUTTON_HEIGHT });
     gui::text("ORDER LIST EDIT");
 
     auto&         order = g_song.song_order[g_cursor_chan];
     gt::OrderRow& row   = order[g_cursor_song_row];
 
     char str[32];
-    gui::item_size({ 26, app::BUTTON_HEIGHT });
+    gui::item_size({ CW, row_h });
     for (int i = 0; i < gt::MAX_PATT; ++i) {
-        gui::same_line(i % 13 != 0);
-        int n = i % 13 * 16 + i / 13;
-        sprintf(str, "%02X", n);
-        gui::button_style(g_pattern_empty[n] ? gui::ButtonStyle::Shaded : gui::ButtonStyle::Normal);
-        if (gui::button(str, row.pattnum == n)) {
-            row.pattnum = n;
+        gui::same_line(i % 8 != 0);
+        sprintf(str, "%02X", i);
+        gui::button_style(g_pattern_empty[i] ? gui::ButtonStyle::Shaded : gui::ButtonStyle::Normal);
+        if (gui::button(str, row.pattnum == i)) {
+            row.pattnum = i;
             exit_order_edit();
         }
     }
     gui::button_style(gui::ButtonStyle::Normal);
 
     sprintf(str, "TRANSPOSE %c%X", "+-"[g_transpose < 0], abs(g_transpose));
-    gui::slider(26 * 13, str, g_transpose, -0xf, 0xe);
-    gui::item_size({ box.size.x, app::BUTTON_HEIGHT });
+    gui::slider(WIDTH, str, g_transpose, -0xf, 0xe);
+    gui::item_size({ WIDTH, app::BUTTON_HEIGHT });
     if (gui::button("CLOSE")) exit_order_edit();
     gui::end_window();
 }
@@ -105,13 +117,27 @@ void draw_command_edit() {
         // WIDTH = 13 * 26,
         // HEIGHT = app::BUTTON_HEIGHT * 4 + app::MAX_ROW_HEIGHT * 16 + gui::FRAME_WIDTH,
         WIDTH = app::CANVAS_WIDTH - 12,
-        HEIGHT = app::CANVAS_MIN_HEIGHT - 12,
+        // HEIGHT = app::CANVAS_MIN_HEIGHT - 12,
+        MIN_HEIGHT = app::BUTTON_HEIGHT * 2 + app::MAX_ROW_HEIGHT * 8 + gui::FRAME_WIDTH * 2,
         C1W = 15 * 8 + 12,
         C2W = 3 * 8 + 12,
-    };
-    gui::DrawContext& dc = gui::draw_context();
 
-    gui::Box box = gui::begin_window({ WIDTH, HEIGHT });
+        LEN = 0x20,
+        CN = 28,
+        CC = 84,
+    };
+
+    static int g_scroll = 0;
+    int table_height = app::canvas_height() - MIN_HEIGHT - 12 - 2;
+    int page = std::min<int>(table_height / app::MAX_ROW_HEIGHT, LEN);
+    table_height = page * app::MAX_ROW_HEIGHT + 2;
+    int height = MIN_HEIGHT + table_height;
+
+    gui::DrawContext& dc = gui::draw_context();
+    char str[32];
+
+    // gui::Box box = gui::begin_window({ WIDTH, height });
+    gui::begin_window({ WIDTH, height });
     gui::item_size({ WIDTH, app::BUTTON_HEIGHT });
     gui::text("COMMAND EDIT");
 
@@ -134,7 +160,7 @@ void draw_command_edit() {
         "TEMPO",
     };
 
-    auto cmd_label = [&dc](int i) {
+    auto cmd_label = [&](int i) {
         gui::disabled(g_command != i);
         gui::item_size({ C2W, app::MAX_ROW_HEIGHT });
         gui::Box b = gui::item_box();
@@ -142,7 +168,6 @@ void draw_command_edit() {
         b.size = b.size - 2;
         dc.rgb(color::BACKGROUND_ROW);
         dc.fill(b);
-        char str[8];
         sprintf(str, "%X%02X", i, g_command_data[i]);
         dc.rgb(color::CMDS[i]);
         dc.text(b.pos + 5, str);
@@ -169,29 +194,94 @@ void draw_command_edit() {
         }
     }
     gui::cursor(cursor + ivec2(0, app::MAX_ROW_HEIGHT * 8));
-
-
     gui::align(gui::Align::Center);
-    gui::item_size({ WIDTH, app::BUTTON_HEIGHT });
+
+    gui::item_size(WIDTH);
     gui::separator();
+    cursor = gui::cursor();
 
+    gui::item_size({ WIDTH, table_height });
+    gui::item_box();
+    gui::separator();
+    gui::item_size({ WIDTH, app::BUTTON_HEIGHT });
+    if (gui::button("CLOSE")) {
+        g_dialog = Dialog::None;
+        g_command_row->command = g_command;
+        g_command_row->data    = g_command_data[g_command];
+    }
 
+    gui::cursor(cursor);
+    if ((g_command >= gt::CMD_PORTAUP && g_command <= gt::CMD_TONEPORTA) ||
+        g_command == gt::CMD_VIBRATO ||
+        g_command == gt::CMD_FUNKTEMPO)
+    {
 
-    // CMD_PORTAUP         = 1,
-    // CMD_PORTADOWN       = 2,
-    // CMD_TONEPORTA       = 3,
-    // CMD_VIBRATO         = 4,
-    // CMD_SETWAVE         = 7,
-    // CMD_SETWAVEPTR      = 8,
-    // CMD_SETPULSEPTR     = 9,
-    // CMD_SETFILTERPTR    = 10,
-    // CMD_SETFILTERCTRL   = 11,
-    // CMD_SETFILTERCUTOFF = 12,
-    // CMD_SETMASTERVOL    = 13,
-    // CMD_FUNKTEMPO       = 14,
-    // CMD_SETTEMPO        = 15,
-    // TODO
-    if (g_command == gt::CMD_SETAD) {
+        auto& ltable = g_song.ltable[gt::STBL];
+        auto& rtable = g_song.rtable[gt::STBL];
+        auto& data = g_command_data[g_command];
+
+        gui::cursor(cursor + ivec2(0, 1));
+        for (int i = 0; i < page; ++i) {
+            int r = i + g_scroll;
+            if (r > 0 && g_command == gt::CMD_VIBRATO)   r += 0x20;
+            if (r > 0 && g_command == gt::CMD_FUNKTEMPO) r += 0x40;
+
+            sprintf(str, "%02X", r);
+            gui::item_size({ CN, app::MAX_ROW_HEIGHT });
+            gui::Box box = gui::item_box();
+            dc.rgb(color::ROW_NUMBER);
+            dc.text(box.pos + 6, str);
+            gui::same_line();
+
+            gui::item_size({ CC, app::MAX_ROW_HEIGHT });
+            box = gui::item_box();
+            box.pos.x += 1;
+            box.size.x -= 2;
+
+            dc.rgb(color::BACKGROUND_ROW);
+            dc.fill(box);
+
+            gui::ButtonState state = gui::button_state(box);
+            if (state == gui::ButtonState::Released) {
+                data = r;
+            }
+            if (state != gui::ButtonState::Normal) {
+                dc.rgb(color::BUTTON_HELD);
+                dc.box(box, gui::BoxStyle::Cursor);
+            }
+            if (data == r) {
+                dc.rgb(color::BUTTON_ACTIVE);
+                dc.box(box, gui::BoxStyle::Cursor);
+            }
+
+            uint8_t lval = r > 0 ? ltable[r - 1] : 0;
+            uint8_t rval = r > 0 ? rtable[r - 1] : 0;
+
+            // chose colors
+            if (lval | rval) dc.rgb(color::WHITE);
+            else dc.rgb(color::CMDS[0]);
+
+            sprintf(str, "%02X", lval);
+            ivec2 p = box.pos + ivec2(5, 6);
+            dc.text(p, str);
+            p.x += 20;
+            sprintf(str, "%02X", rval);
+            dc.text(p, str);
+
+        }
+
+        gui::cursor(cursor + ivec2(CN + CC, 0));
+        gui::item_size({ app::SCROLL_WIDTH, table_height });
+        int max_scroll = std::max(0, LEN - page);
+        gui::drag_bar_style(gui::DragBarStyle::Scrollbar);
+        gui::vertical_drag_bar(g_scroll, 0, max_scroll, page);
+        gui::same_line();
+        gui::separator();
+
+        gui::item_size({ 100, app::BUTTON_HEIGHT });
+        gui::button("foobar");
+    }
+    else if (g_command == gt::CMD_SETAD) {
         int a = g_command_data[gt::CMD_SETAD] >> 4;
         int d = g_command_data[gt::CMD_SETAD] & 0xf;
         gui::slider(WIDTH, "ATTACK  %X", a, 0, 15);
@@ -207,13 +297,6 @@ void draw_command_edit() {
     }
 
 
-    gui::cursor({ box.pos.x, box.pos.y + box.size.y - app::BUTTON_HEIGHT });
-    gui::item_size({ WIDTH, app::BUTTON_HEIGHT });
-    if (gui::button("CLOSE")) {
-        g_dialog = Dialog::None;
-        g_command_row->command = g_command;
-        g_command_row->data    = g_command_data[g_command];
-    }
     gui::end_window();
 }
 
@@ -258,8 +341,8 @@ void draw() {
 
     enum {
         MAX_SONG_ROWS = 127, // --> gt::MAX_SONGLEN / 2
-        NUM_W = 28,
-        COL_W = 84,
+        CN = 28,
+        CC = 84,
     };
 
     ivec2 cursor = gui::cursor();
@@ -310,14 +393,14 @@ void draw() {
     for (int i = 0; i < g_song_page; ++i) {
         int r = g_song_scroll + i;
 
-        gui::item_size({ NUM_W, settings.row_height });
+        gui::item_size({ CN, settings.row_height });
         gui::Box box = gui::item_box();
 
         sprintf(str, "%02X", r);
         dc.rgb(color::ROW_NUMBER);
         dc.text(box.pos + ivec2(6, text_offset), str);
 
-        gui::item_size({ COL_W, settings.row_height });
+        gui::item_size({ CC, settings.row_height });
         for (int c = 0; c < 3; ++c) {
             gui::same_line();
             gui::Box box = gui::item_box();
@@ -366,16 +449,16 @@ void draw() {
         // loop marker
         if (r == g_song.song_loop) {
             dc.rgb(color::BUTTON_HELD);
-            dc.text(box.pos + ivec2(NUM_W + COL_W * 3 - 9, text_offset), "\x05");
+            dc.text(box.pos + ivec2(CN + CC * 3 - 9, text_offset), "\x05");
         }
     }
 
     gui::cursor({ 0, gui::cursor().y + 1 }); // 1px padding
 
     // pattern bar
-    gui::item_size({ NUM_W, settings.row_height });
+    gui::item_size({ CN, settings.row_height });
     gui::item_box();
-    gui::item_size({ COL_W, app::BUTTON_HEIGHT });
+    gui::item_size({ CC, app::BUTTON_HEIGHT });
     for (int c = 0; c < 3; ++c) {
         gui::same_line();
         ivec2 p = gui::cursor();
@@ -398,14 +481,14 @@ void draw() {
     for (int i = 0; i < pattern_page; ++i) {
         int r = g_pattern_scroll + i;
 
-        gui::item_size({ NUM_W, settings.row_height });
+        gui::item_size({ CN, settings.row_height });
         gui::Box box = gui::item_box();
 
         sprintf(str, "%02X", r);
         dc.rgb(color::ROW_NUMBER);
         dc.text(box.pos + ivec2(6, text_offset), str);
 
-        gui::item_size({ COL_W, settings.row_height });
+        gui::item_size({ CC, settings.row_height });
         for (int c = 0; c < 3; ++c) {
             gui::same_line();
             gui::Box box = gui::item_box();

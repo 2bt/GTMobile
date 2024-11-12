@@ -1,5 +1,4 @@
 #include "instrument_view.hpp"
-#include "settings_view.hpp"
 #include "piano.hpp"
 #include "app.hpp"
 #include "gui.hpp"
@@ -158,8 +157,8 @@ void draw_easy() {
 
     // tables
     enum {
-        CW_NUM = 28,
-        CW_DATA = app::CANVAS_WIDTH - CW_NUM - app::SCROLL_WIDTH - app::BUTTON_HEIGHT * 2,
+        CN = 28,
+        CD = app::CANVAS_WIDTH - CN - app::SCROLL_WIDTH - app::BUTTON_HEIGHT * 2,
     };
     constexpr char const* TABLE_LABELS[] = { "WAVE", "PULSE", "FILTER" };
     gui::item_size({ (app::CANVAS_WIDTH - app::BUTTON_HEIGHT * 2) / 3, app::BUTTON_HEIGHT });
@@ -194,7 +193,6 @@ void draw_easy() {
     ivec2 cursor      = gui::cursor();
     int   table_space = app::canvas_height() - cursor.y - piano::HEIGHT - app::BUTTON_HEIGHT * 4 - gui::FRAME_WIDTH - 2;
     int   table_page  = table_space / app::MAX_ROW_HEIGHT;
-    int   text_offset = (app::MAX_ROW_HEIGHT - 7) / 2;
 
     auto& ltable = g_song.ltable[g_table];
     auto& rtable = g_song.rtable[g_table];
@@ -233,13 +231,13 @@ void draw_easy() {
     for (int i = 0; i < table_page; ++i) {
         int r = i + g_scroll;
         sprintf(str, "%02X", r);
-        gui::item_size({ CW_NUM, app::MAX_ROW_HEIGHT });
+        gui::item_size({ CN, app::MAX_ROW_HEIGHT });
         gui::Box box = gui::item_box();
         dc.rgb(color::ROW_NUMBER);
-        dc.text(box.pos + ivec2(6, text_offset), str);
+        dc.text(box.pos + 6, str);
         gui::same_line();
 
-        gui::item_size({ CW_DATA, app::MAX_ROW_HEIGHT });
+        gui::item_size({ CD, app::MAX_ROW_HEIGHT });
         box = gui::item_box();
         box.pos.x += 1;
         box.size.x -= 2;
@@ -258,7 +256,7 @@ void draw_easy() {
         // loop marker
         if (start_row + r + 1 == rtable[end_row]) {
             dc.rgb(color::BUTTON_HELD);
-            dc.text(box.pos + ivec2(box.size.x - 8, text_offset), "\x05");
+            dc.text(box.pos + ivec2(box.size.x - 8, 6), "\x05");
         }
 
         gui::ButtonState state = gui::button_state(box);
@@ -357,7 +355,7 @@ void draw_easy() {
 
         sprintf(str, "%02X", lval);
         dc.rgb(colors[0]);
-        ivec2 p = box.pos + ivec2(5, text_offset);
+        ivec2 p = box.pos + ivec2(5, 6);
         dc.text(p, str);
         p.x += 20;
         sprintf(str, "%02X", rval);
@@ -368,7 +366,7 @@ void draw_easy() {
     int y = gui::cursor().y + 1; // 1px padding
 
     // scrolling
-    gui::cursor({ CW_NUM + CW_DATA, cursor.y });
+    gui::cursor({ CN + CD, cursor.y });
     gui::item_size({ app::SCROLL_WIDTH, app::MAX_ROW_HEIGHT * table_page + 2 });
     gui::drag_bar_style(gui::DragBarStyle::Scrollbar);
     gui::vertical_drag_bar(g_scroll, 0, len - table_page, table_page);
@@ -377,7 +375,7 @@ void draw_easy() {
     gui::same_line(false);
 
 
-    // table buttons
+    // buttons
     if (g_cursor_select == CursorSelect::Table) {
         gui::cursor({ app::CANVAS_WIDTH - 55, cursor.y });
 
@@ -708,7 +706,7 @@ void draw_easy() {
     // table sharing window
     if (draw_share_window) {
         int space = app::canvas_height() - 12 - app::BUTTON_HEIGHT * 2;
-        int row_h = std::min<int>(space / 32, app::MAX_ROW_HEIGHT);
+        int row_h = std::min<int>(space / 32, app::BUTTON_HEIGHT);
         enum {
             COL_W = 12 + 8 * 18,
         };
@@ -775,6 +773,8 @@ void draw_easy() {
         if (gui::button("CLOSE")) draw_share_window = false;
         gui::end_window();
     }
+
+
 }
 
 
@@ -792,13 +792,12 @@ void draw_hard() {
 
     int             instr_nr = piano::instrument();
     gt::Instrument& instr    = g_song.instruments[instr_nr];
-    settings_view::Settings const& settings = settings_view::settings();
     char str[32];
 
     gui::DrawContext& dc = gui::draw_context();
     ivec2 cursor = gui::cursor();
-    int table_page = (app::canvas_height() - cursor.y - piano::HEIGHT - app::BUTTON_HEIGHT * 3) / settings.row_height;
-    int text_offset = (settings.row_height - 7) / 2;
+    enum { RH = 13 };
+    int table_page = (app::canvas_height() - cursor.y - piano::HEIGHT - app::BUTTON_HEIGHT * 3) / RH;
 
     for (int t = 0; t < 4; ++t) {
         gui::cursor({ 90 * t, cursor.y });
@@ -826,10 +825,10 @@ void draw_hard() {
             uint8_t& lval = ltable[row];
             uint8_t& rval = rtable[row];
 
-            gui::item_size({ 28, settings.row_height });
+            gui::item_size({ 28, RH });
             gui::Box num_box = gui::item_box();
             gui::same_line();
-            gui::item_size({ 44, settings.row_height });
+            gui::item_size({ 44, RH });
             gui::Box box = gui::item_box();
 
             gui::ButtonState state = gui::button_state(box);
@@ -846,7 +845,7 @@ void draw_hard() {
             }
             // row number
             sprintf(str, "%02X", row + 1);
-            dc.text(num_box.pos + ivec2(5, text_offset), str);
+            dc.text(num_box.pos + ivec2(5, 3), str);
             dc.rgb(color::BACKGROUND_ROW);
             dc.fill(box);
 
@@ -951,7 +950,7 @@ void draw_hard() {
                 sprintf(str, "%02X", lval);
             }
             dc.rgb(colors[0]);
-            auto p = box.pos + ivec2(5, text_offset);
+            auto p = box.pos + ivec2(5, 3);
             dc.text(p, str);
             p.x += 16;
             sprintf(str, "%02X", rval);
@@ -960,12 +959,12 @@ void draw_hard() {
         }
 
         gui::cursor({ 90 * t + 72, cursor.y });
-        gui::item_size({ 18, settings.row_height * table_page + app::BUTTON_HEIGHT });
+        gui::item_size({ 18, RH * table_page + app::BUTTON_HEIGHT });
         gui::drag_bar_style(gui::DragBarStyle::Scrollbar);
         gui::vertical_drag_bar(scroll, 0, gt::MAX_TABLELEN - table_page, table_page);
     }
 
-    gui::cursor({ 0, cursor.y + settings.row_height * table_page + app::BUTTON_HEIGHT });
+    gui::cursor({ 0, cursor.y + RH * table_page + app::BUTTON_HEIGHT });
 
     switch (g_cursor_select) {
     case CursorSelect::WaveTable:

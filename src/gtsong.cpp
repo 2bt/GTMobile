@@ -172,11 +172,11 @@ bool Song::load(std::istream& stream) {
 
 
     // set up speed table
-    // 01 - 20: vibrato
-    // 21 - 40: portamento
-    // 41 - 50: funk tempo
-    std::array<uint8_t, MAX_TABLELEN> vib   = {};
+    // 01 - 20: portamento
+    // 21 - 40: vibrato
+    // 41 - 60: funk tempo
     std::array<uint8_t, MAX_TABLELEN> porta = {};
+    std::array<uint8_t, MAX_TABLELEN> vib   = {};
     std::array<uint8_t, MAX_TABLELEN> funk  = {};
     for (Instrument& instr : instruments) {
         if (instr.ptr[STBL] > 0) vib[instr.ptr[STBL]] = 1;
@@ -184,9 +184,9 @@ bool Song::load(std::istream& stream) {
     for (Pattern& patt : patterns) {
         for (PatternRow& row : patt.rows) {
             if (row.data == 0) continue;
-            if (row.command == 0x4)                       vib[row.data - 1] = 1;
-            if (row.command >= 0x1 && row.command <= 0x3) porta[row.data - 1] = 1;
-            if (row.command == 0xe)                       funk[row.data - 1] = 1;
+            if (row.command >= CMD_PORTAUP && row.command <= CMD_TONEPORTA) porta[row.data - 1] = 1;
+            if (row.command == CMD_VIBRATO)                                 vib[row.data - 1] = 1;
+            if (row.command == CMD_FUNKTEMPO)                               funk[row.data - 1] = 1;
         }
     }
     for (int i = 0; i < MAX_TABLELEN; ++i) {
@@ -194,16 +194,16 @@ bool Song::load(std::istream& stream) {
         uint8_t data = rtable[WTBL][i];
         if (data == 0) continue;
         uint8_t cmd = ltable[WTBL][i] & 0xf;
-        if (cmd == 0x4)               vib[data - 1] = 1;
-        if (cmd >= 0x1 && cmd <= 0x3) porta[data - 1] = 1;
-        if (cmd == 0xe)               funk[data - 1] = 1;
+        if (cmd >= CMD_PORTAUP && cmd <= CMD_TONEPORTA) porta[data - 1] = 1;
+        if (cmd == CMD_VIBRATO)                         vib[data - 1] = 1;
+        if (cmd == CMD_FUNKTEMPO)                       funk[data - 1] = 1;
     }
     std::array<uint8_t, MAX_TABLELEN> lspeed = ltable[STBL];
     std::array<uint8_t, MAX_TABLELEN> rspeed = rtable[STBL];
     ltable[STBL] = {};
     rtable[STBL] = {};
-    size_t vib_pos   = 0x00;
-    size_t porta_pos = 0x20;
+    size_t porta_pos = 0x00;
+    size_t vib_pos   = 0x20;
     size_t funk_pos  = 0x40;
     for (size_t i = 0; i < lspeed.size(); ++i) {
         if (vib[i]) {
@@ -222,17 +222,17 @@ bool Song::load(std::istream& stream) {
             funk[i] = funk_pos++;
         }
     }
-    if (vib_pos > 0x20) {
-        LOGE("Song::load: too many vibratos");
-        clear();
-        return false;
-    }
-    if (porta_pos > 0x40) {
+    if (porta_pos >= 0x1f) {
         LOGE("Song::load: too many portamenti");
         clear();
         return false;
     }
-    if (funk_pos > 0x60) {
+    if (vib_pos >= 0x3f) {
+        LOGE("Song::load: too many vibratos");
+        clear();
+        return false;
+    }
+    if (funk_pos >= 0x5f) {
         LOGE("Song::load: too many funk tempi");
         clear();
         return false;
@@ -243,9 +243,9 @@ bool Song::load(std::istream& stream) {
     for (Pattern& patt : patterns) {
         for (PatternRow& row : patt.rows) {
             if (row.data == 0) continue;
-            if (row.command == 0x4)                       row.data = vib[row.data - 1] + 1;
-            if (row.command >= 0x1 && row.command <= 0x3) row.data = porta[row.data - 1] + 1;
-            if (row.command == 0xe)                       row.data = funk[row.data - 1] + 1;
+            if (row.command >= CMD_PORTAUP && row.command <= CMD_TONEPORTA) row.data = porta[row.data - 1] + 1;
+            if (row.command == CMD_VIBRATO)                                 row.data = vib[row.data - 1] + 1;
+            if (row.command == CMD_FUNKTEMPO)                               row.data = funk[row.data - 1] + 1;
         }
     }
     for (int i = 0; i < MAX_TABLELEN; ++i) {
@@ -253,9 +253,9 @@ bool Song::load(std::istream& stream) {
         uint8_t& data = rtable[WTBL][i];
         if (data == 0) continue;
         uint8_t cmd = ltable[WTBL][i] & 0xf;
-        if (cmd == 0x4)               data = vib[data - 1] + 1;
-        if (cmd >= 0x1 && cmd <= 0x3) data = porta[data - 1] + 1;
-        if (cmd == 0xe)               data = funk[data - 1] + 1;
+        if (cmd >= CMD_PORTAUP && cmd <= CMD_TONEPORTA) data = porta[data - 1] + 1;
+        if (cmd == CMD_VIBRATO)                         data = vib[data - 1] + 1;
+        if (cmd == CMD_FUNKTEMPO)                       data = funk[data - 1] + 1;
     }
     return true;
 }

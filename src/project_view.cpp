@@ -215,7 +215,6 @@ void draw() {
     gui::vertical_drag_bar(g_file_scroll, 0, max_scroll, page);
 
 
-
     // button column
     gui::cursor(cursor);
     gui::align(gui::Align::Center);
