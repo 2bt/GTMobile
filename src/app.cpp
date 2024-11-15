@@ -75,7 +75,7 @@ void init() {
     gfx::init();
     gui::init();
     set_view(View::project);
-
+    song_view::reset();
     g_song.clear();
     // simple beep instrument
     strcpy(g_song.instruments[1].name.data(), "BEEP");

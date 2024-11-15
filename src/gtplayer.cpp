@@ -28,7 +28,13 @@ constexpr uint8_t FREQ_HI[] = {
     0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
 };
 
+
 } // namespace
+
+
+uint16_t get_freq(int note) {
+    return (FREQ_HI[note] << 8) | FREQ_LO[note];
+}
 
 
 Player::Player(Song const& song) : m_song(song) {
@@ -382,11 +388,10 @@ WAVEEXEC:
                     case CMD_PORTAUP: {
                         uint16_t speed = 0;
                         if (param) {
-                            speed = (m_song.ltable[STBL][param - 1] << 8) | m_song.rtable[STBL][param - 1];
+                            speed = get_freq(param - 1);
                         }
                         if (speed >= 0x8000) {
-                            speed = FREQ_LO[chan.lastnote + 1] | (FREQ_HI[chan.lastnote + 1] << 8);
-                            speed -= FREQ_LO[chan.lastnote] | (FREQ_HI[chan.lastnote] << 8);
+                            speed = get_freq(chan.lastnote + 1) - get_freq(chan.lastnote);
                             speed >>= m_song.rtable[STBL][param - 1];
                         }
                         chan.freq += speed;
@@ -395,18 +400,17 @@ WAVEEXEC:
                     case CMD_PORTADOWN: {
                         uint16_t speed = 0;
                         if (param) {
-                            speed = (m_song.ltable[STBL][param - 1] << 8) | m_song.rtable[STBL][param - 1];
+                            speed = get_freq(param - 1);
                         }
                         if (speed >= 0x8000) {
-                            speed = FREQ_LO[chan.lastnote + 1] | (FREQ_HI[chan.lastnote + 1] << 8);
-                            speed -= FREQ_LO[chan.lastnote] | (FREQ_HI[chan.lastnote] << 8);
+                            speed = get_freq(chan.lastnote + 1) - get_freq(chan.lastnote);
                             speed >>= m_song.rtable[STBL][param - 1];
                         }
                         chan.freq -= speed;
                     } break;
 
                     case CMD_TONEPORTA: {
-                        uint16_t targetfreq = FREQ_LO[chan.note] | (FREQ_HI[chan.note] << 8);
+                        uint16_t targetfreq = get_freq(chan.note);
                         uint16_t speed      = 0;
 
                         if (!param) {
@@ -416,8 +420,7 @@ WAVEEXEC:
                         else {
                             speed = (m_song.ltable[STBL][param - 1] << 8) | m_song.rtable[STBL][param - 1];
                             if (speed >= 0x8000) {
-                                speed = FREQ_LO[chan.lastnote + 1] | (FREQ_HI[chan.lastnote + 1] << 8);
-                                speed -= FREQ_LO[chan.lastnote] | (FREQ_HI[chan.lastnote] << 8);
+                                speed = get_freq(chan.lastnote + 1) - get_freq(chan.lastnote);
                                 speed >>= m_song.rtable[STBL][param - 1];
                             }
                             if (chan.freq < targetfreq) {
@@ -447,8 +450,7 @@ WAVEEXEC:
                         }
                         if (cmpvalue >= 0x80) {
                             cmpvalue &= 0x7f;
-                            speed = FREQ_LO[chan.lastnote + 1] | (FREQ_HI[chan.lastnote + 1] << 8);
-                            speed -= FREQ_LO[chan.lastnote] | (FREQ_HI[chan.lastnote] << 8);
+                            speed = get_freq(chan.lastnote + 1) - get_freq(chan.lastnote);
                             speed >>= m_song.rtable[STBL][param - 1];
                         }
 
@@ -517,7 +519,7 @@ WAVEEXEC:
             if (note != 0x80) {
                 if (note < 0x80) note += chan.note;
                 note &= 0x7f;
-                chan.freq     = FREQ_LO[note] | (FREQ_HI[note] << 8);
+                chan.freq     = get_freq(note);
                 chan.vibtime  = 0;
                 chan.lastnote = note;
                 goto PULSEEXEC;
@@ -534,8 +536,7 @@ TICKNEFFECTS:
                     speed = (m_song.ltable[STBL][chan.cmddata - 1] << 8) | m_song.rtable[STBL][chan.cmddata - 1];
                 }
                 if (speed >= 0x8000) {
-                    speed = FREQ_LO[chan.lastnote + 1] | (FREQ_HI[chan.lastnote + 1] << 8);
-                    speed -= FREQ_LO[chan.lastnote] | (FREQ_HI[chan.lastnote] << 8);
+                    speed = get_freq(chan.lastnote + 1) - get_freq(chan.lastnote);
                     speed >>= m_song.rtable[STBL][chan.cmddata - 1];
                 }
                 chan.freq += speed;
@@ -547,8 +548,7 @@ TICKNEFFECTS:
                     speed = (m_song.ltable[STBL][chan.cmddata - 1] << 8) | m_song.rtable[STBL][chan.cmddata - 1];
                 }
                 if (speed >= 0x8000) {
-                    speed = FREQ_LO[chan.lastnote + 1] | (FREQ_HI[chan.lastnote + 1] << 8);
-                    speed -= FREQ_LO[chan.lastnote] | (FREQ_HI[chan.lastnote] << 8);
+                    speed = get_freq(chan.lastnote + 1) - get_freq(chan.lastnote);
                     speed >>= m_song.rtable[STBL][chan.cmddata - 1];
                 }
                 chan.freq -= speed;
@@ -570,8 +570,7 @@ TICKNEFFECTS:
                 }
                 if (cmpvalue >= 0x80) {
                     cmpvalue &= 0x7f;
-                    speed = FREQ_LO[chan.lastnote + 1] | (FREQ_HI[chan.lastnote + 1] << 8);
-                    speed -= FREQ_LO[chan.lastnote] | (FREQ_HI[chan.lastnote] << 8);
+                    speed = get_freq(chan.lastnote + 1) - get_freq(chan.lastnote);
                     speed >>= m_song.rtable[STBL][chan.cmddata - 1];
                 }
 
@@ -582,7 +581,7 @@ TICKNEFFECTS:
             } break;
 
             case CMD_TONEPORTA: {
-                uint16_t targetfreq = FREQ_LO[chan.note] | (FREQ_HI[chan.note] << 8);
+                uint16_t targetfreq = get_freq(chan.note);
                 uint16_t speed      = 0;
 
                 if (!chan.cmddata) {
@@ -592,8 +591,7 @@ TICKNEFFECTS:
                 else {
                     speed = (m_song.ltable[STBL][chan.cmddata - 1] << 8) | m_song.rtable[STBL][chan.cmddata - 1];
                     if (speed >= 0x8000) {
-                        speed = FREQ_LO[chan.lastnote + 1] | (FREQ_HI[chan.lastnote + 1] << 8);
-                        speed -= FREQ_LO[chan.lastnote] | (FREQ_HI[chan.lastnote] << 8);
+                        speed = get_freq(chan.lastnote + 1) - get_freq(chan.lastnote);
                         speed >>= m_song.rtable[STBL][chan.cmddata - 1];
                     }
                     if (chan.freq < targetfreq) {

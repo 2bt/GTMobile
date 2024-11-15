@@ -7,6 +7,9 @@
 namespace gt {
 
 
+uint16_t get_freq(int note);
+
+
 class Player {
 public:
     Player(gt::Song const& song);

@@ -538,16 +538,17 @@ bool slider(int width, char const* fmt, int& value, int min, int max, void const
     drag_bar_style(DragBarStyle::Normal);
     item_size({ width - text_width - BUTTON_HEIGHT * 2, BUTTON_HEIGHT });
     id(addr ? addr : &value);
-    horizontal_drag_bar(v, min, max, 1);
+    horizontal_drag_bar(v, min, max, 0);
     same_line();
     button_style(ButtonStyle::Normal);
     item_size(BUTTON_HEIGHT);
-    disabled(v == min);
+    bool prev_disabled = g_disabled;
+    disabled(prev_disabled || v == min);
     if (button(Icon::Decrease)) v = std::max(min, v - 1);
     same_line();
-    disabled(v == max);
+    disabled(prev_disabled || v == max);
     if (button(Icon::Increase)) v = std::min(max, v + 1);
-    disabled(false);
+    disabled(prev_disabled);
     value = v;
     return v != old_v;
 }

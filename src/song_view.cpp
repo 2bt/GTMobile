@@ -18,23 +18,20 @@ namespace {
 enum class Dialog { None, OrderEdit, CommandEdit };
 enum class EditMode { Song, Pattern };
 
+
 gt::Song&       g_song               = app::song();
 int             g_song_page          = 8;
-int             g_song_scroll        = 0;
-int             g_pattern_scroll     = 0;
-bool            g_follow             = false;
-bool            g_recording          = false;
-int             g_cursor_chan        = 0;
+bool            g_follow;
+bool            g_recording;
+EditMode        g_edit_mode;
+int             g_song_scroll;
+int             g_pattern_scroll;
 int             g_cursor_pattern_row = 0;
 int             g_cursor_song_row    = 0;
-int             g_transpose          = 0;
-EditMode        g_edit_mode          = EditMode::Song;
-
+int             g_cursor_chan        = 0;
 Dialog          g_dialog             = Dialog::None;
+int             g_transpose          = 0;
 int             g_command            = 0;
-// Dialog          g_dialog             = Dialog::CommandEdit;
-// int             g_command            = 1;
-
 int             g_command_data[16]   = {};
 gt::PatternRow* g_command_row        = nullptr;
 
@@ -114,188 +111,253 @@ void draw_command_edit() {
     if (g_dialog != Dialog::CommandEdit) return;
 
     enum {
-        // WIDTH = 13 * 26,
-        // HEIGHT = app::BUTTON_HEIGHT * 4 + app::MAX_ROW_HEIGHT * 16 + gui::FRAME_WIDTH,
+        PAGE = 16,
+        TABLE_HEIGHT = PAGE * app::MAX_ROW_HEIGHT,
         WIDTH = app::CANVAS_WIDTH - 12,
-        // HEIGHT = app::CANVAS_MIN_HEIGHT - 12,
-        MIN_HEIGHT = app::BUTTON_HEIGHT * 2 + app::MAX_ROW_HEIGHT * 8 + gui::FRAME_WIDTH * 2,
-        C1W = 15 * 8 + 12,
-        C2W = 3 * 8 + 12,
-
-        LEN = 0x20,
-        CN = 28,
-        CC = 84,
+        HEIGHT = app::BUTTON_HEIGHT * 5 + TABLE_HEIGHT + gui::FRAME_WIDTH * 3,
+        C1 = 17 * 8 + 12 + 3 * 8 + 12,
+        CC = 12 + 8 * 15 + 7,
     };
 
     static int g_scroll = 0;
-    int table_height = app::canvas_height() - MIN_HEIGHT - 12 - 2;
-    int page = std::min<int>(table_height / app::MAX_ROW_HEIGHT, LEN);
-    table_height = page * app::MAX_ROW_HEIGHT + 2;
-    int height = MIN_HEIGHT + table_height;
 
     gui::DrawContext& dc = gui::draw_context();
     char str[32];
 
-    // gui::Box box = gui::begin_window({ WIDTH, height });
-    gui::begin_window({ WIDTH, height });
+    gui::begin_window({ WIDTH, HEIGHT });
     gui::item_size({ WIDTH, app::BUTTON_HEIGHT });
     gui::text("COMMAND EDIT");
-
-    constexpr char const* TABLE_LABELS[] = {
-        "DO NOTHING",
-        "PORTAMENTO UP",
-        "PORTAMENTO DOWN",
-        "TONE PORTAMENTO",
-        "VIBRATO",
-        "ATTACK/DECAY",
-        "SUSTAIN/RELEASE",
-        "WAVE",
-        "WAVE TABLE",
-        "PULSE TABLE",
-        "FILTER TABLE",
-        "FILTER CONTROL",
-        "FILTER CUTOFF",
-        "MASTER VOLUME",
-        "FUNK TEMPO",
-        "TEMPO",
-    };
-
-    auto cmd_label = [&](int i) {
-        gui::disabled(g_command != i);
-        gui::item_size({ C2W, app::MAX_ROW_HEIGHT });
-        gui::Box b = gui::item_box();
-        b.pos = b.pos + 1;
-        b.size = b.size - 2;
-        dc.rgb(color::BACKGROUND_ROW);
-        dc.fill(b);
-        sprintf(str, "%X%02X", i, g_command_data[i]);
-        dc.rgb(color::CMDS[i]);
-        dc.text(b.pos + 5, str);
-        gui::disabled(false);
-    };
-
-    ivec2 cursor = gui::cursor();
-    gui::align(gui::Align::Left);
-    for (int i = 0; i < 8; ++i) {
-        gui::item_size({ C1W, app::MAX_ROW_HEIGHT });
-        if (gui::button(TABLE_LABELS[i], i == g_command)) {
-            g_command = i;
-        }
-        gui::same_line();
-        cmd_label(i);
-    }
-    gui::cursor(cursor + ivec2(C1W + C2W, 0));
-    for (int i = 8; i < 16; ++i) {
-        cmd_label(i);
-        gui::same_line();
-        gui::item_size({ C1W, app::MAX_ROW_HEIGHT });
-        if (gui::button(TABLE_LABELS[i], i == g_command)) {
-            g_command = i;
-        }
-    }
-    gui::cursor(cursor + ivec2(0, app::MAX_ROW_HEIGHT * 8));
-    gui::align(gui::Align::Center);
-
-    gui::item_size(WIDTH);
     gui::separator();
-    cursor = gui::cursor();
-
-    gui::item_size({ WIDTH, table_height });
+    ivec2 cmd_cursor = gui::cursor();
+    gui::item_size({ C1, TABLE_HEIGHT });
+    gui::item_box();
+    gui::same_line();
+    gui::separator();
+    ivec2 table_cursor = gui::cursor();
+    gui::same_line(false);
+    gui::item_size({ WIDTH, app::BUTTON_HEIGHT });
+    gui::separator();
+    ivec2 button_cursor = gui::cursor();
+    gui::item_size({ WIDTH, app::BUTTON_HEIGHT });
+    gui::item_box();
+    gui::item_box();
     gui::item_box();
     gui::separator();
-    gui::item_size({ WIDTH, app::BUTTON_HEIGHT });
     if (gui::button("CLOSE")) {
         g_dialog = Dialog::None;
         g_command_row->command = g_command;
         g_command_row->data    = g_command_data[g_command];
     }
 
-    gui::cursor(cursor);
+
+    gui::cursor(cmd_cursor);
+    gui::align(gui::Align::Left);
+    for (int i = 0; i < 16; ++i) {
+        constexpr char const* CMD_LABELS[] = {
+            "DO NOTHING",
+            "PORTAMENTO UP",
+            "PORTAMENTO DOWN",
+            "TONE PORTAMENTO",
+            "VIBRATO",
+            "ATTACK & DECAY",
+            "SUSTAIN & RELEASE",
+            "WAVE",
+            "WAVE TABLE",
+            "PULSE TABLE",
+            "FILTER TABLE",
+            "FILTER CONTROL",
+            "FILTER CUTOFF",
+            "MASTER VOLUME",
+            "FUNK TEMPO",
+            "TEMPO",
+        };
+        ivec2 c = gui::cursor();
+        gui::item_size({ C1, app::MAX_ROW_HEIGHT });
+        if (gui::button("", i == g_command)) {
+            g_command = i;
+        }
+        dc.rgb(color::WHITE);
+        dc.text(c + ivec2(12 + 8 * 3 + 6, 6), CMD_LABELS[i]);
+
+        gui::Box b = { c + ivec2(1, 1), ivec2(36 - 1, app::MAX_ROW_HEIGHT - 2) };
+        dc.rgb(color::BACKGROUND_ROW);
+        dc.fill(b);
+        sprintf(str, "%X%02X", i, g_command_data[i]);
+        gui::disabled(g_command != i);
+        dc.rgb(color::CMDS[i]);
+        dc.text(b.pos + 5, str);
+        gui::disabled(false);
+    }
+    gui::align(gui::Align::Center);
+    gui::cursor(button_cursor);
+
+    auto& data = g_command_data[g_command];
+
     if ((g_command >= gt::CMD_PORTAUP && g_command <= gt::CMD_TONEPORTA) ||
         g_command == gt::CMD_VIBRATO ||
         g_command == gt::CMD_FUNKTEMPO)
     {
+        gui::cursor(table_cursor);
 
         auto& ltable = g_song.ltable[gt::STBL];
         auto& rtable = g_song.rtable[gt::STBL];
-        auto& data = g_command_data[g_command];
 
-        gui::cursor(cursor + ivec2(0, 1));
-        for (int i = 0; i < page; ++i) {
+        for (int i = 0; i < PAGE; ++i) {
             int r = i + g_scroll;
-            if (r > 0 && g_command == gt::CMD_VIBRATO)   r += 0x20;
-            if (r > 0 && g_command == gt::CMD_FUNKTEMPO) r += 0x40;
-
-            sprintf(str, "%02X", r);
-            gui::item_size({ CN, app::MAX_ROW_HEIGHT });
-            gui::Box box = gui::item_box();
-            dc.rgb(color::ROW_NUMBER);
-            dc.text(box.pos + 6, str);
-            gui::same_line();
+            if (r > 0) {
+                if (g_command == gt::CMD_VIBRATO)   r += 0x20;
+                if (g_command == gt::CMD_FUNKTEMPO) r += 0x40;
+            }
 
             gui::item_size({ CC, app::MAX_ROW_HEIGHT });
-            box = gui::item_box();
-            box.pos.x += 1;
-            box.size.x -= 2;
-
-            dc.rgb(color::BACKGROUND_ROW);
-            dc.fill(box);
-
-            gui::ButtonState state = gui::button_state(box);
-            if (state == gui::ButtonState::Released) {
-                data = r;
-            }
-            if (state != gui::ButtonState::Normal) {
-                dc.rgb(color::BUTTON_HELD);
-                dc.box(box, gui::BoxStyle::Cursor);
-            }
-            if (data == r) {
-                dc.rgb(color::BUTTON_ACTIVE);
-                dc.box(box, gui::BoxStyle::Cursor);
-            }
+            ivec2 p = gui::cursor();
 
             uint8_t lval = r > 0 ? ltable[r - 1] : 0;
             uint8_t rval = r > 0 ? rtable[r - 1] : 0;
 
-            // chose colors
-            if (lval | rval) dc.rgb(color::WHITE);
-            else dc.rgb(color::CMDS[0]);
-
-            sprintf(str, "%02X", lval);
-            ivec2 p = box.pos + ivec2(5, 6);
-            dc.text(p, str);
-            p.x += 20;
-            sprintf(str, "%02X", rval);
-            dc.text(p, str);
-
+            bool is_set = lval | rval;
+            gui::button_style(is_set || r == 0 ? gui::ButtonStyle::Normal : gui::ButtonStyle::Shaded);
+            if (gui::button("", data == r)) {
+                data = r;
+            }
+            sprintf(str, "%02X", r);
+            dc.text(p + ivec2(6, 6), str);
+            if (r == 0) {
+                if (g_command == gt::CMD_TONEPORTA) dc.text(p + ivec2(6 + 8*3, 6), "TIE NOTE");
+                else if (g_command == gt::CMD_FUNKTEMPO) dc.text(p + ivec2(6 + 8*3, 6), "NO CHANGE");
+                else dc.text(p + ivec2(6 + 8*3, 6), "OFF");
+            }
+            if (is_set) {
+                sprintf(str, "%02X", lval);
+                dc.text(p + ivec2(6 + 8 * 3, 6), str);
+                sprintf(str, "%02X", rval);
+                dc.text(p + ivec2(6 + 8 * 5 + 4, 6), str);
+            }
         }
+        gui::button_style(gui::ButtonStyle::Normal);
 
-        gui::cursor(cursor + ivec2(CN + CC, 0));
-        gui::item_size({ app::SCROLL_WIDTH, table_height });
-        int max_scroll = std::max(0, LEN - page);
+        gui::cursor(table_cursor + ivec2(CC, 0));
+        gui::item_size({ app::SCROLL_WIDTH, TABLE_HEIGHT });
+
         gui::drag_bar_style(gui::DragBarStyle::Scrollbar);
-        gui::vertical_drag_bar(g_scroll, 0, max_scroll, page);
-        gui::same_line();
-        gui::separator();
+        int table_len = 32;
+        int max_scroll = std::max(0, table_len - PAGE);
+        gui::vertical_drag_bar(g_scroll, 0, max_scroll, PAGE);
 
-        gui::item_size({ 100, app::BUTTON_HEIGHT });
-        gui::button("foobar");
+        gui::cursor(button_cursor);
+        if (data > 0) {
+            uint8_t& lval = ltable[data - 1];
+            uint8_t& rval = rtable[data - 1];
+
+            if (g_command <= gt::CMD_TONEPORTA) {
+                gui::item_size({ WIDTH, app::BUTTON_HEIGHT });
+                if (gui::button("CALCULATE SPEED IN REALTIME", lval & 0x80)) {
+                    if (lval & 0x80) {
+                        uint16_t speed = 0;
+                        if (g_command_row->note >= gt::FIRSTNOTE && g_command_row->note <= gt::LASTNOTE) {
+                            int note = g_command_row->note - gt::FIRSTNOTE;
+                            speed = gt::get_freq(note + 1) - gt::get_freq(note);
+                            speed >>= rval;
+                        }
+                        lval = speed >> 8;
+                        rval = speed & 0xff;
+                    }
+                    else {
+                        lval = 0x80;
+                        rval = 0;
+                    }
+                }
+                if (lval & 0x80) {
+                    gui::slider(WIDTH, "SHIFT %X", rval, 0, 8);
+                }
+                else {
+                    gui::slider(WIDTH, "HI %02X", lval, 0, 0x7f);
+                    gui::slider(WIDTH, "LO %02X", rval, 0, 0xff);
+                }
+            }
+            else if (g_command == gt::CMD_VIBRATO) {
+                gui::item_size({ WIDTH, app::BUTTON_HEIGHT });
+                if (gui::button("CALCULATE SPEED IN REALTIME", lval & 0x80)) {
+                    if (lval & 0x80 && g_command_row->note >= gt::FIRSTNOTE && g_command_row->note <= gt::LASTNOTE) {
+                        int note = g_command_row->note - gt::FIRSTNOTE;
+                        uint16_t speed = gt::get_freq(note + 1) - gt::get_freq(note);
+                        rval = std::min(255, speed >> rval);
+                    }
+                    else {
+                        rval = 0;
+                    }
+                    lval ^= 0x80;
+                }
+                int v = lval & 0x7f;
+                gui::slider(WIDTH, "STEPS %02X", v, 0, 0x7f);
+                lval = (lval & 0x80) | v;
+                if (lval & 0x80) {
+                    gui::slider(WIDTH, "SHIFT  %X", rval, 0, 8);
+                }
+                else {
+                    gui::slider(WIDTH, "SPEED %02X", rval, 0, 0xff);
+                }
+            }
+            else if (g_command == gt::CMD_FUNKTEMPO) {
+                gui::slider(WIDTH, "EVEN %02X", lval, 0, 0xff);
+                gui::slider(WIDTH, "ODD  %02X", rval, 0, 0xff);
+            }
+        }
     }
     else if (g_command == gt::CMD_SETAD) {
-        int a = g_command_data[gt::CMD_SETAD] >> 4;
-        int d = g_command_data[gt::CMD_SETAD] & 0xf;
+        int a = data >> 4;
+        int d = data & 0xf;
         gui::slider(WIDTH, "ATTACK  %X", a, 0, 15);
         gui::slider(WIDTH, "DECAY   %X", d, 0, 15);
-        g_command_data[gt::CMD_SETAD] = (a << 4) | d;
+        data = (a << 4) | d;
     }
     else if (g_command == gt::CMD_SETSR) {
-        int s = g_command_data[gt::CMD_SETSR] >> 4;
-        int r = g_command_data[gt::CMD_SETSR] & 0xf;
+        int s = data >> 4;
+        int r = data & 0xf;
         gui::slider(WIDTH, "SUSTAIN %X", s, 0, 15);
         gui::slider(WIDTH, "RELEASE %X", r, 0, 15);
-        g_command_data[gt::CMD_SETSR] = (s << 4) | r;
+        data = (s << 4) | r;
     }
-
+    else if (g_command == gt::CMD_SETWAVE) {
+        uint8_t v = data;
+        for (int i = 0; i < 8; ++i) {
+            gui::item_size({ WIDTH / 8 + i%2, app::BUTTON_HEIGHT });
+            int mask = 0x80 >> i;
+            int icon = int(gui::Icon::Noise) + i;
+            if (gui::button(gui::Icon(icon), v & mask)) {
+                v ^= mask;
+            }
+            gui::same_line();
+        }
+        gui::same_line(false);
+        data = v;
+    }
+    else if (g_command == gt::CMD_SETFILTERCTRL) {
+        gui::item_size({ WIDTH / 3, app::BUTTON_HEIGHT });
+        if (gui::button("VOICE 1", data & 0x1)) data ^= 0x1;
+        gui::same_line();
+        if (gui::button("VOICE 2", data & 0x2)) data ^= 0x2;
+        gui::same_line();
+        if (gui::button("VOICE 3", data & 0x4)) data ^= 0x4;
+        int v = data >> 4;
+        gui::slider(WIDTH, "RES %X", v, 0, 0xf, &data);
+        data = (data & 0x0f) | (v << 4);
+    }
+    else if (g_command == gt::CMD_SETFILTERCUTOFF) {
+        gui::slider(WIDTH, "%X", data, 0, 0xff);
+    }
+    else if (g_command == gt::CMD_SETMASTERVOL) {
+        gui::slider(WIDTH, "%X", data, 0, 15);
+    }
+    else if (g_command == gt::CMD_SETTEMPO) {
+        gui::item_size({ WIDTH, app::BUTTON_HEIGHT });
+        if (gui::button("ONLY THIS VOICE", data & 0x80)) {
+            data ^= 0x80;
+        }
+        int v = data & 0x7f;
+        gui::slider(WIDTH, "%02X", v, 0, 0x7f);
+        data = (data & 0x80) | v;
+    }
 
     gui::end_window();
 }
@@ -315,13 +377,13 @@ int song_position() {
 }
 
 void reset() {
+    g_follow             = false;
+    g_recording          = true;
+    g_edit_mode          = EditMode::Pattern;
     g_cursor_pattern_row = 0;
     g_cursor_song_row    = 0;
     g_song_scroll        = 0;
     g_pattern_scroll     = 0;
-    g_follow             = false;
-    g_recording          = false;
-    g_edit_mode          = EditMode::Song;
 }
 
 

@@ -51,11 +51,11 @@ bool draw(bool* follow) {
 
     // instrument window
     if (show_instrument_select) {
-        int space = app::canvas_height() - 12 - app::BUTTON_HEIGHT * 2;
-        int row_h = std::min<int>(space / 32, app::BUTTON_HEIGHT);
         enum {
             COL_W = 12 + 8 * 18,
         };
+        int space = app::canvas_height() - 12 - app::BUTTON_HEIGHT * 2;
+        int row_h = std::min<int>(space / 32, app::BUTTON_HEIGHT);
         gui::begin_window({ COL_W * 2, row_h * 32 + app::BUTTON_HEIGHT * 2 });
         gui::item_size({ COL_W * 2, app::BUTTON_HEIGHT });
         gui::text("INSTRUMENT SELECT");
