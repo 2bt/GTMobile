@@ -71,7 +71,7 @@ void draw_order_edit() {
     if (g_dialog != Dialog::OrderEdit) return;
 
     enum {
-        MIN_HEIGHT = 3 * app::BUTTON_HEIGHT,
+        MIN_HEIGHT = 3 * app::BUTTON_HEIGHT + gui::FRAME_WIDTH * 2,
         CW = (app::CANVAS_WIDTH - 12) / 8,
         WIDTH = 8 * CW,
     };
@@ -82,6 +82,7 @@ void draw_order_edit() {
     gui::begin_window({ WIDTH, height });
     gui::item_size({ WIDTH, app::BUTTON_HEIGHT });
     gui::text("ORDER LIST EDIT");
+    gui::separator();
 
     auto&         order = g_song.song_order[g_cursor_chan];
     gt::OrderRow& row   = order[g_cursor_song_row];
@@ -98,6 +99,8 @@ void draw_order_edit() {
         }
     }
     gui::button_style(gui::ButtonStyle::Normal);
+    gui::item_size({ WIDTH, app::BUTTON_HEIGHT });
+    gui::separator();
 
     sprintf(str, "TRANSPOSE %c%X", "+-"[g_transpose < 0], abs(g_transpose));
     gui::slider(WIDTH, str, g_transpose, -0xf, 0xe);
@@ -118,8 +121,6 @@ void draw_command_edit() {
         C1 = 17 * 8 + 12 + 3 * 8 + 12,
         CC = 12 + 8 * 15 + 7,
     };
-
-    static int g_scroll = 0;
 
     gui::DrawContext& dc = gui::draw_context();
     char str[32];
@@ -193,17 +194,26 @@ void draw_command_edit() {
 
     auto& data = g_command_data[g_command];
 
+    // handle all command that reference the speed table
     if ((g_command >= gt::CMD_PORTAUP && g_command <= gt::CMD_TONEPORTA) ||
         g_command == gt::CMD_VIBRATO ||
         g_command == gt::CMD_FUNKTEMPO)
     {
+        int cmd_type = 0;
+        if (g_command == gt::CMD_VIBRATO) cmd_type = 1;
+        if (g_command == gt::CMD_FUNKTEMPO) cmd_type = 2;
+        static int scrolls[3] = {};
+        int& scroll = scrolls[cmd_type];
+
+
+
         gui::cursor(table_cursor);
 
         auto& ltable = g_song.ltable[gt::STBL];
         auto& rtable = g_song.rtable[gt::STBL];
 
         for (int i = 0; i < PAGE; ++i) {
-            int r = i + g_scroll;
+            int r = i + scroll;
             if (r > 0) {
                 if (g_command == gt::CMD_VIBRATO)   r += 0x20;
                 if (g_command == gt::CMD_FUNKTEMPO) r += 0x40;
@@ -242,7 +252,7 @@ void draw_command_edit() {
         gui::drag_bar_style(gui::DragBarStyle::Scrollbar);
         int table_len = 32;
         int max_scroll = std::max(0, table_len - PAGE);
-        gui::vertical_drag_bar(g_scroll, 0, max_scroll, PAGE);
+        gui::vertical_drag_bar(scroll, 0, max_scroll, PAGE);
 
         gui::cursor(button_cursor);
         if (data > 0) {

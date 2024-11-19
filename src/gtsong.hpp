@@ -2,6 +2,7 @@
 #include <cstdint>
 #include <istream>
 #include <array>
+#include <stdexcept>
 
 
 namespace gt {
@@ -95,6 +96,14 @@ struct Pattern {
 };
 
 
+struct LoadError : public std::exception {
+    LoadError(std::string msg) : msg(std::move(msg)) {}
+    const char* what() const noexcept override {
+        return msg.c_str();
+    }
+    std::string msg;
+};
+
 struct Song {
     std::array<Instrument, MAX_INSTR>          instruments;
     Array2<uint8_t, MAX_TABLES, MAX_TABLELEN>  ltable;
@@ -108,9 +117,9 @@ struct Song {
     std::array<char, MAX_STR>                  author_name;
     std::array<char, MAX_STR>                  copyright_name;
 
-    bool load(char const* filename);
-    bool load(uint8_t const* data, size_t size);
-    bool load(std::istream& stream);
+    void load(char const* filename);
+    void load(uint8_t const* data, size_t size);
+    void load(std::istream& stream);
     bool save(char const* filename);
     bool save(std::ostream& stream);
     void clear();

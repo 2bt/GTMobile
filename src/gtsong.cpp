@@ -28,6 +28,11 @@ bool write(std::ostream& stream, T const& v) {
     return stream.good();
 }
 
+void load_error(std::string msg) {
+    LOGE("Song::load: %s", msg.c_str());
+    throw LoadError(std::move(msg));
+}
+
 } // namespace
 
 
@@ -37,12 +42,12 @@ void Song::clear() {
     song_order[2][0].pattnum = 2;
 }
 
-bool Song::load(char const* filename) {
+void Song::load(char const* filename) {
     std::ifstream stream(filename, std::ios::binary);
-    if (!stream.is_open()) return false;
-    return load(stream);
+    if (!stream.is_open()) load_error("cannot open file");
+    load(stream);
 }
-bool Song::load(uint8_t const* data, size_t size) {
+void Song::load(uint8_t const* data, size_t size) {
     struct MemBuf : std::streambuf {
         MemBuf(uint8_t const* data, size_t size) {
             char* p = (char*) data;
@@ -50,12 +55,14 @@ bool Song::load(uint8_t const* data, size_t size) {
         }
     } membuf(data, size);
     std::istream stream(&membuf);
-    return load(stream);
+    load(stream);
 }
-bool Song::load(std::istream& stream) {
+void Song::load(std::istream& stream) {
     std::array<char, 4> ident;
     read(stream, ident);
-    if (ident != std::array<char, 4>{'G', 'T', 'S', '5'}) return false;
+    if (ident != std::array<char, 4>{'G', 'T', 'S', '5'}) {
+        load_error("bad file format");
+    }
 
     clear();
     read(stream, song_name);
@@ -64,12 +71,7 @@ bool Song::load(std::istream& stream) {
 
     // read songorderlists
     int amount = read8(stream);
-    if (amount != 1) {
-        LOGE("Song::load: multiple songs are not supported");
-        clear();
-        return false;
-    }
-
+    if (amount != 1) load_error("multiple songs not supported");
     for (int c = 0; c < MAX_CHN; c++) {
         int buffer_len = read8(stream) + 1;
         assert(buffer_len >= 3);
@@ -85,9 +87,7 @@ bool Song::load(std::istream& stream) {
             uint8_t x = buffer[i++];
             if (x == LOOPSONG) break;
             if (pos >= int(order.size())) {
-                LOGE("Song::load: max song length exceeded");
-                clear();
-                return false;
+                load_error("max song length exceeded");
             }
             // transpose
             if (x >= TRANSDOWN && x < LOOPSONG) {
@@ -96,14 +96,10 @@ bool Song::load(std::istream& stream) {
                 x = buffer[i++];
             }
             if (x >= REPEAT && x < TRANSDOWN) {
-                LOGE("Song::load: repeat command not supported");
-                clear();
-                return false;
+                load_error("repeat command not supported");
             }
             if (x >= MAX_PATT) {
-                LOGE("Song::load: invalid pattern number");
-                clear();
-                return false;
+                load_error("invalid pattern number");
             }
             order[pos].trans   = trans;
             order[pos].pattnum = x;
@@ -114,22 +110,14 @@ bool Song::load(std::istream& stream) {
             song_loop = loop;
         }
         else {
-            if (pos != song_len) {
-                LOGE("Song::load: song length mismatch");
-                clear();
-                return false;
-            }
-            if (loop != song_loop) {
-                LOGE("Song::load: song loop mismatch");
-                clear();
-                return false;
-            }
+            if (pos != song_len) load_error("song length mismatch");
+            if (loop != song_loop) load_error("song loop mismatch");
         }
     }
 
     // read instruments
-    amount = read8(stream);
-    for (int c = 1; c <= amount; c++) {
+    int instr_count = read8(stream);
+    for (int c = 1; c <= instr_count; c++) {
         Instrument& instr = instruments[c];
         instr.ad        = read8(stream);
         instr.sr        = read8(stream);
@@ -141,9 +129,9 @@ bool Song::load(std::istream& stream) {
     }
     // read tables
     for (int c = 0; c < MAX_TABLES; c++) {
-        int loadsize = read8(stream);
-        stream.read((char*) ltable[c].data(), loadsize);
-        stream.read((char*) rtable[c].data(), loadsize);
+        int len = read8(stream);
+        stream.read((char*) ltable[c].data(), len);
+        stream.read((char*) rtable[c].data(), len);
     }
     // read patterns
     amount = read8(stream);
@@ -170,11 +158,10 @@ bool Song::load(std::istream& stream) {
         }
     }
 
-
     // set up speed table
-    // 01 - 20: portamento
-    // 21 - 40: vibrato
-    // 41 - 60: funk tempo
+    // 01 - 1f: portamento
+    // 21 - 3f: vibrato
+    // 41 - 5f: funk tempo
     std::array<uint8_t, MAX_TABLELEN> porta = {};
     std::array<uint8_t, MAX_TABLELEN> vib   = {};
     std::array<uint8_t, MAX_TABLELEN> funk  = {};
@@ -222,21 +209,9 @@ bool Song::load(std::istream& stream) {
             funk[i] = funk_pos++;
         }
     }
-    if (porta_pos >= 0x1f) {
-        LOGE("Song::load: too many portamenti");
-        clear();
-        return false;
-    }
-    if (vib_pos >= 0x3f) {
-        LOGE("Song::load: too many vibratos");
-        clear();
-        return false;
-    }
-    if (funk_pos >= 0x5f) {
-        LOGE("Song::load: too many funk tempi");
-        clear();
-        return false;
-    }
+    if (porta_pos >= 0x1f) load_error("too many portamenti");
+    if (vib_pos >= 0x3f) load_error("too many vibratos");
+    if (funk_pos >= 0x5f) load_error("too many funk tempi");
     for (Instrument& instr : instruments) {
         if (instr.ptr[STBL] > 0) instr.ptr[STBL] = vib[instr.ptr[STBL] - 1] + 1;
     }
@@ -257,7 +232,63 @@ bool Song::load(std::istream& stream) {
         if (cmd == CMD_VIBRATO)                         data = vib[data - 1] + 1;
         if (cmd == CMD_FUNKTEMPO)                       data = funk[data - 1] + 1;
     }
-    return true;
+
+    // TODO: check table jumps
+    // we only allow for backward jumps to zero or within the table
+    // we only allow for table addresses (in instruments and table ptr commands)
+
+
+    // fix table ptr commands
+    for (int cmd = CMD_SETWAVEPTR; cmd <= CMD_SETFILTERPTR; ++cmd) {
+        constexpr char const* LABELS[] = { "WAVE", "PULS", "FILT" };
+        int table = cmd - CMD_SETWAVEPTR;
+        std::array<uint8_t, MAX_TABLELEN> addr_to_instr = {};
+
+        // create initial mapping from table row to instrument
+        for (int i = instr_count; i > 0; i--) {
+            Instrument& instr = instruments[i];
+            if (instr.ptr[table] == 0) continue;
+            int addr = instr.ptr[table] - 1;
+            addr_to_instr[addr] = i;
+        }
+        // apply mapping in patterns
+        for (Pattern& patt : patterns) {
+            for (PatternRow& row : patt.rows) {
+                if (row.command != cmd || row.data == 0) continue;
+                int addr = row.data - 1;
+                if (addr_to_instr[addr] == 0) {
+                    if (instr_count >= MAX_INSTR - 1) {
+                        load_error("cannot remap table ptr command");
+                    }
+                    addr_to_instr[addr] = ++instr_count;
+                    Instrument& instr = instruments[addr_to_instr[addr]];
+                    sprintf(instr.name.data(), "%s PTR %02X", LABELS[table], addr + 1);
+                    instr.ptr[table] = addr + 1;
+                }
+                row.data = addr_to_instr[addr];
+            }
+        }
+
+        // apply mapping in wave table
+        if (cmd == CMD_SETWAVEPTR) continue;
+        for (int i = 0; i < MAX_TABLELEN; ++i) {
+            if ((ltable[WTBL][i] & 0xf0) != 0xf0) continue;
+            uint8_t& data = rtable[WTBL][i];
+            if (data == 0 || (ltable[WTBL][i] & 0xf) != cmd) continue;
+            int addr = data - 1;
+            if (addr_to_instr[addr] == 0) {
+                if (instr_count >= MAX_INSTR - 1) {
+                    load_error("cannot remap table ptr command");
+                }
+                addr_to_instr[addr] = ++instr_count;
+                Instrument& instr = instruments[addr_to_instr[addr]];
+                char const* LABELS[] = { "", "PULS", "FILT" };
+                sprintf(instr.name.data(), "%s PTR %02X X", LABELS[table], addr + 1);
+                instr.ptr[table] = addr + 1;
+            }
+            data = addr_to_instr[addr];
+        }
+    }
 }
 
 
@@ -345,6 +376,31 @@ bool Song::save(std::ostream& stream) {
         write<uint8_t>(stream, 0);
         write<uint8_t>(stream, 0);
         write<uint8_t>(stream, 0);
+    }
+
+
+    // fix table pointer commands
+    // map instrument back to table row
+    for (Pattern& patt : patterns) {
+        for (PatternRow& row : patt.rows) {
+            if (row.data == 0) continue;
+            if (row.command >= CMD_SETWAVEPTR && row.command <= CMD_SETFILTERPTR) {
+                int t = row.command - CMD_SETWAVEPTR;
+                Instrument const& instr = instruments[row.data];
+                row.data = instr.ptr[t];
+            }
+        }
+    }
+    for (int i = 0; i < MAX_TABLELEN; ++i) {
+        if ((ltable[WTBL][i] & 0xf0) != 0xf0) continue;
+        uint8_t& data = rtable[WTBL][i];
+        if (data == 0) continue;
+        uint8_t cmd = ltable[WTBL][i] & 0xf;
+        if (cmd >= CMD_SETFILTERCTRL && cmd <= CMD_SETFILTERPTR) {
+            int t = cmd - CMD_SETWAVEPTR;
+            Instrument const& instr = instruments[data];
+            data = instr.ptr[t];
+        }
     }
 
     return true;

@@ -33,24 +33,6 @@ void add_table_row(int pos) {
         }
     }
 
-    // shift pointers in wave table
-    auto& wav_ltable = g_song.ltable[gt::WTBL];
-    auto& wav_rtable = g_song.rtable[gt::WTBL];
-    for (int i = 0; i < gt::MAX_TABLELEN; ++i) {
-        if (wav_ltable[i] == 8 + g_table && wav_rtable[i] > pos + 1) {
-            ++wav_rtable[i];
-        }
-    }
-
-    // shift pointers in patterns
-    for (gt::Pattern& pat : g_song.patterns) {
-        for (gt::PatternRow& r : pat.rows) {
-            if (r.command == 8 + g_table && r.data > pos + 1) {
-                ++r.data;
-            }
-        }
-    }
-
     // shift table jump pointers
     auto& ltable = g_song.ltable[g_table];
     auto& rtable = g_song.rtable[g_table];
@@ -69,7 +51,7 @@ void delete_table_row(int pos) {
     auto& rtable = g_song.rtable[g_table];
 
     // check if we're deleting the jump row
-    // in that case, we want to also clear pointers in instruments, wave table, and patterns
+    // in that case, we want to also clear pointers in instruments
     bool is_jump_row = ltable[pos] == 0xff;
 
     // shift instr pointer
@@ -81,27 +63,6 @@ void delete_table_row(int pos) {
             --instr.ptr[g_table];
         }
     }
-
-    // shift pointers in wave table
-    // TODO: reset pointers
-    auto& wav_ltable = g_song.ltable[gt::WTBL];
-    auto& wav_rtable = g_song.rtable[gt::WTBL];
-    for (int i = 0; i < gt::MAX_TABLELEN; ++i) {
-        if (wav_ltable[i] == 8 + g_table && wav_rtable[i] > pos + 1) {
-            --wav_rtable[i];
-        }
-    }
-
-    // shift pointers in patterns
-    // TODO: reset pointers
-    for (gt::Pattern& pat : g_song.patterns) {
-        for (gt::PatternRow& r : pat.rows) {
-            if (r.command == 8 + g_table && r.data > pos + 1) {
-                --r.data;
-            }
-        }
-    }
-
 
     // shift table jump pointers
     for (int i = pos + 1; i < gt::MAX_TABLELEN; ++i) {
@@ -710,9 +671,10 @@ void draw_easy() {
         enum {
             COL_W = 12 + 8 * 18,
         };
-        gui::begin_window({ COL_W * 2, row_h * 32 + app::BUTTON_HEIGHT * 2 });
+        gui::begin_window({ COL_W * 2, row_h * 32 + app::BUTTON_HEIGHT * 2 + gui::FRAME_WIDTH * 2 });
         gui::item_size({ COL_W * 2, app::BUTTON_HEIGHT });
         gui::text("%s TABLE SHARING", TABLE_LABELS[g_table]);
+        gui::separator();
 
         gui::align(gui::Align::Left);
         gui::item_size({ COL_W, row_h });
@@ -728,7 +690,7 @@ void draw_easy() {
             gui::disabled(in.ptr[g_table] == 0);
             if (gui::button(str, in.ptr[g_table] > 0 && in.ptr[g_table] == instr.ptr[g_table])) {
                 draw_share_window = false;
-                if (share_count == 1) {
+                if (instr.ptr[g_table] != in.ptr[g_table] && share_count == 1) {
                     // TODO: confirmation dialog
                     // delete table
                     for (int i = 0; i <= len; ++i) delete_table_row(start_row);
@@ -738,6 +700,8 @@ void draw_easy() {
         }
         gui::align(gui::Align::Center);
         gui::button_style(gui::ButtonStyle::Normal);
+        gui::item_size(COL_W * 2);
+        gui::separator();
 
         gui::item_size({ COL_W * 2 / 3, app::BUTTON_HEIGHT });
         gui::disabled(share_count < 2 || num_free_rows < (len + 1));
@@ -756,7 +720,6 @@ void draw_easy() {
                 rtable[new_start_row + len] += new_start_row - start_row;
             }
             instr.ptr[g_table] = new_start_row + 1;
-            // TODO: update pointers in pattern and wave table
         }
         gui::same_line();
         gui::disabled(instr.ptr[g_table] == 0);

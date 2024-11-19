@@ -233,9 +233,14 @@ void draw() {
             app::player().stop_song();
             app::player().reset();
             song_view::reset();
-            ok = g_song.load((g_songs_dir + g_file_name.data() + FILE_SUFFIX).c_str());
-            if (ok) status("SONG WAS LOADED");
-            else status("LOAD ERROR");
+            try {
+                g_song.load((g_songs_dir + g_file_name.data() + FILE_SUFFIX).c_str());
+                status("SONG WAS LOADED");
+            }
+            catch (gt::LoadError const& e) {
+                g_song.clear();
+                status("LOAD ERROR: " + e.msg);
+            }
         });
     }
     gui::disabled(g_file_name[0] == '\0');

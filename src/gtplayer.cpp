@@ -303,7 +303,7 @@ TICK0:
         case CMD_SETWAVE: chan.wave = chan.newcmddata; break;
 
         case CMD_SETWAVEPTR:
-            chan.ptr[WTBL] = chan.newcmddata;
+            chan.ptr[WTBL] = m_song.instruments[chan.newcmddata].ptr[WTBL];
             chan.wavetime  = 0;
             if (chan.ptr[WTBL]) {
                 // stop the song in case of jumping into a jump
@@ -312,7 +312,7 @@ TICK0:
             break;
 
         case CMD_SETPULSEPTR:
-            chan.ptr[PTBL] = chan.newcmddata;
+            chan.ptr[PTBL] = m_song.instruments[chan.newcmddata].ptr[PTBL];
             chan.pulsetime = 0;
             if (chan.ptr[PTBL]) {
                 // stop the song in case of jumping into a jump
@@ -321,7 +321,7 @@ TICK0:
             break;
 
         case CMD_SETFILTERPTR:
-            m_filterptr  = chan.newcmddata;
+            m_filterptr  = m_song.instruments[chan.newcmddata].ptr[FTBL];
             m_filtertime = 0;
             if (m_filterptr) {
                 // stop the song in case of jumping into a jump
@@ -388,7 +388,7 @@ WAVEEXEC:
                     case CMD_PORTAUP: {
                         uint16_t speed = 0;
                         if (param) {
-                            speed = get_freq(param - 1);
+                            speed = (m_song.ltable[STBL][param - 1] << 8) | m_song.rtable[STBL][param - 1];
                         }
                         if (speed >= 0x8000) {
                             speed = get_freq(chan.lastnote + 1) - get_freq(chan.lastnote);
@@ -400,7 +400,7 @@ WAVEEXEC:
                     case CMD_PORTADOWN: {
                         uint16_t speed = 0;
                         if (param) {
-                            speed = get_freq(param - 1);
+                            speed = (m_song.ltable[STBL][param - 1] << 8) | m_song.rtable[STBL][param - 1];
                         }
                         if (speed >= 0x8000) {
                             speed = get_freq(chan.lastnote + 1) - get_freq(chan.lastnote);
@@ -469,7 +469,7 @@ WAVEEXEC:
                     case CMD_SETWAVE: chan.wave = param; break;
 
                     case CMD_SETPULSEPTR:
-                        chan.ptr[PTBL] = param;
+                        chan.ptr[PTBL] = m_song.instruments[param].ptr[PTBL];
                         chan.pulsetime = 0;
                         if (chan.ptr[PTBL]) {
                             // stop the song in case of jumping into a jump
@@ -478,7 +478,7 @@ WAVEEXEC:
                         break;
 
                     case CMD_SETFILTERPTR:
-                        m_filterptr  = param;
+                        m_filterptr  = m_song.instruments[param].ptr[FTBL];
                         m_filtertime = 0;
                         if (m_filterptr) {
                             // stop the song in case of jumping into a jump

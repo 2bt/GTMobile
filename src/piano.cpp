@@ -56,9 +56,10 @@ bool draw(bool* follow) {
         };
         int space = app::canvas_height() - 12 - app::BUTTON_HEIGHT * 2;
         int row_h = std::min<int>(space / 32, app::BUTTON_HEIGHT);
-        gui::begin_window({ COL_W * 2, row_h * 32 + app::BUTTON_HEIGHT * 2 });
+        gui::begin_window({ COL_W * 2, row_h * 32 + app::BUTTON_HEIGHT * 2 + gui::FRAME_WIDTH * 2 });
         gui::item_size({ COL_W * 2, app::BUTTON_HEIGHT });
         gui::text("INSTRUMENT SELECT");
+        gui::separator();
 
         gui::align(gui::Align::Left);
         gui::item_size({ COL_W, row_h });
@@ -80,6 +81,7 @@ bool draw(bool* follow) {
         }
         gui::button_style(gui::ButtonStyle::Normal);
         gui::item_size({ COL_W * 2, app::BUTTON_HEIGHT });
+        gui::separator();
         gui::align(gui::Align::Center);
         if (gui::button("CLOSE")) show_instrument_select = false;
         gui::end_window();
