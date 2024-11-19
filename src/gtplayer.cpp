@@ -92,6 +92,7 @@ void Player::sequencer(int c) {
 
     // store current song position
     m_current_song_pos[c] = chan.songptr;
+    m_current_patt_pos[c] = 0;
 
     chan.trans   = order[chan.songptr].trans;
     chan.pattnum = order[chan.songptr].pattnum;

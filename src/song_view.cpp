@@ -118,8 +118,8 @@ void draw_command_edit() {
         TABLE_HEIGHT = PAGE * app::MAX_ROW_HEIGHT,
         WIDTH = app::CANVAS_WIDTH - 12,
         HEIGHT = app::BUTTON_HEIGHT * 5 + TABLE_HEIGHT + gui::FRAME_WIDTH * 3,
-        C1 = 17 * 8 + 12 + 3 * 8 + 12,
-        CC = 12 + 8 * 15 + 7,
+        C1 = 15 * 8 + 12 + 3 * 8 + 12 - 1,
+        CC = 12 + 8 * 18,
     };
 
     gui::DrawContext& dc = gui::draw_context();
@@ -160,8 +160,8 @@ void draw_command_edit() {
             "PORTAMENTO DOWN",
             "TONE PORTAMENTO",
             "VIBRATO",
-            "ATTACK & DECAY",
-            "SUSTAIN & RELEASE",
+            "ATTACK/DECAY",
+            "SUSTAIN/RELEASE",
             "WAVE",
             "WAVE TABLE",
             "PULSE TABLE",
@@ -178,7 +178,7 @@ void draw_command_edit() {
             g_command = i;
         }
         dc.rgb(color::WHITE);
-        dc.text(c + ivec2(12 + 8 * 3 + 6, 6), CMD_LABELS[i]);
+        dc.text(c + ivec2(12 + 8 * 3 + 6 - 1, 6), CMD_LABELS[i]);
 
         gui::Box b = { c + ivec2(1, 1), ivec2(36 - 1, app::MAX_ROW_HEIGHT - 2) };
         dc.rgb(color::BACKGROUND_ROW);
@@ -205,8 +205,6 @@ void draw_command_edit() {
         static int scrolls[3] = {};
         int& scroll = scrolls[cmd_type];
 
-
-
         gui::cursor(table_cursor);
 
         auto& ltable = g_song.ltable[gt::STBL];
@@ -220,7 +218,7 @@ void draw_command_edit() {
             }
 
             gui::item_size({ CC, app::MAX_ROW_HEIGHT });
-            ivec2 p = gui::cursor();
+            ivec2 p = gui::cursor() + ivec2(6);
 
             uint8_t lval = r > 0 ? ltable[r - 1] : 0;
             uint8_t rval = r > 0 ? rtable[r - 1] : 0;
@@ -231,17 +229,19 @@ void draw_command_edit() {
                 data = r;
             }
             sprintf(str, "%02X", r);
-            dc.text(p + ivec2(6, 6), str);
+            dc.text(p, str);
+            p.x += 8 * 3;
             if (r == 0) {
-                if (g_command == gt::CMD_TONEPORTA) dc.text(p + ivec2(6 + 8*3, 6), "TIE NOTE");
-                else if (g_command == gt::CMD_FUNKTEMPO) dc.text(p + ivec2(6 + 8*3, 6), "NO CHANGE");
-                else dc.text(p + ivec2(6 + 8*3, 6), "OFF");
+                if (g_command == gt::CMD_TONEPORTA) dc.text(p, "TIE NOTE");
+                else if (g_command == gt::CMD_FUNKTEMPO) dc.text(p, "NO CHANGE");
+                else dc.text(p, "OFF");
             }
             if (is_set) {
                 sprintf(str, "%02X", lval);
-                dc.text(p + ivec2(6 + 8 * 3, 6), str);
+                dc.text(p, str);
                 sprintf(str, "%02X", rval);
-                dc.text(p + ivec2(6 + 8 * 5 + 4, 6), str);
+                p.x += 8 * 5 + 4;
+                dc.text(p, str);
             }
         }
         gui::button_style(gui::ButtonStyle::Normal);
@@ -342,6 +342,27 @@ void draw_command_edit() {
         gui::same_line(false);
         data = v;
     }
+    else if (g_command >= gt::CMD_SETWAVEPTR && g_command <= gt::CMD_SETFILTERPTR) {
+        gui::cursor(table_cursor);
+        static int scroll = 0;
+
+        gui::align(gui::Align::Left);
+        gui::item_size({ CC, app::MAX_ROW_HEIGHT });
+        for (int i = 0; i < PAGE; ++i) {
+            int r = i + scroll;
+            gt::Instrument const& instr = g_song.instruments[r];
+            sprintf(str, "%02X %s", r, instr.name.data());
+            gui::disabled(instr.ptr[g_command - gt::CMD_SETWAVEPTR] == 0);
+            if (gui::button(str, data == r)) data = r;
+        }
+        gui::disabled(false);
+        gui::align(gui::Align::Center);
+
+        gui::cursor(table_cursor + ivec2(CC, 0));
+        gui::item_size({ app::SCROLL_WIDTH, TABLE_HEIGHT });
+        gui::drag_bar_style(gui::DragBarStyle::Scrollbar);
+        gui::vertical_drag_bar(scroll, 0, gt::MAX_INSTR - PAGE, PAGE);
+    }
     else if (g_command == gt::CMD_SETFILTERCTRL) {
         gui::item_size({ WIDTH / 3, app::BUTTON_HEIGHT });
         if (gui::button("VOICE 1", data & 0x1)) data ^= 0x1;
@@ -388,7 +409,7 @@ int song_position() {
 
 void reset() {
     g_follow             = false;
-    g_recording          = true;
+    g_recording          = false;
     g_edit_mode          = EditMode::Pattern;
     g_cursor_pattern_row = 0;
     g_cursor_song_row    = 0;

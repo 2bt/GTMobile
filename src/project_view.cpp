@@ -65,8 +65,6 @@ float                    g_status_age = 0.0f;
 
 void status(std::string const& msg) {
     g_status_msg = msg;
-    g_status_msg = msg.substr(0, 20);
-    if (msg.size() > 20) g_status_msg += "\n" + msg.substr(20);
     g_status_age = 0.0f;
 }
 

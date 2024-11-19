@@ -65,13 +65,13 @@ enum {
 
 
 struct Instrument {
-    uint8_t ad              = 0;
-    uint8_t sr              = 0;
-    std::array<uint8_t, 4> ptr;
-    uint8_t vibdelay        = 0;
-    uint8_t gatetimer       = 2; // 2 * multiplier
-    uint8_t firstwave       = 0x9;
-    std::array<char, MAX_INSTRNAMELEN> name = {};
+    uint8_t                            ad        = 0;
+    uint8_t                            sr        = 0;
+    std::array<uint8_t, 4>             ptr       = {};
+    uint8_t                            vibdelay  = 0;
+    uint8_t                            gatetimer = 2; // 2 * multiplier
+    uint8_t                            firstwave = 0x9;
+    std::array<char, MAX_INSTRNAMELEN> name      = {};
 };
 
 
