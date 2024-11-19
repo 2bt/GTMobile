@@ -40,6 +40,10 @@ void Song::clear() {
     *this = {};
     song_order[1][0].pattnum = 1;
     song_order[2][0].pattnum = 2;
+    for (int i = 1; i < MAX_INSTR; ++i) {
+        Instrument& instr = instruments[i];
+        instr.ptr[STBL] = 0x80 + i;
+    }
 }
 
 void Song::load(char const* filename) {
@@ -162,12 +166,10 @@ void Song::load(std::istream& stream) {
     // 01 - 1f: portamento
     // 21 - 3f: vibrato
     // 41 - 5f: funk tempo
+    // 80 - bf: instr vibrato
     std::array<uint8_t, MAX_TABLELEN> porta = {};
     std::array<uint8_t, MAX_TABLELEN> vib   = {};
     std::array<uint8_t, MAX_TABLELEN> funk  = {};
-    for (Instrument& instr : instruments) {
-        if (instr.ptr[STBL] > 0) vib[instr.ptr[STBL]] = 1;
-    }
     for (Pattern& patt : patterns) {
         for (PatternRow& row : patt.rows) {
             if (row.data == 0) continue;
@@ -189,6 +191,16 @@ void Song::load(std::istream& stream) {
     std::array<uint8_t, MAX_TABLELEN> rspeed = rtable[STBL];
     ltable[STBL] = {};
     rtable[STBL] = {};
+    // instr vibrato
+    for (int i = 1; i < MAX_INSTR; ++i) {
+        Instrument& instr = instruments[i];
+        int x = instr.ptr[STBL];
+        if (x > 0) {
+            ltable[STBL][0x80 + i - 1] = lspeed[x - 1];
+            rtable[STBL][0x80 + i - 1] = rspeed[x - 1];
+        }
+        instr.ptr[STBL] = 0x80 + i;
+    }
     size_t porta_pos = 0x00;
     size_t vib_pos   = 0x20;
     size_t funk_pos  = 0x40;
@@ -212,9 +224,6 @@ void Song::load(std::istream& stream) {
     if (porta_pos >= 0x1f) load_error("too many portamenti");
     if (vib_pos >= 0x3f) load_error("too many vibratos");
     if (funk_pos >= 0x5f) load_error("too many funk tempi");
-    for (Instrument& instr : instruments) {
-        if (instr.ptr[STBL] > 0) instr.ptr[STBL] = vib[instr.ptr[STBL] - 1] + 1;
-    }
     for (Pattern& patt : patterns) {
         for (PatternRow& row : patt.rows) {
             if (row.data == 0) continue;
@@ -239,10 +248,10 @@ void Song::load(std::istream& stream) {
 
 
     // fix table ptr commands
-    for (int cmd = CMD_SETWAVEPTR; cmd <= CMD_SETFILTERPTR; ++cmd) {
-        constexpr char const* LABELS[] = { "WAVE", "PULS", "FILT" };
-        int table = cmd - CMD_SETWAVEPTR;
+    for (int table = WTBL; table <= FTBL; ++table) {
+        int cmd = CMD_SETWAVEPTR + table;
         std::array<uint8_t, MAX_TABLELEN> addr_to_instr = {};
+        constexpr char const* LABELS[] = { "WAVE", "PULS", "FILT" };
 
         // create initial mapping from table row to instrument
         for (int i = instr_count; i > 0; i--) {
@@ -322,11 +331,11 @@ bool Song::save(std::ostream& stream) {
     }
 
     // instruments
-    int max_used_instr = 1;
-    constexpr Instrument emtpy_instr = {};
-    for (int i = 0; i < MAX_INSTR; i++) {
-        if (memcmp(&instruments[i], &emtpy_instr, sizeof(Instrument)) != 0) {
-            max_used_instr = i;
+    int max_used_instr = 0;
+    for (int i = 1; i < MAX_INSTR; i++) {
+        Instrument& instr = instruments[i];
+        if ((instr.ptr[WTBL] | instr.ptr[PTBL] | instr.ptr[FTBL]) || strlen(instr.name.data()) > 0) {
+            max_used_instr = 1;
         }
     }
     write<uint8_t>(stream, max_used_instr);

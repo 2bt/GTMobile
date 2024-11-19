@@ -72,7 +72,7 @@ bool draw(bool* follow) {
             int i = n % 2 * 32 + n / 2;
             gt::Instrument const& instr = g_song.instruments[i];
             sprintf(str, "%02X %s", i, instr.name.data());
-            bool set = instr.ptr[0] | instr.ptr[1] | instr.ptr[2] | instr.ptr[3];
+            bool set = instr.ptr[gt::WTBL] | instr.ptr[gt::PTBL] | instr.ptr[gt::FTBL];
             gui::button_style(set ? gui::ButtonStyle::Normal : gui::ButtonStyle::Shaded);
             if (gui::button(str, i == g_instrument)) {
                 g_instrument = i;

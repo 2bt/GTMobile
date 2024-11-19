@@ -240,7 +240,7 @@ void draw_command_edit() {
                 sprintf(str, "%02X", lval);
                 dc.text(p, str);
                 sprintf(str, "%02X", rval);
-                p.x += 8 * 5 + 4;
+                p.x += 8 * 2 + 4;
                 dc.text(p, str);
             }
         }

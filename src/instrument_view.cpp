@@ -2,6 +2,7 @@
 #include "piano.hpp"
 #include "app.hpp"
 #include "gui.hpp"
+#include "log.hpp"
 #include <cassert>
 
 
@@ -16,7 +17,7 @@ enum class CursorSelect {
     Adsr,
     GateTimer,
     FirstWave,
-    //...
+    Vibrato,
     Table,
 };
 CursorSelect g_cursor_select = {};
@@ -82,22 +83,25 @@ void delete_table_row(int pos) {
 
 void draw_easy() {
     gt::Instrument& instr = g_song.instruments[piano::instrument()];
+    gui::DrawContext& dc = gui::draw_context();
     char str[32];
 
     gui::same_line();
     gui::align(gui::Align::Left);
     gui::item_size({ 16 * 8 + 12, app::BUTTON_HEIGHT });
     gui::input_text(instr.name);
-    gui::align(gui::Align::Center);
 
     // adsr
     gui::button_style(gui::ButtonStyle::PaddedTableCell);
     gui::same_line();
-    gui::item_size({ 12 + 4 * 8, app::BUTTON_HEIGHT });
-    sprintf(str, "%02X%02X", instr.ad, instr.sr);
+    gui::item_size({ 12 + 4 * 8 + 4, app::BUTTON_HEIGHT });
+    sprintf(str, "%02X", instr.ad);
+    ivec2 p = gui::cursor();
     if (gui::button(str, g_cursor_select == CursorSelect::Adsr)) {
         g_cursor_select = CursorSelect::Adsr;
     }
+    sprintf(str, "%02X", instr.sr);
+    dc.text(p + ivec2(6 + 8 * 2 + 4, 11), str);
 
     // gate timer
     gui::item_size({ 12 + 2 * 8, app::BUTTON_HEIGHT });
@@ -114,7 +118,16 @@ void draw_easy() {
         g_cursor_select = CursorSelect::FirstWave;
     }
 
-
+    // vibrato
+    gui::same_line();
+    gui::item_size({ 12 + 7 * 8, app::BUTTON_HEIGHT });
+    p = gui::cursor();
+    sprintf(str, "%02X   %02X", instr.vibdelay, g_song.ltable[gt::STBL][instr.ptr[gt::STBL] - 1]);
+    if (gui::button(str, g_cursor_select == CursorSelect::Vibrato)) {
+        g_cursor_select = CursorSelect::Vibrato;
+    }
+    sprintf(str, "%02X", g_song.rtable[gt::STBL][instr.ptr[gt::STBL] - 1]);
+    dc.text(p + ivec2(6 + 8 * 2 + 4, 11), str);
 
     // tables
     enum {
@@ -122,6 +135,7 @@ void draw_easy() {
         CD = app::CANVAS_WIDTH - CN - app::SCROLL_WIDTH - app::BUTTON_HEIGHT * 2,
     };
     constexpr char const* TABLE_LABELS[] = { "WAVE", "PULSE", "FILTER" };
+    gui::align(gui::Align::Center);
     gui::item_size({ (app::CANVAS_WIDTH - app::BUTTON_HEIGHT * 2) / 3, app::BUTTON_HEIGHT });
     for (int t = 0; t < 3; ++t) {
         gui::button_style(instr.ptr[t] > 0 ? gui::ButtonStyle::Tab : gui::ButtonStyle::ShadedTab );
@@ -188,7 +202,6 @@ void draw_easy() {
     g_cursor_row = std::max(g_cursor_row, 0);
 
     gui::cursor({ 0, cursor.y + 1 });
-    gui::DrawContext& dc = gui::draw_context();
     for (int i = 0; i < table_page; ++i) {
         int r = i + g_scroll;
         sprintf(str, "%02X", r);
@@ -462,6 +475,32 @@ void draw_easy() {
             gui::same_line(false);
             instr.firstwave = v;
         }
+    }
+    else if (g_cursor_select == CursorSelect::Vibrato) {
+        assert(instr.ptr[gt::STBL] > 0);
+        uint8_t& lval = g_song.ltable[gt::STBL][instr.ptr[gt::STBL] - 1];
+        uint8_t& rval = g_song.rtable[gt::STBL][instr.ptr[gt::STBL] - 1];
+        gui::item_size({ app::CANVAS_WIDTH / 2, app::BUTTON_HEIGHT });
+        gui::text("VIBRATO");
+        gui::same_line();
+        if (gui::button("REALTIME SPEED", lval & 0x80)) {
+            rval = 0;
+            lval ^= 0x80;
+        }
+
+        gui::slider(app::CANVAS_WIDTH, "DELAY %02X", instr.vibdelay, 0, 255);
+        // gui::item_size({ app::CANVAS_WIDTH, app::BUTTON_HEIGHT });
+        int v = lval & 0x7f;
+        gui::slider(app::CANVAS_WIDTH, "STEPS %02X", v, 0, 0x7f);
+        lval = (lval & 0x80) | v;
+
+        if (lval & 0x80) {
+            gui::slider(app::CANVAS_WIDTH, "SHIFT  %X", rval, 0, 8);
+        }
+        else {
+            gui::slider(app::CANVAS_WIDTH, "SPEED %02X", rval, 0, 0xff);
+        }
+
     }
     else if (g_cursor_select == CursorSelect::Table && g_cursor_row < len) {
         uint8_t& lval = ltable[start_row + g_cursor_row];

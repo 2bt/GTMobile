@@ -372,15 +372,15 @@ bool button(char const* label, bool active) {
     Box box = item_box();
     ButtonState state = button_state(box);
     if (g_button_style == ButtonStyle::TableCell || g_button_style == ButtonStyle::PaddedTableCell) {
+        Box b = box;
         if (g_button_style == ButtonStyle::PaddedTableCell) {
-            box.pos.y  += 1;
-            box.size.y -= 2;
+            b.pos.y  += 1;
+            b.size.y -= 2;
         }
-        box.pos.x  += 1;
-        box.size.x -= 2;
+        b.pos.x  += 1;
+        b.size.x -= 2;
         g_dc.rgb(color::BACKGROUND_ROW);
-        g_dc.fill(box);
-
+        g_dc.fill(b);
         if (active || state != ButtonState::Normal) {
             button_color(state, active);
             g_dc.box(box, BoxStyle::Cursor);
