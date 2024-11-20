@@ -137,6 +137,14 @@ public:
     void text(ivec2 pos, char const* text) {
         ivec2 p = pos;
         while (uint8_t c = *text++) {
+            if (c == 0x80) { // half space
+                p.x += m_char_size.x / 2;
+                continue;
+            }
+            if (c == 0x81) { // set cmd color
+                rgb(color::CMDS[uint8_t(*text++)]);
+                continue;
+            }
             character(p, c);
             p.x += m_char_size.x;
         }

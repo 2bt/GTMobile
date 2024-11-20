@@ -40,6 +40,7 @@ void Song::clear() {
     *this = {};
     song_order[1][0].pattnum = 1;
     song_order[2][0].pattnum = 2;
+    // set up vibrato pointers
     for (int i = 1; i < MAX_INSTR; ++i) {
         Instrument& instr = instruments[i];
         instr.ptr[STBL] = 0x80 + i;
@@ -335,7 +336,7 @@ bool Song::save(std::ostream& stream) {
     for (int i = 1; i < MAX_INSTR; i++) {
         Instrument& instr = instruments[i];
         if ((instr.ptr[WTBL] | instr.ptr[PTBL] | instr.ptr[FTBL]) || strlen(instr.name.data()) > 0) {
-            max_used_instr = 1;
+            max_used_instr = i;
         }
     }
     write<uint8_t>(stream, max_used_instr);

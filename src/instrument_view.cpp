@@ -95,13 +95,10 @@ void draw_easy() {
     gui::button_style(gui::ButtonStyle::PaddedTableCell);
     gui::same_line();
     gui::item_size({ 12 + 4 * 8 + 4, app::BUTTON_HEIGHT });
-    sprintf(str, "%02X", instr.ad);
-    ivec2 p = gui::cursor();
+    sprintf(str, "%02X\x80%02X", instr.ad, instr.sr);
     if (gui::button(str, g_cursor_select == CursorSelect::Adsr)) {
         g_cursor_select = CursorSelect::Adsr;
     }
-    sprintf(str, "%02X", instr.sr);
-    dc.text(p + ivec2(6 + 8 * 2 + 4, 11), str);
 
     // gate timer
     gui::item_size({ 12 + 2 * 8, app::BUTTON_HEIGHT });
@@ -121,13 +118,12 @@ void draw_easy() {
     // vibrato
     gui::same_line();
     gui::item_size({ 12 + 7 * 8, app::BUTTON_HEIGHT });
-    p = gui::cursor();
-    sprintf(str, "%02X   %02X", instr.vibdelay, g_song.ltable[gt::STBL][instr.ptr[gt::STBL] - 1]);
+    sprintf(str, "%02X\x80%02X\x80%02X", instr.vibdelay,
+            g_song.rtable[gt::STBL][instr.ptr[gt::STBL] - 1],
+            g_song.ltable[gt::STBL][instr.ptr[gt::STBL] - 1]);
     if (gui::button(str, g_cursor_select == CursorSelect::Vibrato)) {
         g_cursor_select = CursorSelect::Vibrato;
     }
-    sprintf(str, "%02X", g_song.rtable[gt::STBL][instr.ptr[gt::STBL] - 1]);
-    dc.text(p + ivec2(6 + 8 * 2 + 4, 11), str);
 
     // tables
     enum {

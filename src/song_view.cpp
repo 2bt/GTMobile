@@ -237,10 +237,7 @@ void draw_command_edit() {
                 else dc.text(p, "OFF");
             }
             if (is_set) {
-                sprintf(str, "%02X", lval);
-                dc.text(p, str);
-                sprintf(str, "%02X", rval);
-                p.x += 8 * 2 + 4;
+                sprintf(str, "%02X\x80%02X", lval, rval);
                 dc.text(p, str);
             }
         }
