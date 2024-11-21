@@ -31,8 +31,17 @@ int             g_cursor_song_row    = 0;
 int             g_cursor_chan        = 0;
 Dialog          g_dialog             = Dialog::None;
 int             g_transpose          = 0;
-int             g_command            = 0;
-int             g_command_data[16]   = {};
+uint8_t         g_command            = 0;
+uint8_t         g_command_data[16]   = {
+    0,
+    0, 0, 0,
+    0,
+    0, 0,
+    0, 0, 0, 0, 0, 0,
+    0x0f, // master volume
+    0,
+    0x06, // tempo
+};
 gt::PatternRow* g_command_row        = nullptr;
 
 std::array<bool, gt::MAX_PATT> g_pattern_empty;
@@ -372,7 +381,7 @@ void draw_command_edit() {
         data = (data & 0x0f) | (v << 4);
     }
     else if (g_command == gt::CMD_SETFILTERCUTOFF) {
-        gui::slider(WIDTH, "%X", data, 0, 0xff);
+        gui::slider(WIDTH, "%02X", data, 0, 0xff);
     }
     else if (g_command == gt::CMD_SETMASTERVOL) {
         gui::slider(WIDTH, "%X", data, 0, 15);

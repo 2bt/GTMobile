@@ -614,8 +614,8 @@ void draw_easy() {
             gui::button_style(gui::ButtonStyle::RadioRight);
             if (gui::button("STEP PULSE WIDTH", mode == 1) && mode != 1) {
                 mode = 1;
-                lval = 0x20;
-                rval = 0x40;
+                lval = 0x7f;
+                rval = 0x20;
             }
             if (mode == 0) {
                 // set pw
@@ -626,9 +626,9 @@ void draw_easy() {
             }
             else {
                 // step pw
-                gui::slider(app::CANVAS_WIDTH, " %02X", lval, 1, 0x7f);
+                gui::slider(app::CANVAS_WIDTH, "STEPS  %02X", lval, 1, 0x7f);
                 int v = int8_t(rval);
-                sprintf(str, "%c%02X", "+-"[v < 0], abs(v));
+                sprintf(str, "SPEED %c%02X", "+-"[v < 0], abs(v));
                 gui::slider(app::CANVAS_WIDTH, str, v, -128, 127, &rval);
                 rval = v;
             }
@@ -684,13 +684,13 @@ void draw_easy() {
             }
             else if (mode == 1) {
                 // set cutoff
-                gui::slider(app::CANVAS_WIDTH, " %02X", rval, 0, 0xff);
+                gui::slider(app::CANVAS_WIDTH, "%02X", rval, 0, 0xff);
             }
             else {
                 // step cutoff
-                gui::slider(app::CANVAS_WIDTH, " %02X", lval, 1, 0x7f);
+                gui::slider(app::CANVAS_WIDTH, "STEPS  %02X", lval, 1, 0x7f);
                 int v = int8_t(rval);
-                sprintf(str, "%c%02X", "+-"[v < 0], abs(v));
+                sprintf(str, "SPEED %c%02X", "+-"[v < 0], abs(v));
                 gui::slider(app::CANVAS_WIDTH, str, v, -0x20, 0x20, &rval);
                 rval = v;
             }

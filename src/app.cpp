@@ -114,6 +114,7 @@ void resize(int width, int height) {
         g_canvas_offset = 0;
         g_canvas_scale  = scale_x;
     }
+    // g_canvas_scale = 1;
 
     // reinit canvas with POT dimensions
     int w = 2;
