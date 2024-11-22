@@ -480,7 +480,14 @@ void draw_easy() {
         gui::text("VIBRATO");
         gui::same_line();
         if (gui::button("REALTIME SPEED", lval & 0x80)) {
-            rval = 0;
+            if (lval & 0x80) {
+                int note = piano::note();
+                uint16_t speed = gt::get_freq(note + 1) - gt::get_freq(note);
+                rval = std::min(255, speed >> rval);
+            }
+            else {
+                rval = 2;
+            }
             lval ^= 0x80;
         }
 

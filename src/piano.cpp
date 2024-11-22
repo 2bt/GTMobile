@@ -10,8 +10,8 @@ namespace {
 gt::Song& g_song = app::song();
 int  g_instrument = 1;
 int  g_scroll     = 14 * 3; // show octave 3 and 4
+int  g_note       = 48;
 bool g_gate;
-int  g_note;
 
 }
 

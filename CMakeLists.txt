@@ -6,6 +6,8 @@ add_executable(
     gtmobile
     src/app.cpp
     src/app.hpp
+    src/command_edit.cpp
+    src/command_edit.hpp
     src/gfx.cpp
     src/gfx.hpp
     src/gtplayer.cpp
@@ -24,14 +26,14 @@ add_executable(
     src/project_view.cpp
     src/project_view.hpp
     src/resid
+    src/settings_view.cpp
+    src/settings_view.hpp
     src/sid.cpp
     src/sid.hpp
     src/song_view.cpp
     src/song_view.hpp
     src/stb_image.h
     src/vec.hpp
-    src/settings_view.cpp
-    src/settings_view.hpp
 )
 
 target_compile_options(
