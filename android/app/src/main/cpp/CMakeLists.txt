@@ -6,17 +6,19 @@ add_library(
     native
     SHARED
     native-lib.cpp
+    src/app.cpp
+    src/command_edit.cpp
+    src/command_edit.hpp
+    src/gfx.cpp
     src/gtplayer.cpp
     src/gtsong.cpp
-    src/sid.cpp
-    src/gfx.cpp
     src/gui.cpp
-    src/app.cpp
+    src/instrument_view.cpp
     src/piano.cpp
     src/project_view.cpp
-    src/song_view.cpp
-    src/instrument_view.cpp
     src/settings_view.cpp
+    src/sid.cpp
+    src/song_view.cpp
 )
 
 target_include_directories(

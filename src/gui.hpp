@@ -200,6 +200,7 @@ enum class Icon {
     JumpBack,
     X,
     DotDotDot,
+    Edit,
 
     Loop = 40,
     Stop,

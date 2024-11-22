@@ -335,10 +335,10 @@ void draw() {
                 dc.text(t, "\x01\x01\x01");
             }
             else if (row.note == gt::KEYOFF) {
-                dc.text(t, "\x0b\x0c\x0d");
+                dc.text(t, "\x0a\x0b\x0c");
             }
             else if (row.note == gt::KEYON) {
-                dc.text(t, "\x03\x03\x03");
+                dc.text(t, "\x0d\x0e\x0f");
             }
             else {
                 sprintf(str, "%c%c%d", "CCDDEFFGGAAB"[row.note % 12],
@@ -441,7 +441,7 @@ void draw() {
         }
         gui::disabled(false);
 
-        if (gui::button(gui::Icon::EditRow)) {
+        if (gui::button(gui::Icon::Edit)) {
             init_order_edit();
         }
     }
@@ -482,9 +482,8 @@ void draw() {
             if (gui::button(gui::Icon::Record, g_recording)) {
                 g_recording = !g_recording;
             }
-            gui::disabled(row.note == gt::KEYOFF);
-            if (gui::button("\x0b\x0c\x0d")) {
-                row.note  = gt::KEYOFF;
+            if (gui::button(row.note != gt::KEYOFF ? "\x0a\x0b\x0c" : "\x0d\x0e\x0f")) {
+                row.note  = row.note != gt::KEYOFF ? gt::KEYOFF : gt::KEYON;
                 row.instr = 0;
             }
             gui::disabled(row.note == gt::REST);
@@ -497,7 +496,7 @@ void draw() {
         // command edit buttons
         {
             gui::separator();
-            if (gui::button(gui::Icon::DotDotDot)) {
+            if (gui::button(gui::Icon::Edit)) {
                 command_edit::init(command_edit::Location::Pattern, row.command, row.data, [&row](uint8_t cmd, uint8_t data) {
                     row.command = cmd;
                     row.data    = data;

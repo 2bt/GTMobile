@@ -383,7 +383,7 @@ bool button(char const* label, bool active) {
         g_dc.fill(b);
         if (active || state != ButtonState::Normal) {
             button_color(state, active);
-            g_dc.box(box, BoxStyle::Cursor);
+            g_dc.box(b, BoxStyle::Cursor);
         }
     }
     else {

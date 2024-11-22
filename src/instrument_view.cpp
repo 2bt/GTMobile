@@ -10,10 +10,6 @@
 namespace instrument_view {
 namespace {
 
-bool g_easy_mode = true;
-
-gt::Song& g_song = app::song();
-
 enum class CursorSelect {
     Adsr,
     GateTimer,
@@ -21,10 +17,13 @@ enum class CursorSelect {
     Vibrato,
     Table,
 };
+
+gt::Song&    g_song          = app::song();
 CursorSelect g_cursor_select = {};
 int          g_table         = 0;
 int          g_cursor_row    = 0;
 int          g_scroll        = 0;
+bool         g_easy_mode     = true;
 
 
 void add_table_row(int pos) {
