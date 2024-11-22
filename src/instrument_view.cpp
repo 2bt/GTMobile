@@ -1,4 +1,5 @@
 #include "instrument_view.hpp"
+#include "command_edit.hpp"
 #include "piano.hpp"
 #include "app.hpp"
 #include "gui.hpp"
@@ -119,8 +120,8 @@ void draw_easy() {
     gui::same_line();
     gui::item_size({ 12 + 7 * 8, app::BUTTON_HEIGHT });
     sprintf(str, "%02X\x80%02X\x80%02X", instr.vibdelay,
-            g_song.rtable[gt::STBL][instr.ptr[gt::STBL] - 1],
-            g_song.ltable[gt::STBL][instr.ptr[gt::STBL] - 1]);
+            g_song.ltable[gt::STBL][instr.ptr[gt::STBL] - 1],
+            g_song.rtable[gt::STBL][instr.ptr[gt::STBL] - 1]);
     if (gui::button(str, g_cursor_select == CursorSelect::Vibrato)) {
         g_cursor_select = CursorSelect::Vibrato;
     }
@@ -601,9 +602,13 @@ void draw_easy() {
             }
             else {
                 // command
-                gui::align(gui::Align::Left);
-                gui::text("TODO");
-                gui::align(gui::Align::Center);
+                gui::item_size({ app::CANVAS_WIDTH, app::BUTTON_HEIGHT });
+                if (gui::button("EDIT")) {
+                    command_edit::init(command_edit::Location::WaveTable, lval & 0xf, rval, [&lval, &rval](uint8_t cmd, uint8_t data) {
+                       lval = cmd | 0xf0;
+                       rval = data;
+                   });
+                }
             }
         }
         else if (g_table == gt::PTBL) {
@@ -780,6 +785,7 @@ void draw_easy() {
     }
 
 
+    command_edit::draw();
 }
 
 

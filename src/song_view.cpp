@@ -16,7 +16,6 @@
 namespace song_view {
 namespace {
 
-enum class Dialog { None, OrderEdit, CommandEdit };
 enum class EditMode { Song, Pattern };
 
 
@@ -30,15 +29,14 @@ int             g_pattern_scroll;
 int             g_cursor_pattern_row = 0;
 int             g_cursor_song_row    = 0;
 int             g_cursor_chan        = 0;
-Dialog          g_dialog             = Dialog::None;
 int             g_transpose          = 0;
-gt::PatternRow* g_command_row        = nullptr;
+bool            g_order_edit_enabled = false;
 
 std::array<bool, gt::MAX_PATT> g_pattern_empty;
 
 
 void init_order_edit() {
-    g_dialog = Dialog::OrderEdit;
+    g_order_edit_enabled = true;
     g_transpose = g_song.song_order[g_cursor_chan][g_cursor_song_row].trans;
     for (int i = 0; i < gt::MAX_PATT; ++i) {
         g_pattern_empty[i] = true;
@@ -55,7 +53,7 @@ void init_order_edit() {
 
 
 void exit_order_edit() {
-    g_dialog = Dialog::None;
+    g_order_edit_enabled = false;
     // change transpose on all rows below
     auto&     order = g_song.song_order[g_cursor_chan];
     int trans = order[g_cursor_song_row].trans;
@@ -67,6 +65,7 @@ void exit_order_edit() {
 
 
 void draw_order_edit() {
+    if (!g_order_edit_enabled) return;
     enum {
         MIN_HEIGHT = 3 * app::BUTTON_HEIGHT + gui::FRAME_WIDTH * 2,
         CW = (app::CANVAS_WIDTH - 12) / 8,
@@ -499,9 +498,7 @@ void draw() {
         {
             gui::separator();
             if (gui::button(gui::Icon::DotDotDot)) {
-                g_dialog = Dialog::CommandEdit;
                 command_edit::init(command_edit::Location::Pattern, row.command, row.data, [&row](uint8_t cmd, uint8_t data) {
-                    g_dialog    = Dialog::None;
                     row.command = cmd;
                     row.data    = data;
                 });
@@ -545,8 +542,8 @@ void draw() {
     }
 
 
-    if (g_dialog == Dialog::OrderEdit) draw_order_edit();
-    if (g_dialog == Dialog::CommandEdit) command_edit::draw();
+    draw_order_edit();
+    command_edit::draw();
 
     // piano
     if (piano::draw(&g_follow) && g_edit_mode == EditMode::Pattern && g_recording) {

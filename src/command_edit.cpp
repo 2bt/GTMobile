@@ -4,6 +4,7 @@
 namespace command_edit {
 namespace {
 
+bool       g_edit_enabled = false;
 gt::Song&  g_song = app::song();
 Location   g_location;
 uint8_t    g_command;
@@ -23,6 +24,7 @@ std::function<void(uint8_t, uint8_t)> g_on_close;
 
 
 void init(Location location, uint8_t cmd, uint8_t data, std::function<void(uint8_t, uint8_t)> on_close) {
+    g_edit_enabled      = true;
     g_location          = location;
     g_command           = cmd;
     g_command_data[cmd] = data;
@@ -31,6 +33,7 @@ void init(Location location, uint8_t cmd, uint8_t data, std::function<void(uint8
 
 
 void draw() {
+    if (!g_edit_enabled) return;
 
     enum {
         PAGE = 16,
@@ -64,6 +67,7 @@ void draw() {
     gui::item_box();
     gui::separator();
     if (gui::button("CLOSE")) {
+        g_edit_enabled = false;
         g_on_close(g_command, g_command_data[g_command]);
     }
 
@@ -71,6 +75,13 @@ void draw() {
     gui::cursor(cmd_cursor);
     gui::align(gui::Align::Left);
     for (int i = 0; i < 16; ++i) {
+
+        if (g_location == Location::WaveTable) {
+            if (i == gt::CMD_DONOTHING || i == gt::CMD_SETWAVEPTR || i == gt::CMD_FUNKTEMPO) {
+                gui::disabled(true);
+            }
+        }
+
         constexpr char const* CMD_LABELS[] = {
             "DO NOTHING",
             "PORTAMENTO UP",
