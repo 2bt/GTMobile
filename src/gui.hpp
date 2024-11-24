@@ -70,9 +70,10 @@ namespace color {
 
     constexpr uint32_t ROW_NUMBER     = 0xaaaaaa;
     constexpr uint32_t INSTRUMENT     = 0xaabbdd;
-    constexpr uint32_t HIGHLIGHT_ROW  = 0x333333;
-    constexpr uint32_t BACKGROUND_ROW = 0x171717;
     constexpr uint32_t PLAYER_ROW     = 0x553311;
+    constexpr uint32_t BACKGROUND_ROW = 0x171717;
+    constexpr uint32_t HIGHLIGHT_ROW  = 0x2b2b2b;
+    constexpr uint32_t MARKED_ROW     = mix(BACKGROUND_ROW, BUTTON_PRESSED, 0.2f);
 
 } // namespace color
 
@@ -264,6 +265,7 @@ float get_frame_time();
 
 
 namespace touch {
+    ivec2 pos();
     bool pressed();
     bool just_pressed();
     bool just_released();
@@ -287,6 +289,7 @@ void cursor(ivec2 pos);
 ivec2 cursor();
 void item_size(ivec2 size);
 void same_line(bool same_line = true);
+void set_active_item(void const* id);
 bool has_active_item();
 void align(Align a);
 void button_style(ButtonStyle style);

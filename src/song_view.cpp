@@ -16,7 +16,11 @@
 namespace song_view {
 namespace {
 
-enum class EditMode { Song, Pattern };
+enum class EditMode {
+    Song,
+    Pattern,
+    PatternMark,
+};
 
 
 gt::Song&       g_song               = app::song();
@@ -284,6 +288,39 @@ void draw() {
 
     gui::cursor({ 0, gui::cursor().y + 1 }); // 1px padding
 
+    static bool g_mark_edit = false;
+    static int  g_mark_row;
+    if (g_edit_mode == EditMode::PatternMark && g_mark_edit) {
+        constexpr float SCROLL_DELAY = 1.0f;
+        static float mark_scroll = 0;
+        if (gui::touch::just_released()) {
+            g_mark_edit = false;
+            mark_scroll = 0;
+        }
+        // auto scroll
+        int patt_len = g_song.patterns[patt_nums[g_cursor_chan]].len;
+        int dy = gui::touch::pos().y - gui::cursor().y;
+        int v = std::min(dy, 0) + std::max(0, dy - settings.row_height * pattern_page);
+        mark_scroll += v * gui::get_frame_time();
+        while (mark_scroll < -SCROLL_DELAY) {
+            mark_scroll += SCROLL_DELAY;
+            g_pattern_scroll = std::max(0, g_pattern_scroll - 1);
+        }
+        while (mark_scroll > SCROLL_DELAY) {
+            mark_scroll -= SCROLL_DELAY;
+            g_pattern_scroll = std::min(patt_len - pattern_page, g_pattern_scroll + 1);
+        }
+
+        int r = dy / settings.row_height;
+        r -= dy < 0;
+        r += g_pattern_scroll;
+        g_cursor_pattern_row = r;
+        g_cursor_pattern_row = clamp(g_cursor_pattern_row, 0, patt_len - 1);
+    }
+    int mark_row_min = std::min(g_mark_row, g_cursor_pattern_row);
+    int mark_row_max = std::max(g_mark_row, g_cursor_pattern_row);
+
+
     // patterns
     for (int i = 0; i < pattern_page; ++i) {
         int r = g_pattern_scroll + i;
@@ -301,15 +338,35 @@ void draw() {
             gui::Box box = gui::item_box();
             gt::Pattern& patt = g_song.patterns[patt_nums[c]];
             if (r >= patt.len) continue;
+            gt::PatternRow& row = patt.rows[r];
+
 
             gui::ButtonState state = gui::button_state(box);
-            box.pos.x += 1;
-            box.size.x -= 2;
+            if (gui::hold()) {
+                gui::set_active_item(&row); // disable hovering on other items
+                g_edit_mode          = EditMode::PatternMark;
+                g_mark_edit          = true;
+                g_cursor_chan        = c;
+                g_cursor_pattern_row = r;
+                g_mark_row           = r;
+                mark_row_min         = r;
+                mark_row_max         = r;
+            }
+
             dc.rgb(color::BACKGROUND_ROW);
-            if (r % settings.row_highlight == 0) dc.rgb(color::HIGHLIGHT_ROW);
+            if (r % settings.row_highlight == 0) {
+                dc.rgb(color::HIGHLIGHT_ROW);
+            }
             if (patt_nums[c] == player_patt_nums[c] && r == player_patt_rows[c]) {
                 dc.rgb(color::PLAYER_ROW);
             }
+            bool is_marked = g_edit_mode == EditMode::PatternMark && c == g_cursor_chan && mark_row_min <= r && r <= mark_row_max;
+            if (is_marked) {
+                dc.rgb(color::MARKED_ROW);
+            }
+
+            box.pos.x += 1;
+            box.size.x -= 2;
             dc.fill(box);
 
             if (state == gui::ButtonState::Released) {
@@ -318,16 +375,30 @@ void draw() {
                 g_cursor_chan        = c;
                 g_cursor_pattern_row = r;
             }
-            if (state != gui::ButtonState::Normal) {
-                dc.rgb(color::BUTTON_HELD);
-                dc.box(box, gui::BoxStyle::Cursor);
+            if (g_edit_mode == EditMode::PatternMark) {
+                if (is_marked) {
+                    dc.rgb(color::BUTTON_ACTIVE);
+                    dc.fill({ box.pos, ivec2(1, box.size.y) });
+                    dc.fill({ box.pos + ivec2(box.size.x - 1, 0), ivec2(1, box.size.y) });
+                    if (r == mark_row_min) {
+                        dc.fill({ box.pos, ivec2(box.size.x, 1) });
+                    }
+                    if (r == mark_row_max) {
+                        dc.fill({ box.pos + ivec2(0, box.size.y - 1), ivec2(box.size.x, 1) });
+                    }
+                }
             }
-            if (g_edit_mode == EditMode::Pattern && c == g_cursor_chan && r == g_cursor_pattern_row) {
+            else if (g_edit_mode == EditMode::Pattern && c == g_cursor_chan && r == g_cursor_pattern_row) {
                 dc.rgb(color::BUTTON_ACTIVE);
                 dc.box(box, gui::BoxStyle::Cursor);
             }
 
-            gt::PatternRow& row = patt.rows[r];
+            if (state != gui::ButtonState::Normal) {
+                dc.rgb(color::BUTTON_HELD);
+                dc.box(box, gui::BoxStyle::Cursor);
+            }
+
+
             ivec2 t = box.pos + ivec2(5, text_offset);
             dc.rgb(color::WHITE);
             if (row.note == gt::REST) {
@@ -371,20 +442,18 @@ void draw() {
     gui::cursor({ app::CANVAS_WIDTH - 80, cursor.y });
     gui::drag_bar_style(gui::DragBarStyle::Scrollbar);
     {
-        int page = g_song_page;
-        int max_scroll = std::max(0, g_song.song_len - page);
-        gui::item_size({ app::SCROLL_WIDTH, page * settings.row_height + 2 });
-        if (gui::vertical_drag_bar(g_song_scroll, 0, max_scroll, page)) g_follow = false;
+        int max_scroll = std::max(0, g_song.song_len - g_song_page);
+        gui::item_size({ app::SCROLL_WIDTH, g_song_page * settings.row_height + 2 });
+        if (gui::vertical_drag_bar(g_song_scroll, 0, max_scroll, g_song_page)) g_follow = false;
     }
     {
         gui::item_size({ app::SCROLL_WIDTH, app::BUTTON_HEIGHT });
         gui::vertical_drag_button(g_song_page, settings.row_height);
     }
     {
-        int page = pattern_page;
-        int max_scroll = std::max<int>(0, max_pattern_len - page);
-        gui::item_size({ app::SCROLL_WIDTH, page * settings.row_height + 2});
-        if (gui::vertical_drag_bar(g_pattern_scroll, 0, max_scroll, page)) g_follow = false;
+        int max_scroll = std::max<int>(0, max_pattern_len - pattern_page);
+        gui::item_size({ app::SCROLL_WIDTH, pattern_page * settings.row_height + 2});
+        if (gui::vertical_drag_bar(g_pattern_scroll, 0, max_scroll, pattern_page)) g_follow = false;
     }
     gui::align(gui::Align::Center);
 

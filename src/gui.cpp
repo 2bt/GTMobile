@@ -11,6 +11,8 @@
 namespace gui {
 namespace {
 
+constexpr float HOLD_TIME = 0.333f;
+
 struct Window {
     gfx::Mesh mesh;
 };
@@ -126,7 +128,7 @@ ButtonState button_state(Box const& box, void const* addr) {
     if (box.contains(g_touch_prev_pos)) {
         if (g_hold_time >= 0) {
             g_hold_time += g_frame_time;
-            if (g_hold_time > 0.25f) {
+            if (g_hold_time > HOLD_TIME) {
                 g_hold = true;
                 g_hold_time = -1;
             }
@@ -174,6 +176,7 @@ void key_event(int key, int unicode) {
 
 
 namespace touch {
+    ivec2 pos() { return g_touch_pos; }
     bool pressed() {
         if (g_window_index != g_last_max_window_count) return false;
         return g_touch_pressed;
@@ -305,6 +308,9 @@ void button_style(ButtonStyle style) {
 }
 void drag_bar_style(DragBarStyle style) {
     g_drag_bar_style = style;
+}
+void set_active_item(void const* id) {
+    g_active_item = id;
 }
 bool has_active_item() {
     return g_active_item != nullptr;
