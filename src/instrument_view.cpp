@@ -284,7 +284,7 @@ void draw_easy() {
                 }
             }
             else if (lval != 0xff) {
-                if (rval > 0 && rval <= 0x7f) { // relative pitch
+                if (rval >= 0 && rval <= 0x7f) { // relative pitch
                     colors[1] = color::CMDS[5]; // green
                 }
                 if (rval > 0x80 && rval <= 0xdf) { // absolute pitch
@@ -532,7 +532,7 @@ void draw_easy() {
             gui::button_style(gui::ButtonStyle::RadioRight);
             if (gui::button("COMMAND", mode == 2) && mode != 2) {
                 mode = 2;
-                lval = 0xf0;
+                lval = 0xf1;
                 rval = 0x00;
             }
 

@@ -15,6 +15,8 @@ constexpr float HOLD_TIME = 0.333f;
 
 struct Window {
     gfx::Mesh mesh;
+    ivec2     cursor_min;
+    ivec2     cursor_max;
 };
 
 std::vector<Window> g_windows = { {} };
@@ -263,6 +265,8 @@ void end_frame() {
 }
 
 void begin_window() {
+    g_windows[g_window_index].cursor_min = g_cursor_min;
+    g_windows[g_window_index].cursor_max = g_cursor_max;
     if (++g_window_index > g_max_window_index) {
         g_max_window_index = g_window_index;
         if (g_windows.size() < g_max_window_index + 1) {
@@ -273,7 +277,7 @@ void begin_window() {
 }
 Box begin_window(ivec2 size) {
     begin_window();
-    ivec2 pos  = ivec2(app::CANVAS_WIDTH, app::canvas_height()) / 2 - size / 2;
+    ivec2 pos = ivec2(app::CANVAS_WIDTH, app::canvas_height()) / 2 - size / 2;
     // g_dc.rgb(color::BUTTON_NORMAL);
     g_dc.rgb(color::FRAME);
     g_dc.box({ pos - 6, size + 12 }, BoxStyle::Window);
@@ -283,6 +287,8 @@ Box begin_window(ivec2 size) {
 void end_window() {
     --g_window_index;
     g_dc.mesh(g_windows[g_window_index].mesh);
+    g_cursor_min = g_windows[g_window_index].cursor_min;
+    g_cursor_max = g_windows[g_window_index].cursor_max;
 }
 
 

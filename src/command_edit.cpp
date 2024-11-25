@@ -74,14 +74,14 @@ void draw() {
 
     gui::cursor(cmd_cursor);
     gui::align(gui::Align::Left);
+    gui::item_size({ C1, app::MAX_ROW_HEIGHT });
     for (int i = 0; i < 16; ++i) {
-
         if (g_location == Location::WaveTable) {
-            if (i == gt::CMD_DONOTHING || i == gt::CMD_SETWAVEPTR || i == gt::CMD_FUNKTEMPO) {
-                gui::disabled(true);
+            if (i == gt::CMD_DONOTHING || i == gt::CMD_SETWAVEPTR || i >= gt::CMD_FUNKTEMPO) {
+                gui::item_box();
+                continue;
             }
         }
-
         constexpr char const* CMD_LABELS[] = {
             "DO NOTHING",
             "PORTAMENTO UP",
@@ -101,7 +101,6 @@ void draw() {
             "TEMPO",
         };
         ivec2 c = gui::cursor();
-        gui::item_size({ C1, app::MAX_ROW_HEIGHT });
         if (gui::button("", i == g_command)) {
             g_command = i;
         }

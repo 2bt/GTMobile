@@ -523,9 +523,46 @@ void draw() {
     // pattern edit
     gt::Pattern& patt = g_song.patterns[patt_nums[g_cursor_chan]];
     if (g_edit_mode == EditMode::Pattern && g_cursor_pattern_row < patt.len) {
+
+        static bool show_window = false;
+        static int  patt_len;
         if (gui::button(gui::Icon::DotDotDot)) {
-            // ...
+            show_window ^= 1;
+            patt_len = patt.len;
         }
+        if (show_window) {
+            gui::Box box = gui::begin_window({ app::CANVAS_WIDTH - 12, app::BUTTON_HEIGHT * 5 });
+            gui::item_size({ box.size.x, app::BUTTON_HEIGHT });
+            gui::text("PATTERN %02X", patt_nums[g_cursor_chan]);
+
+            gui::slider(box.size.x, "LENGTH %02X", patt_len, 1, gt::MAX_PATTROWS);
+            gui::item_size({ box.size.x, app::BUTTON_HEIGHT });
+            if (gui::button("APPLY LENGTH TO ALL EMPTY PATTERNS")) {
+                // TODO
+            }
+
+            gui::item_size({ box.size.x / 2, app::BUTTON_HEIGHT });
+            if (gui::button("SHRINK")) {
+                // TODO
+
+            }
+            gui::same_line();
+            if (gui::button("EXPAND")) {
+                // TODO
+
+            }
+            gui::item_size({ box.size.x, app::BUTTON_HEIGHT });
+            if (gui::button("CLOSE")) {
+                show_window = false;
+                patt.len = patt_len;
+                for (int i = patt.len; i < gt::MAX_PATTROWS; ++i) {
+                    patt.rows[i] = {};
+                }
+            }
+            gui::end_window();
+            gui::item_size({ 55, app::BUTTON_HEIGHT });
+        }
+
 
         if (gui::button(gui::Icon::Paste)) {
             for (int c = 0; c < 3; ++c) {
@@ -544,54 +581,36 @@ void draw() {
 
         gt::PatternRow& row  = patt.rows[g_cursor_pattern_row];
         // note edit buttons
-        {
-            if (gui::button(gui::Icon::Record, g_recording)) {
-                g_recording = !g_recording;
-            }
-            if (gui::button(row.note != gt::KEYOFF ? "\x0a\x0b\x0c" : "\x0d\x0e\x0f")) {
-                row.note  = row.note != gt::KEYOFF ? gt::KEYOFF : gt::KEYON;
-                row.instr = 0;
-            }
-            gui::disabled(row.note == gt::REST);
-            if (gui::button(gui::Icon::X)) {
-                row.note  = gt::REST;
-                row.instr = 0;
-            }
-            gui::disabled(false);
+        if (gui::button(gui::Icon::Record, g_recording)) {
+            g_recording = !g_recording;
         }
+        if (gui::button(row.note != gt::KEYOFF ? "\x0a\x0b\x0c" : "\x0d\x0e\x0f")) {
+            row.note  = row.note != gt::KEYOFF ? gt::KEYOFF : gt::KEYON;
+            row.instr = 0;
+        }
+        gui::disabled(row.note == gt::REST);
+        if (gui::button(gui::Icon::X)) {
+            row.note  = gt::REST;
+            row.instr = 0;
+        }
+        gui::disabled(false);
+        gui::separator();
         // command edit buttons
-        {
-            gui::separator();
-            if (gui::button(gui::Icon::Edit)) {
-                command_edit::init(command_edit::Location::Pattern, row.command, row.data, [&row](uint8_t cmd, uint8_t data) {
-                    row.command = cmd;
-                    row.data    = data;
-                });
-            }
-            gui::disabled(row.command == 0);
-            if (gui::button(gui::Icon::X)) {
-                row.command = 0;
-                row.data = 0;
-            }
-
-            // static int copy_command      = -1;
-            // static int copy_command_data = 0;
-            // if (gui::button(gui::Icon::Copy)) {
-            //     copy_command      = row.command;
-            //     copy_command_data = row.data;
-            // }
-            // gui::disabled(copy_command == -1);
-            // if (gui::button(gui::Icon::Paste)) {
-            //     row.command = copy_command;
-            //     row.data    = copy_command_data;
-            // }
-
-            gui::disabled(false);
+        if (gui::button(gui::Icon::Edit)) {
+            command_edit::init(command_edit::Location::Pattern, row.command, row.data, [&row](uint8_t cmd, uint8_t data) {
+                row.command = cmd;
+                row.data    = data;
+            });
         }
-
+        gui::disabled(row.command == 0);
+        if (gui::button(gui::Icon::X)) {
+            row.command = 0;
+            row.data = 0;
+        }
+        gui::disabled(false);
+        gui::separator();
 
         // navigation
-        gui::separator();
         {
             gui::disabled(g_cursor_pattern_row == 0);
             if (gui::button(gui::Icon::MoveUp)) {
@@ -633,7 +652,7 @@ void draw() {
         gui::separator();
 
         // transpose
-        if (gui::button("\x09+1")) {
+        if (gui::button("\x09\x10")) {
             for (int c = mark_chan_min; c <= mark_chan_max; ++c) {
                 gt::Pattern& patt = g_song.patterns[patt_nums[c]];
                 for (int i = mark_row_min; i <= mark_row_max; ++i) {
@@ -643,7 +662,7 @@ void draw() {
                 }
             }
         }
-        if (gui::button("\x09-1")) {
+        if (gui::button("\x09\x11")) {
             for (int c = mark_chan_min; c <= mark_chan_max; ++c) {
                 gt::Pattern& patt = g_song.patterns[patt_nums[c]];
                 for (int i = mark_row_min; i <= mark_row_max; ++i) {
