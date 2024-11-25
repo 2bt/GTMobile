@@ -406,7 +406,7 @@ bool Song::save(std::ostream& stream) {
         uint8_t& data = rtable[WTBL][i];
         if (data == 0) continue;
         uint8_t cmd = ltable[WTBL][i] & 0xf;
-        if (cmd >= CMD_SETFILTERCTRL && cmd <= CMD_SETFILTERPTR) {
+        if (cmd >= CMD_SETPULSEPTR && cmd <= CMD_SETFILTERPTR) {
             int t = cmd - CMD_SETWAVEPTR;
             Instrument const& instr = instruments[data];
             data = instr.ptr[t];
