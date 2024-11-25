@@ -38,6 +38,13 @@ bool            g_order_edit_enabled = false;
 
 std::array<bool, gt::MAX_PATT> g_pattern_empty;
 
+struct PatternCopyBuffer {
+    std::array<gt::Pattern, 3> patterns;
+    int num_chans;
+};
+
+PatternCopyBuffer g_pattern_copy_buffer;
+
 
 void init_order_edit() {
     g_order_edit_enabled = true;
@@ -289,6 +296,7 @@ void draw() {
     gui::cursor({ 0, gui::cursor().y + 1 }); // 1px padding
 
     static bool g_mark_edit = false;
+    static int  g_mark_chan;
     static int  g_mark_row;
     if (g_edit_mode == EditMode::PatternMark && g_mark_edit) {
         constexpr float SCROLL_DELAY = 1.0f;
@@ -298,7 +306,6 @@ void draw() {
             mark_scroll = 0;
         }
         // auto scroll
-        int patt_len = g_song.patterns[patt_nums[g_cursor_chan]].len;
         int dy = gui::touch::pos().y - gui::cursor().y;
         int v = std::min(dy, 0) + std::max(0, dy - settings.row_height * pattern_page);
         mark_scroll += v * gui::get_frame_time();
@@ -308,18 +315,18 @@ void draw() {
         }
         while (mark_scroll > SCROLL_DELAY) {
             mark_scroll -= SCROLL_DELAY;
-            g_pattern_scroll = std::min(patt_len - pattern_page, g_pattern_scroll + 1);
+            g_pattern_scroll = std::min(max_pattern_len - pattern_page, g_pattern_scroll + 1);
         }
 
         int r = dy / settings.row_height;
         r -= dy < 0;
         r += g_pattern_scroll;
         g_cursor_pattern_row = r;
-        g_cursor_pattern_row = clamp(g_cursor_pattern_row, 0, patt_len - 1);
-    }
-    int mark_row_min = std::min(g_mark_row, g_cursor_pattern_row);
-    int mark_row_max = std::max(g_mark_row, g_cursor_pattern_row);
+        g_cursor_pattern_row = clamp(g_cursor_pattern_row, 0, max_pattern_len - 1);
 
+        g_cursor_chan = (gui::touch::pos().x - CN) / CC;
+        g_cursor_chan = clamp(g_cursor_chan, 0, 2);
+    }
 
     // patterns
     for (int i = 0; i < pattern_page; ++i) {
@@ -340,18 +347,28 @@ void draw() {
             if (r >= patt.len) continue;
             gt::PatternRow& row = patt.rows[r];
 
-
             gui::ButtonState state = gui::button_state(box);
+            if (state == gui::ButtonState::Released) {
+                g_edit_mode          = EditMode::Pattern;
+                g_follow             = false;
+                g_cursor_chan        = c;
+                g_cursor_pattern_row = r;
+            }
             if (gui::hold()) {
                 gui::set_active_item(&row); // disable hovering on other items
                 g_edit_mode          = EditMode::PatternMark;
                 g_mark_edit          = true;
+                g_follow             = false;
                 g_cursor_chan        = c;
                 g_cursor_pattern_row = r;
+                g_mark_chan          = c;
                 g_mark_row           = r;
-                mark_row_min         = r;
-                mark_row_max         = r;
             }
+
+            int mark_row_min = std::min(g_mark_row, g_cursor_pattern_row);
+            int mark_row_max = std::max(g_mark_row, g_cursor_pattern_row);
+            int mark_chan_min = std::min(g_mark_chan, g_cursor_chan);
+            int mark_chan_max = std::max(g_mark_chan, g_cursor_chan);
 
             dc.rgb(color::BACKGROUND_ROW);
             if (r % settings.row_highlight == 0) {
@@ -360,7 +377,7 @@ void draw() {
             if (patt_nums[c] == player_patt_nums[c] && r == player_patt_rows[c]) {
                 dc.rgb(color::PLAYER_ROW);
             }
-            bool is_marked = g_edit_mode == EditMode::PatternMark && c == g_cursor_chan && mark_row_min <= r && r <= mark_row_max;
+            bool is_marked = g_edit_mode == EditMode::PatternMark && mark_chan_min <= c && c <= mark_chan_max && mark_row_min <= r && r <= mark_row_max;
             if (is_marked) {
                 dc.rgb(color::MARKED_ROW);
             }
@@ -369,12 +386,6 @@ void draw() {
             box.size.x -= 2;
             dc.fill(box);
 
-            if (state == gui::ButtonState::Released) {
-                g_edit_mode          = EditMode::Pattern;
-                g_follow             = false;
-                g_cursor_chan        = c;
-                g_cursor_pattern_row = r;
-            }
             if (g_edit_mode == EditMode::PatternMark) {
                 if (is_marked) {
                     dc.rgb(color::BUTTON_ACTIVE);
@@ -383,7 +394,7 @@ void draw() {
                     if (r == mark_row_min) {
                         dc.fill({ box.pos, ivec2(box.size.x, 1) });
                     }
-                    if (r == mark_row_max) {
+                    if (r == mark_row_max || r == patt.len - 1) {
                         dc.fill({ box.pos + ivec2(0, box.size.y - 1), ivec2(box.size.x, 1) });
                     }
                 }
