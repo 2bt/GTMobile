@@ -71,7 +71,6 @@ void draw() {
         g_on_close(g_command, g_command_data[g_command]);
     }
 
-
     gui::cursor(cmd_cursor);
     gui::align(gui::Align::Left);
     gui::item_size({ C1, app::MAX_ROW_HEIGHT });

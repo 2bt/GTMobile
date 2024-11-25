@@ -36,14 +36,11 @@ int             g_cursor_chan        = 0;
 int             g_transpose          = 0;
 bool            g_order_edit_enabled = false;
 
+std::array<gt::Pattern, 3>     g_pattern_copy_buffer;
 std::array<bool, gt::MAX_PATT> g_pattern_empty;
 
-std::array<gt::Pattern, 3> g_pattern_copy_buffer;
 
-
-void init_order_edit() {
-    g_order_edit_enabled = true;
-    g_transpose = g_song.song_order[g_cursor_chan][g_cursor_song_row].trans;
+void check_empty_patterns() {
     for (int i = 0; i < gt::MAX_PATT; ++i) {
         g_pattern_empty[i] = true;
         gt::Pattern const& patt = g_song.patterns[i];
@@ -55,6 +52,13 @@ void init_order_edit() {
             }
         }
     }
+}
+
+
+void init_order_edit() {
+    g_order_edit_enabled = true;
+    g_transpose = g_song.song_order[g_cursor_chan][g_cursor_song_row].trans;
+    check_empty_patterns();
 }
 
 
@@ -525,36 +529,47 @@ void draw() {
     if (g_edit_mode == EditMode::Pattern && g_cursor_pattern_row < patt.len) {
 
         static bool show_window = false;
-        static int  patt_len;
         if (gui::button(gui::Icon::DotDotDot)) {
             show_window ^= 1;
-            patt_len = patt.len;
         }
         if (show_window) {
             gui::Box box = gui::begin_window({ app::CANVAS_WIDTH - 12, app::BUTTON_HEIGHT * 5 });
             gui::item_size({ box.size.x, app::BUTTON_HEIGHT });
             gui::text("PATTERN %02X", patt_nums[g_cursor_chan]);
-
-            gui::slider(box.size.x, "LENGTH %02X", patt_len, 1, gt::MAX_PATTROWS);
+            gui::slider(box.size.x, "LENGTH %02X", patt.len, 1, gt::MAX_PATTROWS);
+            g_cursor_pattern_row = std::min(g_cursor_pattern_row, patt.len - 1);
             gui::item_size({ box.size.x, app::BUTTON_HEIGHT });
-            if (gui::button("APPLY LENGTH TO ALL EMPTY PATTERNS")) {
-                // TODO
+            if (gui::button("APPLY LENGTH TO EMPTY PATTERNS")) {
+                check_empty_patterns();
+                for (int i = 0; i < gt::MAX_PATT; ++i) {
+                    if (!g_pattern_empty[i]) continue;
+                    g_song.patterns[i].len = patt.len;
+                }
             }
-
             gui::item_size({ box.size.x / 2, app::BUTTON_HEIGHT });
+            gui::disabled(patt.len <= 1);
             if (gui::button("SHRINK")) {
-                // TODO
-
+                gt::Pattern p;
+                p.len = patt.len / 2;
+                for (int i = 0; i < p.len; ++i) {
+                    p.rows[i] = patt.rows[i * 2];
+                }
+                patt = p;
             }
             gui::same_line();
+            gui::disabled(patt.len > gt::MAX_PATTROWS / 2);
             if (gui::button("EXPAND")) {
-                // TODO
-
+                gt::Pattern p;
+                p.len = patt.len * 2;
+                for (int i = 0; i < patt.len; ++i) {
+                    p.rows[i * 2] = patt.rows[i];
+                }
+                patt = p;
             }
+            gui::disabled(false);
             gui::item_size({ box.size.x, app::BUTTON_HEIGHT });
             if (gui::button("CLOSE")) {
                 show_window = false;
-                patt.len = patt_len;
                 for (int i = patt.len; i < gt::MAX_PATTROWS; ++i) {
                     patt.rows[i] = {};
                 }
@@ -562,7 +577,6 @@ void draw() {
             gui::end_window();
             gui::item_size({ 55, app::BUTTON_HEIGHT });
         }
-
 
         if (gui::button(gui::Icon::Paste)) {
             for (int c = 0; c < 3; ++c) {
