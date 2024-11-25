@@ -633,7 +633,7 @@ void draw() {
         gui::separator();
 
         // transpose
-        if (gui::button("+1")) {
+        if (gui::button("\x09+1")) {
             for (int c = mark_chan_min; c <= mark_chan_max; ++c) {
                 gt::Pattern& patt = g_song.patterns[patt_nums[c]];
                 for (int i = mark_row_min; i <= mark_row_max; ++i) {
@@ -643,7 +643,7 @@ void draw() {
                 }
             }
         }
-        if (gui::button("-1")) {
+        if (gui::button("\x09-1")) {
             for (int c = mark_chan_min; c <= mark_chan_max; ++c) {
                 gt::Pattern& patt = g_song.patterns[patt_nums[c]];
                 for (int i = mark_row_min; i <= mark_row_max; ++i) {
@@ -656,7 +656,7 @@ void draw() {
 
         // set instrument
         // TODO: better icon
-        if (gui::button(gui::Icon::Sync)) {
+        if (gui::button(gui::Icon::Piano)) {
             for (int c = mark_chan_min; c <= mark_chan_max; ++c) {
                 gt::Pattern& patt = g_song.patterns[patt_nums[c]];
                 for (int i = mark_row_min; i <= mark_row_max; ++i) {

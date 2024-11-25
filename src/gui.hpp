@@ -202,6 +202,7 @@ enum class Icon {
     X,
     DotDotDot,
     Edit,
+    Piano,
 
     Loop = 40,
     Stop,
