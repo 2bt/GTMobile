@@ -16,11 +16,17 @@
 namespace song_view {
 namespace {
 
+enum {
+    CN = 28,
+    CC = 84,
+};
+
 enum class EditMode {
     Song,
+    SongMark,
     Pattern,
-    PatternFollow,
     PatternMark,
+    PatternFollow,
 };
 
 
@@ -36,8 +42,19 @@ int             g_cursor_chan        = 0;
 int             g_transpose          = 0;
 bool            g_order_edit_enabled = false;
 
+
+struct SongCopyBuffer {
+    gt::Array2<gt::OrderRow, gt::MAX_CHN, gt::MAX_SONG_ROWS> order;
+    int num_chans;
+    int len;
+};
+
+
+SongCopyBuffer                 g_song_copy_buffer;
 std::array<gt::Pattern, 3>     g_pattern_copy_buffer;
 std::array<bool, gt::MAX_PATT> g_pattern_empty;
+
+
 
 
 void check_empty_patterns() {
@@ -116,7 +133,38 @@ void draw_order_edit() {
 }
 
 
+// song marking
+static    bool  g_mark_edit = false;
+static    int   g_mark_chan;
+static    int   g_mark_row;
+constexpr float SCROLL_DELAY = 1.0f;
 
+void update_mark(int& row, int page, int len, int& scroll) {
+    if (!g_mark_edit) return;
+    static float mark_scroll = 0;
+    if (gui::touch::just_released()) {
+        g_mark_edit = false;
+        mark_scroll = 0;
+    }
+    // auto scroll
+    int dy = gui::touch::pos().y - gui::cursor().y;
+    int v = std::min(dy, 0) + std::max(0, dy - settings_view::settings().row_height * page);
+    mark_scroll += v * gui::get_frame_time();
+    while (mark_scroll < -SCROLL_DELAY) {
+        mark_scroll += SCROLL_DELAY;
+        scroll = std::max(0, scroll - 1);
+    }
+    while (mark_scroll > SCROLL_DELAY) {
+        mark_scroll -= SCROLL_DELAY;
+        scroll = std::min(len - page, scroll + 1);
+    }
+    row = dy / settings_view::settings().row_height;
+    row -= dy < 0;
+    row += scroll;
+    row = clamp(row, 0, len - 1);
+    g_cursor_chan = (gui::touch::pos().x - CN) / CC;
+    g_cursor_chan = clamp(g_cursor_chan, 0, 2);
+}
 
 
 } // namespace
@@ -154,12 +202,6 @@ void draw() {
     for (int c = 0; c < 3; ++c) {
         player_patt_nums[c] = g_song.song_order[c][player_song_rows[c]].pattnum;
     }
-
-    enum {
-        MAX_SONG_ROWS = 127, // --> gt::MAX_SONGLEN / 2
-        CN = 28,
-        CC = 84,
-    };
 
     ivec2 cursor = gui::cursor();
     gui::cursor({ 0, cursor.y + 1 }); // 1px padding
@@ -203,6 +245,12 @@ void draw() {
     int text_offset = (settings.row_height - 7) / 2;
     char str[32];
 
+
+
+    if (g_edit_mode == EditMode::SongMark) {
+        update_mark(g_cursor_song_row, g_song_page, g_song.song_len, g_song_scroll);
+    }
+
     // song table
     for (int i = 0; i < g_song_page; ++i) {
         int r = g_song_scroll + i;
@@ -218,19 +266,10 @@ void draw() {
         for (int c = 0; c < 3; ++c) {
             gui::same_line();
             gui::Box box = gui::item_box();
-            gui::ButtonState state = gui::button_state(box);
-            box.pos.x += 1;
-            box.size.x -= 2;
-
             if (r >= int(g_song.song_len)) continue;
             gt::OrderRow& row = g_song.song_order[c][r];
 
-            dc.rgb(color::BACKGROUND_ROW);
-            // if (row.pattnum == patt_nums[c]) dc.rgb(color::HIGHLIGHT_ROW);
-            if (r == player_song_rows[c]) dc.rgb(color::PLAYER_ROW);
-            else if (r == g_cursor_song_row) dc.rgb(color::HIGHLIGHT_ROW);
-            dc.fill(box);
-
+            gui::ButtonState state = gui::button_state(box);
             if (state == gui::ButtonState::Released) {
                 g_edit_mode       = EditMode::Song;
                 g_cursor_chan     = c;
@@ -239,13 +278,54 @@ void draw() {
                     patt_nums[k] = g_song.song_order[k][r].pattnum;
                 }
             }
+            if (gui::hold()) {
+                gui::set_active_item(&row); // disable hovering on other items
+                g_edit_mode       = EditMode::SongMark;
+                g_mark_edit       = true;
+                g_cursor_chan     = c;
+                g_cursor_song_row = r;
+                g_mark_chan       = c;
+                g_mark_row        = r;
+            }
+            int mark_row_min = std::min(g_mark_row, g_cursor_song_row);
+            int mark_row_max = std::max(g_mark_row, g_cursor_song_row);
+            int mark_chan_min = std::min(g_mark_chan, g_cursor_chan);
+            int mark_chan_max = std::max(g_mark_chan, g_cursor_chan);
+
+
+
+            dc.rgb(color::BACKGROUND_ROW);
+            if (r == g_cursor_song_row) dc.rgb(color::HIGHLIGHT_ROW);
+            if (r == player_song_rows[c]) dc.rgb(color::PLAYER_ROW);
+            bool is_marked = g_edit_mode == EditMode::SongMark && mark_chan_min <= c && c <= mark_chan_max && mark_row_min <= r && r <= mark_row_max;
+            if (is_marked) dc.rgb(color::MARKED_ROW);
+
+
+            box.pos.x += 1;
+            box.size.x -= 2;
+            dc.fill(box);
+
+
+            if (g_edit_mode == EditMode::SongMark) {
+                if (is_marked) {
+                    dc.rgb(color::BUTTON_ACTIVE);
+                    dc.fill({ box.pos, ivec2(1, box.size.y) });
+                    dc.fill({ box.pos + ivec2(box.size.x - 1, 0), ivec2(1, box.size.y) });
+                    if (r == mark_row_min) {
+                        dc.fill({ box.pos, ivec2(box.size.x, 1) });
+                    }
+                    if (r == mark_row_max || r == g_song.song_len - 1) {
+                        dc.fill({ box.pos + ivec2(0, box.size.y - 1), ivec2(box.size.x, 1) });
+                    }
+                }
+            }
+            else if (g_edit_mode == EditMode::Song && c == g_cursor_chan && r == g_cursor_song_row) {
+                dc.rgb(color::BUTTON_ACTIVE);
+                dc.box(box, gui::BoxStyle::Cursor);
+            }
 
             if (state != gui::ButtonState::Normal) {
                 dc.rgb(color::BUTTON_HELD);
-                dc.box(box, gui::BoxStyle::Cursor);
-            }
-            if (g_edit_mode == EditMode::Song && c == g_cursor_chan && r == g_cursor_song_row) {
-                dc.rgb(color::BUTTON_ACTIVE);
                 dc.box(box, gui::BoxStyle::Cursor);
             }
 
@@ -290,37 +370,9 @@ void draw() {
 
     gui::cursor({ 0, gui::cursor().y + 1 }); // 1px padding
 
-    static bool g_mark_edit = false;
-    static int  g_mark_chan;
-    static int  g_mark_row;
-    if (g_edit_mode == EditMode::PatternMark && g_mark_edit) {
-        constexpr float SCROLL_DELAY = 1.0f;
-        static float mark_scroll = 0;
-        if (gui::touch::just_released()) {
-            g_mark_edit = false;
-            mark_scroll = 0;
-        }
-        // auto scroll
-        int dy = gui::touch::pos().y - gui::cursor().y;
-        int v = std::min(dy, 0) + std::max(0, dy - settings.row_height * pattern_page);
-        mark_scroll += v * gui::get_frame_time();
-        while (mark_scroll < -SCROLL_DELAY) {
-            mark_scroll += SCROLL_DELAY;
-            g_pattern_scroll = std::max(0, g_pattern_scroll - 1);
-        }
-        while (mark_scroll > SCROLL_DELAY) {
-            mark_scroll -= SCROLL_DELAY;
-            g_pattern_scroll = std::min(max_pattern_len - pattern_page, g_pattern_scroll + 1);
-        }
-
-        int r = dy / settings.row_height;
-        r -= dy < 0;
-        r += g_pattern_scroll;
-        g_cursor_pattern_row = r;
-        g_cursor_pattern_row = clamp(g_cursor_pattern_row, 0, max_pattern_len - 1);
-
-        g_cursor_chan = (gui::touch::pos().x - CN) / CC;
-        g_cursor_chan = clamp(g_cursor_chan, 0, 2);
+    // pattern marking
+    if (g_edit_mode == EditMode::PatternMark) {
+        update_mark(g_cursor_pattern_row, pattern_page, max_pattern_len, g_pattern_scroll);
     }
 
     // patterns
@@ -483,7 +535,7 @@ void draw() {
         int& len = g_song.song_len;
         assert(pos < len);
 
-        gui::disabled(!(len < MAX_SONG_ROWS && pos <= len));
+        gui::disabled(!(len < gt::MAX_SONG_ROWS && pos <= len));
         if (gui::button(gui::Icon::AddRowAbove)) {
             for (auto& order : g_song.song_order) {
                 std::rotate(order.begin() + pos, order.end() - 1, order.end());

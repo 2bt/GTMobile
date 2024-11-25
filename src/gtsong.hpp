@@ -36,9 +36,11 @@ enum {
     MAX_PATT         = 208, // actually 0x00 - 0xCF
     MAX_TABLES       = 4,
     MAX_TABLELEN     = 255,
+
     MAX_INSTRNAMELEN = 16,
     MAX_PATTROWS     = 128,
     MAX_SONGLEN      = 254,
+    MAX_SONG_ROWS    = MAX_SONGLEN / 2,
     MAX_NOTES        = 96,
 
     REPEAT    = 0xd0,
@@ -105,17 +107,17 @@ struct LoadError : public std::exception {
 };
 
 struct Song {
-    std::array<Instrument, MAX_INSTR>          instruments;
-    Array2<uint8_t, MAX_TABLES, MAX_TABLELEN>  ltable;
-    Array2<uint8_t, MAX_TABLES, MAX_TABLELEN>  rtable;
-    Array2<OrderRow, MAX_CHN, MAX_SONGLEN / 2> song_order;
-    std::array<Pattern, MAX_PATT>              patterns;
-    int                                        song_len  = 1;
-    int                                        song_loop = 0;
+    std::array<Instrument, MAX_INSTR>         instruments;
+    Array2<uint8_t, MAX_TABLES, MAX_TABLELEN> ltable;
+    Array2<uint8_t, MAX_TABLES, MAX_TABLELEN> rtable;
+    Array2<OrderRow, MAX_CHN, MAX_SONG_ROWS>  song_order;
+    std::array<Pattern, MAX_PATT>             patterns;
+    int                                       song_len  = 1;
+    int                                       song_loop = 0;
 
-    std::array<char, MAX_STR>                  song_name;
-    std::array<char, MAX_STR>                  author_name;
-    std::array<char, MAX_STR>                  copyright_name;
+    std::array<char, MAX_STR>                 song_name;
+    std::array<char, MAX_STR>                 author_name;
+    std::array<char, MAX_STR>                 copyright_name;
 
     void load(char const* filename);
     void load(uint8_t const* data, size_t size);

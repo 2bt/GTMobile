@@ -747,6 +747,7 @@ void draw_easy() {
         gui::align(gui::Align::Center);
         gui::button_style(gui::ButtonStyle::Normal);
         gui::item_size(COL_W * 2);
+        gui::disabled(false);
         gui::separator();
 
         gui::item_size({ COL_W * 2 / 3, app::BUTTON_HEIGHT });

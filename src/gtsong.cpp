@@ -311,7 +311,7 @@ bool Song::save(char const* filename) {
 
 bool Song::save(std::ostream& stream) {
 
-    assert(song_len <= MAX_SONGLEN / 2);
+    assert(song_len <= MAX_SONG_ROWS);
 
     stream.write("GTS5", 4);
     write(stream, song_name);
