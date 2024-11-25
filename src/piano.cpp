@@ -11,6 +11,7 @@ gt::Song& g_song = app::song();
 int  g_instrument = 1;
 int  g_scroll     = 14 * 3; // show octave 3 and 4
 int  g_note       = 48;
+bool g_note_on;
 bool g_gate;
 
 }
@@ -22,10 +23,13 @@ int instrument() {
 int note() {
     return g_note;
 }
+bool note_on() {
+    return g_note_on;
+}
 
-bool draw(bool* follow) {
+void draw(bool* follow) {
     static bool show_instrument_select = false;
-    bool note_on = false;
+    g_note_on = false;
 
     gui::DrawContext& dc = gui::draw_context();
     char str[32];
@@ -121,7 +125,7 @@ bool draw(bool* follow) {
     int chan = song_view::channel();
     if (g_gate && (!prev_gate || g_note != prev_note)) {
         app::player().play_test_note(g_note + gt::FIRSTNOTE, g_instrument, chan);
-        note_on = true;
+        g_note_on = true;
     }
     if (!g_gate && prev_gate) {
         app::player().release_note(chan);
@@ -234,9 +238,6 @@ bool draw(bool* follow) {
             player.m_current_patt_pos = {};
         }
     }
-
-
-    return note_on;
 }
 
 

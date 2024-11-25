@@ -12,8 +12,9 @@ namespace piano {
     };
 
 
-    bool draw(bool* follow=nullptr);
+    void draw(bool* follow=nullptr);
     int  instrument();
     int  note();
+    bool note_on();
 
 } // namespace piano
