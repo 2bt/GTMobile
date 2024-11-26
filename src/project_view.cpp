@@ -132,12 +132,13 @@ void init() {
 void draw() {
 
     enum {
-        C2 = 32 * 8 + 12,
-        C1 = app::CANVAS_WIDTH - C2,
+        C1 = 12 + 8 * 8,
+        // C2 = 12 + 32 * 8,
+        C2 = app::CANVAS_WIDTH - C1,
     };
 
 
-
+    gui::align(gui::Align::Left);
     gui::item_size({ C1, app::BUTTON_HEIGHT });
     gui::text("TITLE");
     gui::same_line();
@@ -161,6 +162,7 @@ void draw() {
     gui::same_line();
     gui::item_size({ C2, app::BUTTON_HEIGHT });
     gui::input_text(g_file_name);
+    gui::align(gui::Align::Center);
 
     gui::item_size({ app::CANVAS_WIDTH, app::BUTTON_HEIGHT });
     gui::separator();

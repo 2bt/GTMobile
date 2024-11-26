@@ -135,6 +135,22 @@ public:
         rect(pos, m_char_size, uv);
     }
 
+    int text_width(char const* text) const {
+        int w = 0;
+        while (uint8_t c = *text++) {
+            if (c == 0x80) { // half space
+                w += m_char_size.x / 2;
+                continue;
+            }
+            if (c == 0x81) { // set cmd color
+                text++;
+                continue;
+            }
+            w += m_char_size.x;
+        }
+        return w;
+    }
+
     void text(ivec2 pos, char const* text) {
         ivec2 p = pos;
         while (uint8_t c = *text++) {

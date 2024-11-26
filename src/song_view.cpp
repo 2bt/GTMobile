@@ -466,7 +466,8 @@ void draw() {
             }
             else {
                 sprintf(str, "%c%c%d", "CCDDEFFGGAAB"[row.note % 12],
-                             "-#-#--#-#-#-"[row.note % 12],
+                             // "-#-#--#-#-#-"
+                             "\x12\x13\x12\x13\x12\x12\x13\x12\x13\x12\x13\x12"[row.note % 12],
                              (row.note - gt::FIRSTNOTE) / 12);
                 dc.text(t, str);
             }
@@ -487,7 +488,7 @@ void draw() {
         }
     }
     gui::cursor({ 0, gui::cursor().y + 1 });
-    gui::item_size({ app::CANVAS_WIDTH, app::BUTTON_HEIGHT });
+    gui::item_size(app::CANVAS_WIDTH);
     gui::separator();
 
 
@@ -518,7 +519,7 @@ void draw() {
     int total_table_height = gui::cursor().y - cursor.y;
     gui::cursor({ 280 + app::SCROLL_WIDTH, cursor.y });
     gui::same_line();
-    gui::item_size({ 75, total_table_height });
+    gui::item_size(total_table_height);
     gui::separator();
     gui::cursor(gui::cursor());
     gui::same_line(false);

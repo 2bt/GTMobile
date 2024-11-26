@@ -66,7 +66,7 @@ ivec2 text_pos(Box const& box, char const* text) {
     case Align::Left:
         return box.pos + ivec2(6, y);
     case Align::Center:
-        return box.pos + ivec2(box.size.x / 2 - strlen(text) * 4, y);
+        return box.pos + ivec2(box.size.x / 2 - g_dc.text_width(text) / 2, y);
     default: assert(0);
     }
 }
@@ -205,7 +205,7 @@ namespace touch {
 
 void init() {
     g_img.init("gui.png");
-    g_dc.font(0);
+    g_dc.font(1);
 }
 
 void free() {
