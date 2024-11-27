@@ -17,6 +17,12 @@
 namespace app {
 namespace {
 
+enum class View {
+    project,
+    song,
+    instrument,
+    settings,
+};
 
 View        g_view;
 gt::Song    g_song;
@@ -28,14 +34,13 @@ float       g_canvas_scale;
 int16_t     g_canvas_offset;
 bool        g_initialized = false;
 
-
-
 } // namespace
 
 
-gt::Song&       song() { return g_song; }
-gt::Player&     player() { return g_player; }
-int             canvas_height() { return g_canvas_height; }
+gt::Song&   song() { return g_song; }
+gt::Player& player() { return g_player; }
+int         canvas_height() { return g_canvas_height; }
+
 
 void set_view(View view) {
     g_view = view;

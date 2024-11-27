@@ -19,18 +19,10 @@ namespace app {
         MAX_ROW_HEIGHT    = 20,
     };
 
-    enum class View {
-        project,
-        song,
-        instrument,
-        settings,
-    };
-
 
     gt::Song&   song();
     gt::Player& player();
     int         canvas_height();
-    void        set_view(View view);
 
 
     void init();

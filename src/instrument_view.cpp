@@ -46,6 +46,7 @@ void add_table_row(int table, int pos) {
     std::rotate(rtable.begin() + pos, rtable.end() - 1, rtable.end());
 }
 
+
 void delete_table_row(int table, int pos) {
     auto& ltable = g_song.ltable[table];
     auto& rtable = g_song.rtable[table];
@@ -166,7 +167,6 @@ struct InstrumentCopyBuffer {
         dst.gatetimer = instr.gatetimer;
         dst.vibdelay  = instr.vibdelay;
         dst.name      = instr.name;
-
         int idx = dst.ptr[gt::STBL] - 1;
         g_song.ltable[gt::STBL][idx] = lvib;
         g_song.rtable[gt::STBL][idx] = rvib;
@@ -174,7 +174,6 @@ struct InstrumentCopyBuffer {
 };
 
 InstrumentCopyBuffer g_instr_copy_buffer;
-
 
 
 void draw_table_debug() {
