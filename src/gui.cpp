@@ -205,7 +205,7 @@ namespace touch {
 
 void init() {
     g_img.init("gui.png");
-    g_dc.font(1);
+    g_dc.font(0);
 }
 
 void free() {
