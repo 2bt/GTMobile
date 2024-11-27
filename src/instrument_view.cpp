@@ -25,17 +25,17 @@ int          g_cursor_row    = 0;
 int          g_scroll        = 0;
 
 
-void add_table_row(int pos) {
+void add_table_row(int table, int pos) {
     // shift instr pointer
     for (gt::Instrument& instr : g_song.instruments) {
-        if (instr.ptr[g_table] > pos + 1) {
-            ++instr.ptr[g_table];
+        if (instr.ptr[table] > pos + 1) {
+            ++instr.ptr[table];
         }
     }
 
     // shift table jump pointers
-    auto& ltable = g_song.ltable[g_table];
-    auto& rtable = g_song.rtable[g_table];
+    auto& ltable = g_song.ltable[table];
+    auto& rtable = g_song.rtable[table];
     for (int i = pos + 1; i < gt::MAX_TABLELEN; ++i) {
         if (ltable[i] == 0xff && rtable[i] >= pos + 1) {
             ++rtable[i];
@@ -46,9 +46,9 @@ void add_table_row(int pos) {
     std::rotate(rtable.begin() + pos, rtable.end() - 1, rtable.end());
 }
 
-void delete_table_row(int pos) {
-    auto& ltable = g_song.ltable[g_table];
-    auto& rtable = g_song.rtable[g_table];
+void delete_table_row(int table, int pos) {
+    auto& ltable = g_song.ltable[table];
+    auto& rtable = g_song.rtable[table];
 
     // check if we're deleting the jump row
     // in that case, we want to also clear pointers in instruments
@@ -56,11 +56,11 @@ void delete_table_row(int pos) {
 
     // shift instr pointer
     for (gt::Instrument& instr : g_song.instruments) {
-        if (is_jump_row && instr.ptr[g_table] == pos + 1) {
-            instr.ptr[g_table] = 0; // reset pointer
+        if (is_jump_row && instr.ptr[table] == pos + 1) {
+            instr.ptr[table] = 0; // reset pointer
         }
-        else if (instr.ptr[g_table] > pos + 1) {
-            --instr.ptr[g_table];
+        else if (instr.ptr[table] > pos + 1) {
+            --instr.ptr[table];
         }
     }
 
@@ -76,6 +76,104 @@ void delete_table_row(int pos) {
     std::rotate(ltable.begin() + pos, ltable.begin() + pos + 1, ltable.end());
     std::rotate(rtable.begin() + pos, rtable.begin() + pos + 1, rtable.end());
 }
+
+
+struct InstrumentCopyBuffer {
+    gt::Instrument                           instr;
+    gt::Array2<uint8_t, 3, gt::MAX_TABLELEN> ltable;
+    gt::Array2<uint8_t, 3, gt::MAX_TABLELEN> rtable;
+    uint8_t                                  lvib;
+    uint8_t                                  rvib;
+
+    void copy() {
+        instr = g_song.instruments[piano::instrument()];
+        for (int t = 0; t < 3; ++t) {
+            ltable[t] = g_song.ltable[t];
+            rtable[t] = g_song.rtable[t];
+        }
+        int idx = instr.ptr[gt::STBL] - 1;
+        lvib = g_song.ltable[gt::STBL][idx];
+        rvib = g_song.rtable[gt::STBL][idx];
+    }
+    void paste() const {
+        gt::Instrument& dst = g_song.instruments[piano::instrument()];
+
+        for (int t = 0; t < 3; ++t) {
+            auto const& src_ltable = ltable[t];
+            auto const& src_rtable = rtable[t];
+            auto&       dst_ltable = g_song.ltable[t];
+            auto&       dst_rtable = g_song.rtable[t];
+
+            // check if current table is shared
+            int share_count = 0;
+            if (dst.ptr[t] > 0) {
+                for (size_t i = 0; i < gt::MAX_INSTR; ++i) {
+                    gt::Instrument const& in = g_song.instruments[i];
+                    if (in.ptr[t] == dst.ptr[t]) {
+                        ++share_count;
+                    }
+                }
+            }
+
+            // delete table if not shared
+            if (share_count == 1) {
+                int start = dst.ptr[t] - 1;
+                for (;;) {
+                    uint8_t v = dst_ltable[start];
+                    delete_table_row(t, start);
+                    if (v == 0xff) break;
+                }
+            }
+
+
+            // check if there's a new table
+            if (instr.ptr[t] == 0) {
+                dst.ptr[t] = 0;
+                continue;
+            }
+
+            // check if there's enough space
+            int start_row = instr.ptr[t] - 1;
+            int end_row   = start_row;
+            for (; end_row < gt::MAX_TABLELEN; ++end_row) {
+                if (src_ltable[end_row] == 0xff) break;
+            }
+            int new_start_row = g_song.get_table_length(t);
+            if (end_row - start_row > gt::MAX_TABLELEN - new_start_row) {
+                LOGW("InstrumentCopyBuffer::paste: not enough space in table %d", t);
+                dst.ptr[t] = 0;
+                continue;
+            }
+
+            // insert new table
+            int r = new_start_row;
+            dst.ptr[t] = r + 1;
+            for (int i = start_row; i <= end_row; ++i, ++r) {
+                dst_ltable[r] = src_ltable[i];
+                dst_rtable[r] = src_rtable[i];
+            }
+            // fix jump address
+            --r;
+            assert(dst_ltable[r] == 0xff);
+            if (dst_rtable[r] > 0) {
+                dst_rtable[r] = dst_rtable[r] - start_row + new_start_row;
+            }
+        }
+
+        dst.ad        = instr.ad;
+        dst.sr        = instr.sr;
+        dst.firstwave = instr.firstwave;
+        dst.gatetimer = instr.gatetimer;
+        dst.vibdelay  = instr.vibdelay;
+        dst.name      = instr.name;
+
+        int idx = dst.ptr[gt::STBL] - 1;
+        g_song.ltable[gt::STBL][idx] = lvib;
+        g_song.rtable[gt::STBL][idx] = rvib;
+    }
+};
+
+InstrumentCopyBuffer g_instr_copy_buffer;
 
 
 
@@ -320,50 +418,59 @@ void draw() {
     gui::item_size({ app::CANVAS_WIDTH - app::BUTTON_HEIGHT * 3, app::BUTTON_HEIGHT });
     gui::input_text(instr.name);
 
-    // adsr
-    // gui::item_size({ 12 + 4 * 8 + 4, app::BUTTON_HEIGHT });
-    // gui::item_size({ app::BUTTON_HEIGHT * 3, app::BUTTON_HEIGHT });
-    gui::item_size({ (app::CANVAS_WIDTH - app::BUTTON_HEIGHT * 2) / 4, app::BUTTON_HEIGHT });
-    gui::button_style(gui::ButtonStyle::PaddedTableCell);
-    sprintf(str, "%02X\x80%02X", instr.ad, instr.sr);
-    if (gui::button(str, g_cursor_select == CursorSelect::Adsr)) {
-        g_cursor_select = CursorSelect::Adsr;
-    }
+    {
+        int adsr_w = 4 * 8 + 4;
+        int vib_w  = 7 * 8;
+        int gate_w = 2 * 8;
+        int pad    = app::CANVAS_WIDTH - app::BUTTON_HEIGHT * 2 - adsr_w - vib_w - gate_w * 2;
+        pad /= 4;
+        adsr_w += pad;
+        vib_w  += pad;
+        gate_w += pad;
 
-    // gate timer
-    // gui::item_size({ 12 + 2 * 8, app::BUTTON_HEIGHT });
-    // gui::item_size({ app::BUTTON_HEIGHT * 2, app::BUTTON_HEIGHT });
-    gui::same_line();
-    sprintf(str, "%02X", instr.gatetimer);
-    if (gui::button(str, g_cursor_select == CursorSelect::GateTimer)) {
-        g_cursor_select = CursorSelect::GateTimer;
-    }
+        // adsr
+        gui::item_size({ adsr_w, app::BUTTON_HEIGHT });
+        gui::button_style(gui::ButtonStyle::PaddedTableCell);
+        sprintf(str, "%02X\x80%02X", instr.ad, instr.sr);
+        if (gui::button(str, g_cursor_select == CursorSelect::Adsr)) {
+            g_cursor_select = CursorSelect::Adsr;
+        }
 
-    // 1st wave
-    gui::same_line();
-    sprintf(str, "%02X", instr.firstwave);
-    if (gui::button(str, g_cursor_select == CursorSelect::FirstWave)) {
-        g_cursor_select = CursorSelect::FirstWave;
-    }
+        // vibrato
+        gui::same_line();
+        gui::item_size({ vib_w, app::BUTTON_HEIGHT });
+        int idx = instr.ptr[gt::STBL] - 1;
+        sprintf(str, "%02X\x80%02X\x80%02X", instr.vibdelay,
+                g_song.ltable[gt::STBL][idx],
+                g_song.rtable[gt::STBL][idx]);
+        if (gui::button(str, g_cursor_select == CursorSelect::Vibrato)) {
+            g_cursor_select = CursorSelect::Vibrato;
+        }
 
-    // vibrato
-    gui::same_line();
-    // gui::item_size({ 12 + 7 * 8, app::BUTTON_HEIGHT });
-    // gui::item_size({ app::BUTTON_HEIGHT * 3, app::BUTTON_HEIGHT });
-    sprintf(str, "%02X\x80%02X\x80%02X", instr.vibdelay,
-            g_song.ltable[gt::STBL][instr.ptr[gt::STBL] - 1],
-            g_song.rtable[gt::STBL][instr.ptr[gt::STBL] - 1]);
-    if (gui::button(str, g_cursor_select == CursorSelect::Vibrato)) {
-        g_cursor_select = CursorSelect::Vibrato;
+
+        // gate timer
+        gui::item_size({ gate_w, app::BUTTON_HEIGHT });
+        gui::same_line();
+        sprintf(str, "%02X", instr.gatetimer);
+        if (gui::button(str, g_cursor_select == CursorSelect::GateTimer)) {
+            g_cursor_select = CursorSelect::GateTimer;
+        }
+
+        // 1st wave
+        gui::same_line();
+        sprintf(str, "%02X", instr.firstwave);
+        if (gui::button(str, g_cursor_select == CursorSelect::FirstWave)) {
+            g_cursor_select = CursorSelect::FirstWave;
+        }
     }
 
     gui::cursor({ app::CANVAS_WIDTH - app::BUTTON_HEIGHT * 2, gui::cursor().y - app::BUTTON_HEIGHT * 2 });
     gui::item_size({ app::BUTTON_HEIGHT * 2, app::BUTTON_HEIGHT });
     if (gui::button(gui::Icon::Copy)) {
-        // TODO
+        g_instr_copy_buffer.copy();
     }
     if (gui::button(gui::Icon::Paste)) {
-        // TODO
+        g_instr_copy_buffer.paste();
     }
     gui::cursor({ 0, gui::cursor().y });
 
@@ -425,15 +532,6 @@ void draw() {
         assert(len > 0);
         int loop = rtable[end_row];
         assert(loop == 0 || (loop - 1 >= start_row && loop - 1 < end_row));
-    }
-
-    // find free row
-    int num_free_rows = 0;
-    while (num_free_rows < int(ltable.size()) &&
-           ltable[ltable.size() - num_free_rows - 1] == 0 &&
-           rtable[ltable.size() - num_free_rows - 1] == 0)
-    {
-        ++num_free_rows;
     }
 
     g_scroll = clamp(g_scroll, 0, len - table_page);
@@ -589,22 +687,23 @@ void draw() {
 
 
     // buttons
+    int num_free_rows = gt::MAX_TABLELEN - g_song.get_table_length(g_table);
     if (g_cursor_select == CursorSelect::Table) {
         gui::cursor({ app::CANVAS_WIDTH - 55, cursor.y });
 
         gui::item_size({ 55, app::BUTTON_HEIGHT });
-        gui::disabled(len == 0 ? num_free_rows <= 1 : num_free_rows == 0);
+        gui::disabled(num_free_rows <= 0 + (len == 0));
         if (gui::button(gui::Icon::AddRowAbove)) {
             // add jump
             if (len == 0) {
                 assert(num_free_rows >= 2);
-                start_row = ltable.size() - num_free_rows;
+                start_row = gt::MAX_TABLELEN - num_free_rows;
                 instr.ptr[g_table] = start_row + 1;
-                add_table_row(start_row);
+                add_table_row(g_table, start_row);
                 ltable[start_row] = 0xff;
                 ++len;
             }
-            add_table_row(start_row + g_cursor_row);
+            add_table_row(g_table, start_row + g_cursor_row);
             if (g_table == gt::PTBL) ltable[start_row + g_cursor_row] = 0x88; // set pw
             ++len;
         }
@@ -612,18 +711,18 @@ void draw() {
         if (gui::button(gui::Icon::AddRowBelow)) {
             ++g_cursor_row;
             ++len;
-            add_table_row(start_row + g_cursor_row);
+            add_table_row(g_table, start_row + g_cursor_row);
             if (g_table == gt::PTBL) ltable[start_row + g_cursor_row] = 0x88; // set pw
         }
 
         gui::disabled(g_cursor_row >= len);
         if (gui::button(gui::Icon::DeleteRow)) {
-            delete_table_row(start_row + g_cursor_row);
+            delete_table_row(g_table, start_row + g_cursor_row);
             --len;
             --end_row;
             if (len == 0) {
                 // delete jump row
-                delete_table_row(start_row);
+                delete_table_row(g_table, start_row);
             }
             else {
                 // clamp jump pointer
@@ -986,7 +1085,7 @@ void draw() {
                 if (instr.ptr[g_table] != in.ptr[g_table] && share_count == 1) {
                     // TODO: confirmation dialog
                     // delete table
-                    for (int i = 0; i <= len; ++i) delete_table_row(start_row);
+                    for (int i = 0; i <= len; ++i) delete_table_row(g_table, start_row);
                 }
                 instr.ptr[g_table] = in.ptr[g_table];
             }
@@ -1021,7 +1120,7 @@ void draw() {
             draw_share_window = false;
             if (share_count == 1) {
                 // delete table
-                for (int i = 0; i <= len; ++i) delete_table_row(start_row);
+                for (int i = 0; i <= len; ++i) delete_table_row(g_table, start_row);
             }
             instr.ptr[g_table] = 0;
         }

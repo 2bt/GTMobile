@@ -119,6 +119,8 @@ struct Song {
     std::array<char, MAX_STR>                 author_name;
     std::array<char, MAX_STR>                 copyright_name;
 
+    int get_table_length(int table) const;
+
     void load(char const* filename);
     void load(uint8_t const* data, size_t size);
     void load(std::istream& stream);

@@ -309,6 +309,14 @@ bool Song::save(char const* filename) {
 }
 
 
+int Song::get_table_length(int table) const {
+    for (int i = MAX_TABLELEN - 1; i >= 0; --i) {
+        if (ltable[table][i] | rtable[table][i]) return i + 1;
+    }
+    return 0;
+}
+
+
 bool Song::save(std::ostream& stream) {
 
     assert(song_len <= MAX_SONG_ROWS);
@@ -353,14 +361,10 @@ bool Song::save(std::ostream& stream) {
 
     // tables
     for (int i = 0; i < MAX_TABLES; i++) {
-        int c = MAX_TABLELEN - 1;
-        for (; c >= 0; c--) {
-            if (ltable[i][c] | rtable[i][c]) break;
-        }
-        ++c;
-        write<uint8_t>(stream, c);
-        stream.write((char const*) ltable[i].data(), c);
-        stream.write((char const*) rtable[i].data(), c);
+        int l = get_table_length(i);
+        write<uint8_t>(stream, l);
+        stream.write((char const*) ltable[i].data(), l);
+        stream.write((char const*) rtable[i].data(), l);
     }
 
     // patterns
