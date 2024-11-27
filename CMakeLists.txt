@@ -25,14 +25,12 @@ add_executable(
     src/platform.hpp
     src/project_view.cpp
     src/project_view.hpp
-    src/resid
     src/settings_view.cpp
     src/settings_view.hpp
     src/sid.cpp
     src/sid.hpp
     src/song_view.cpp
     src/song_view.hpp
-    src/stb_image.h
     src/vec.hpp
 )
 

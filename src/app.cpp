@@ -138,7 +138,6 @@ void touch(int x, int y, bool pressed) {
 }
 
 void key(int key, int unicode) {
-    LOGD("key %d %d", key, unicode);
     gui::key_event(key, unicode);
 }
 

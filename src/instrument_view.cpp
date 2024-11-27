@@ -6,6 +6,7 @@
 #include "log.hpp"
 #include <cassert>
 
+#define DEBUG_TABLE 0
 
 namespace instrument_view {
 namespace {
@@ -398,7 +399,7 @@ void draw_table_debug() {
 
 
 void draw() {
-    if (1) {
+    if (DEBUG_TABLE) {
         gui::item_size(app::BUTTON_HEIGHT);
         static bool table_debug = false;
         if (gui::button("", table_debug)) table_debug ^= 1;
@@ -413,8 +414,7 @@ void draw() {
     gui::DrawContext& dc = gui::draw_context();
     char str[32];
 
-    // gui::item_size({ 16 * 8 + 12, app::BUTTON_HEIGHT });
-    gui::item_size({ app::CANVAS_WIDTH - app::BUTTON_HEIGHT * 3, app::BUTTON_HEIGHT });
+    gui::item_size({ app::CANVAS_WIDTH - app::BUTTON_HEIGHT * 2 - gui::cursor().x, app::BUTTON_HEIGHT });
     gui::input_text(instr.name);
 
     {

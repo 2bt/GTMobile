@@ -115,28 +115,32 @@ void canvas(Canvas const& canvas) {
 
 bool init() {
 
-    const char* VERTEX_SHADER_SOURCE = R"(#version 300 es
-        layout (location = 0) in vec2 i_pos;
-        layout (location = 1) in vec2 i_uv;
-        layout (location = 2) in vec4 i_col;
+    const char* VERTEX_SHADER_SOURCE = R"(
+        #ifdef GL_ES
+        precision mediump float;
+        #endif
+        attribute vec2 i_pos;
+        attribute vec2 i_uv;
+        attribute vec4 i_col;
         uniform vec2 u_pos_scale;
         uniform vec2 u_uv_scale;
-        out vec2 v_uv;
-        out vec4 v_col;
+        varying vec2 v_uv;
+        varying vec4 v_col;
         void main() {
             gl_Position = vec4(i_pos * u_pos_scale - vec2(1.0), 0.0, 1.0);
             v_uv  = i_uv * u_uv_scale;
             v_col = i_col;
         }
     )";
-    const char* FRAGMENT_SHADER_SOURCE = R"(#version 300 es
+    const char* FRAGMENT_SHADER_SOURCE = R"(
+        #ifdef GL_ES
         precision mediump float;
-        in vec2 v_uv;
-        in vec4 v_col;
-        out vec4 FragColor;
+        #endif
+        varying vec2 v_uv;
+        varying vec4 v_col;
         uniform sampler2D u_tex;
         void main() {
-            FragColor = v_col * texture(u_tex, v_uv);
+            gl_FragColor = v_col * texture2D(u_tex, v_uv);
         }
     )";
 
@@ -176,7 +180,6 @@ bool init() {
 
     glDeleteShader(vertex_shader);
     glDeleteShader(fragment_shader);
-
 
     g_pos_scale_loc = glGetUniformLocation(g_program, "u_pos_scale");
     g_uv_scale_loc  = glGetUniformLocation(g_program, "u_uv_scale");
