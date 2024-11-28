@@ -1,5 +1,4 @@
 #include "settings_view.hpp"
-#include "gui.hpp"
 #include "app.hpp"
 #include "piano.hpp"
 

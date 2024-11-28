@@ -1,7 +1,6 @@
 #include "log.hpp"
 #include "app.hpp"
 #include "gui.hpp"
-#include "project_view.hpp"
 #include "settings_view.hpp"
 
 #include <vector>
@@ -126,7 +125,7 @@ extern "C" {
         g_asset_manager = AAssetManager_fromJava(env, asset_manager);
         g_env = env;
         char const* storage_dir = env->GetStringUTFChars(jstorage_dir, nullptr);
-        project_view::set_storage_dir(storage_dir);
+        app::set_storage_dir(storage_dir);
         env->ReleaseStringUTFChars(jstorage_dir, storage_dir);
         app::init();
         gui::set_refresh_rate(refresh_rate);

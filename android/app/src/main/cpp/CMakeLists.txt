@@ -14,6 +14,7 @@ add_library(
     src/gtsong.cpp
     src/gui.cpp
     src/instrument_view.cpp
+    src/instrument_manager_view.cpp
     src/piano.cpp
     src/project_view.cpp
     src/settings_view.cpp

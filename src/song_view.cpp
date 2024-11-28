@@ -3,7 +3,6 @@
 #include "command_edit.hpp"
 #include "gtplayer.hpp"
 #include "log.hpp"
-#include "gui.hpp"
 #include "app.hpp"
 #include "piano.hpp"
 #include "sid.hpp"

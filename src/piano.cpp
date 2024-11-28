@@ -1,6 +1,5 @@
 #include "piano.hpp"
 #include "app.hpp"
-#include "gui.hpp"
 #include "song_view.hpp"
 
 

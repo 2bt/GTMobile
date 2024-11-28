@@ -2,7 +2,6 @@
 #include "command_edit.hpp"
 #include "piano.hpp"
 #include "app.hpp"
-#include "gui.hpp"
 #include "log.hpp"
 #include <cassert>
 

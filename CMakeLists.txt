@@ -16,6 +16,8 @@ add_executable(
     src/gtsong.hpp
     src/gui.cpp
     src/gui.hpp
+    src/instrument_manager_view.cpp
+    src/instrument_manager_view.hpp
     src/instrument_view.cpp
     src/instrument_view.hpp
     src/log.hpp

@@ -18,17 +18,17 @@ uint8_t    g_command_data[16] = {
     0,
     0x06, // tempo
 };
-std::function<void(uint8_t, uint8_t)> g_on_close;
+CommandCallback g_callback;
 
 } // namespace
 
 
-void init(Location location, uint8_t cmd, uint8_t data, std::function<void(uint8_t, uint8_t)> on_close) {
+void init(Location location, uint8_t cmd, uint8_t data, std::function<void(uint8_t, uint8_t)> cb) {
     g_edit_enabled      = true;
     g_location          = location;
     g_command           = cmd;
     g_command_data[cmd] = data;
-    g_on_close          = std::move(on_close);
+    g_callback          = std::move(cb);
 }
 
 
@@ -68,7 +68,7 @@ void draw() {
     gui::separator();
     if (gui::button("CLOSE")) {
         g_edit_enabled = false;
-        g_on_close(g_command, g_command_data[g_command]);
+        g_callback(g_command, g_command_data[g_command]);
     }
 
     gui::cursor(cmd_cursor);

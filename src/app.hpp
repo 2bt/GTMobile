@@ -2,6 +2,7 @@
 #include <cstdint>
 #include <string>
 #include <cstring>
+#include <functional>
 #include "gtplayer.hpp"
 #include "gtsong.hpp"
 #include "gui.hpp"
@@ -20,9 +21,15 @@ namespace app {
     };
 
 
-    gt::Song&   song();
-    gt::Player& player();
-    int         canvas_height();
+    gt::Song&          song();
+    gt::Player&        player();
+    int                canvas_height();
+    void               set_storage_dir(std::string const& storage_dir);
+    std::string const& storage_dir();
+
+    using ConfirmCallback = std::function<void(bool)>;
+    void draw_confirm();
+    void confirm(std::string msg, ConfirmCallback cb);
 
 
     void init();
@@ -32,4 +39,5 @@ namespace app {
     void key(int key, int unicode);
     void draw();
     void audio_callback(int16_t* buffer, int length);
+
 }

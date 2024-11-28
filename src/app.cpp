@@ -4,10 +4,10 @@
 #include "gtplayer.hpp"
 #include "sid.hpp"
 #include "log.hpp"
-#include "gui.hpp"
 #include "project_view.hpp"
 #include "song_view.hpp"
 #include "instrument_view.hpp"
+#include "instrument_manager_view.hpp"
 #include "settings_view.hpp"
 #include <cstring>
 
@@ -18,13 +18,14 @@ namespace app {
 namespace {
 
 enum class View {
-    project,
-    song,
-    instrument,
-    settings,
+    Project,
+    Song,
+    Instrument,
+    InstrumentManager,
+    Settings,
 };
 
-View        g_view;
+View        g_view = View::Project;
 gt::Song    g_song;
 gt::Player  g_player(g_song);
 
@@ -33,22 +34,49 @@ gfx::Canvas g_canvas;
 float       g_canvas_scale;
 int16_t     g_canvas_offset;
 bool        g_initialized = false;
+std::string g_storage_dir = ".";
+
+ConfirmCallback g_confirm_callback;
+std::string     g_confirm_msg;
+
 
 } // namespace
 
 
-gt::Song&   song() { return g_song; }
-gt::Player& player() { return g_player; }
-int         canvas_height() { return g_canvas_height; }
+gt::Song&          song() { return g_song; }
+gt::Player&        player() { return g_player; }
+int                canvas_height() { return g_canvas_height; }
+std::string const& storage_dir() { return g_storage_dir; }
+void set_storage_dir(std::string const& storage_dir) { g_storage_dir = storage_dir; }
 
+void draw_confirm() {
+    if (g_confirm_msg.empty()) return;
+    gui::Box box = gui::begin_window({ app::CANVAS_WIDTH - 24 * 2, app::BUTTON_HEIGHT * 2 });
 
-void set_view(View view) {
-    g_view = view;
-    switch (view) {
-    case View::project: project_view::init(); break;
-    default: break;
+    gui::item_size({ box.size.x, app::BUTTON_HEIGHT });
+    gui::align(gui::Align::Center);
+    gui::text(g_confirm_msg.c_str());
+    if (!g_confirm_callback) {
+        if (gui::button("OK")) g_confirm_msg.clear();
+        return;
     }
+    gui::item_size({ box.size.x / 2, app::BUTTON_HEIGHT });
+    if (gui::button("OK")) {
+        g_confirm_msg.clear();
+        g_confirm_callback(true);
+    }
+    gui::same_line();
+    if (gui::button("CANCEL")) {
+        g_confirm_msg.clear();
+        g_confirm_callback(false);
+    }
+    gui::end_window();
 }
+void confirm(std::string msg, ConfirmCallback cb) {
+    g_confirm_msg      = std::move(msg);
+    g_confirm_callback = std::move(cb);
+}
+
 
 void audio_callback(int16_t* buffer, int length) {
     if (!g_initialized) {
@@ -79,19 +107,16 @@ void init() {
     sid::init(MIXRATE);
     gfx::init();
     gui::init();
-    set_view(View::project);
     song_view::reset();
+    project_view::init();
     g_song.clear();
+
     // simple beep instrument
     strcpy(g_song.instruments[1].name.data(), "BEEP");
     g_song.instruments[1].sr = 0xf3;
     g_song.instruments[1].ptr[0] = 1;
     g_song.ltable[0][0] = 0x11;
     g_song.ltable[0][1] = 0xff;
-
-    // DEBUB
-    // g_song.load("songs/Endgame.sng");
-    // set_view(View::instrument);
 
     g_initialized = true;
 }
@@ -121,7 +146,6 @@ void resize(int width, int height) {
         g_canvas_offset = 0;
         g_canvas_scale  = scale_x;
     }
-    // g_canvas_scale = 1;
 
     // reinit canvas with POT dimensions
     int w = 2;
@@ -157,30 +181,39 @@ void draw() {
     gui::item_size({ (CANVAS_WIDTH - TAB_HEIGHT) / 3 , TAB_HEIGHT });
     gui::align(gui::Align::Center);
     gui::button_style(gui::ButtonStyle::Tab);
-    constexpr std::array<const char*, 3> VIEW_NAMES = {
-        "PROJECT",
-        "SONG",
-        "INSTRUMENT",
-    };
-    for (size_t i = 0; i < VIEW_NAMES.size(); ++i) {
-        if (gui::button(VIEW_NAMES[i], i == size_t(g_view))) {
-            set_view(View(i));
-        }
-        gui::same_line();
+    if (gui::button("PROJECT", g_view == View::Project)) {
+        g_view = View::Project;
+        project_view::init();
     }
+    gui::same_line();
+    if (gui::button("SONG", g_view == View::Song)) {
+        g_view = View::Song;
+    }
+    gui::same_line();
+    if (gui::button("INSTRUMENT", g_view == View::Instrument || g_view == View::InstrumentManager)) {
+        if (g_view == View::Instrument) {
+            g_view = View::InstrumentManager;
+            instrument_manager_view::init();
+        }
+        else {
+            g_view = View::Instrument;
+        }
+    }
+    gui::same_line();
     gui::item_size({ CANVAS_WIDTH - gui::cursor().x, TAB_HEIGHT });
-    if (gui::button(gui::Icon::Settings, g_view == View::settings)) {
-        set_view(View::settings);
+    if (gui::button(gui::Icon::Settings, g_view == View::Settings)) {
+        g_view = View::Settings;
     }
     gui::item_size({ CANVAS_WIDTH, BUTTON_HEIGHT });
     gui::separator();
     gui::button_style(gui::ButtonStyle::Normal);
 
     switch (g_view) {
-    case View::project: project_view::draw(); break;
-    case View::song: song_view::draw(); break;
-    case View::instrument: instrument_view::draw(); break;
-    case View::settings: settings_view::draw(); break;
+    case View::Project: project_view::draw(); break;
+    case View::Song: song_view::draw(); break;
+    case View::Instrument: instrument_view::draw(); break;
+    case View::InstrumentManager: instrument_manager_view::draw(); break;
+    case View::Settings: settings_view::draw(); break;
     }
 
 
@@ -195,7 +228,7 @@ void draw() {
     ivec2 p(g_canvas_offset, 0);
     ivec2 S(CANVAS_WIDTH, g_canvas_height);
     ivec2 s = S * g_canvas_scale;
-    gfx::Mesh mesh;
+    static gfx::Mesh mesh;
     mesh.vertices = {
         { p, S.oy(), white },
         { ivec2(p.x + s.x, 0), S, white },

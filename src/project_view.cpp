@@ -1,11 +1,9 @@
 #include "project_view.hpp"
-#include "gui.hpp"
 #include "app.hpp"
 #include "log.hpp"
 #include "platform.hpp"
 #include "piano.hpp"
 #include "song_view.hpp"
-#include <array>
 #include <filesystem>
 #include <cstring>
 #include <fstream>
@@ -16,39 +14,6 @@ namespace fs = std::filesystem;
 
 namespace project_view {
 namespace {
-
-
-using ConfirmCallback = void(*)(bool);
-ConfirmCallback g_confirm_callback;
-std::string     g_confirm_msg;
-void draw_confirm() {
-    if (g_confirm_msg.empty()) return;
-    gui::Box box = gui::begin_window({ app::CANVAS_WIDTH - 24 * 2, app::BUTTON_HEIGHT * 2 });
-
-    gui::item_size({ box.size.x, app::BUTTON_HEIGHT });
-    gui::align(gui::Align::Center);
-    gui::text(g_confirm_msg.c_str());
-    if (!g_confirm_callback) {
-        if (gui::button("OK")) g_confirm_msg.clear();
-        return;
-    }
-    gui::item_size({ box.size.x / 2, app::BUTTON_HEIGHT });
-    if (gui::button("OK")) {
-        g_confirm_msg.clear();
-        g_confirm_callback(true);
-    }
-    gui::same_line();
-    if (gui::button("CANCEL")) {
-        g_confirm_msg.clear();
-        g_confirm_callback(false);
-    }
-    gui::end_window();
-}
-void confirm(std::string msg, ConfirmCallback cb) {
-    g_confirm_msg      = std::move(msg);
-    g_confirm_callback = cb;
-}
-
 
 
 gt::Song&                g_song = app::song();
@@ -69,15 +34,6 @@ void status(std::string const& msg) {
 }
 
 
-bool ends_with(std::string const& str, char const* suffix) {
-    size_t l = std::strlen(suffix);
-    if (l > str.size()) {
-        return false;
-    }
-    return std::equal(suffix, suffix + l, str.end() - l);
-}
-
-
 void save() {
     bool ok = g_song.save((g_songs_dir + g_file_name.data() + FILE_SUFFIX).c_str());
     init();
@@ -89,23 +45,14 @@ void save() {
 } // namespace
 
 
-void set_storage_dir(std::string const& storage_dir) {
-    g_songs_dir = storage_dir + "/songs/";
-}
-
-
 void init() {
     static bool init_dirs_done = false;
     if (!init_dirs_done) {
         init_dirs_done = true;
-        if (g_songs_dir.empty()) {
-            set_storage_dir(".");
-        }
-
+        g_songs_dir = app::storage_dir() + "/songs/";
         // copy demo songs
         fs::create_directories(g_songs_dir);
         for (std::string const& s : platform::list_assets("songs")) {
-            if (!ends_with(s, FILE_SUFFIX)) continue;
             std::string dst_name = g_songs_dir + s;
             if (fs::exists(dst_name)) continue;
             std::vector<uint8_t> buffer;
@@ -228,7 +175,7 @@ void draw() {
     }
     gui::disabled(!file_selected);
     if (gui::button("LOAD")) {
-        confirm("LOSE CHANGES TO THE CURRENT SONG?", [](bool ok) {
+        app::confirm("LOSE CHANGES TO THE CURRENT SONG?", [](bool ok) {
             if (!ok) return;
             app::player().stop_song();
             app::player().reset();
@@ -246,7 +193,7 @@ void draw() {
     gui::disabled(g_file_name[0] == '\0');
     if (gui::button("SAVE")) {
         if (file_selected) {
-            confirm("OVERWRITE THE EXISTING SONG?", [](bool ok) {
+            app::confirm("OVERWRITE THE EXISTING SONG?", [](bool ok) {
                 if (ok) save();
             });
         }
@@ -256,7 +203,7 @@ void draw() {
     }
     gui::disabled(!file_selected);
     if (gui::button("DELETE")) {
-        confirm("DELETE SONG?", [](bool ok) {
+        app::confirm("DELETE SONG?", [](bool ok) {
             if (!ok) return;
             fs::remove(g_songs_dir + g_file_name.data() + FILE_SUFFIX);
             init();
@@ -265,7 +212,7 @@ void draw() {
     }
     gui::disabled(false);
     if (gui::button("RESET")) {
-        confirm("LOSE CHANGES TO THE CURRENT SONG?", [](bool ok) {
+        app::confirm("LOSE CHANGES TO THE CURRENT SONG?", [](bool ok) {
             if (!ok) return;
             app::player().stop_song();
             app::player().reset();
@@ -276,7 +223,7 @@ void draw() {
     }
 
 
-    draw_confirm();
+    app::draw_confirm();
 
     piano::draw();
 }
