@@ -104,7 +104,9 @@ void free() {
 }
 
 void resize(int width, int height) {
-    gfx::screen_size({width, height});
+    width  = std::max(1, width);
+    height = std::max(1, height);
+    gfx::screen_size({ width, height });
 
     g_canvas_height = std::max<int16_t>(CANVAS_WIDTH * height / width, CANVAS_MIN_HEIGHT);
 
