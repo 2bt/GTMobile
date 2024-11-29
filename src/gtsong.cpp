@@ -124,8 +124,8 @@ void Song::load(std::istream& stream) {
     int instr_count = read8(stream);
     for (int c = 1; c <= instr_count; c++) {
         Instrument& instr = instruments[c];
-        instr.ad        = read8(stream);
-        instr.sr        = read8(stream);
+        instr.ad = read8(stream);
+        instr.sr = read8(stream);
         read(stream, instr.ptr);
         instr.vibdelay  = read8(stream);
         instr.gatetimer = read8(stream);
@@ -314,6 +314,22 @@ int Song::get_table_length(int table) const {
         if (ltable[table][i] | rtable[table][i]) return i + 1;
     }
     return 0;
+}
+
+
+int Song::get_table_part_length(int table, int start) const {
+    if (start < 0) return 0;
+    if (table == STBL) return 1;
+    int i;
+    for (i = start; i < gt::MAX_TABLELEN; ++i) {
+        if (ltable[table][i] == 0xff) {
+            int a = rtable[table][i];
+            assert(a == 0 || (a - 1 >= start && a - 1 < i));
+            ++i;
+            break;
+        }
+    }
+    return i - start;
 }
 
 

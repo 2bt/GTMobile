@@ -41,19 +41,14 @@ int             g_cursor_chan        = 0;
 int             g_transpose          = 0;
 bool            g_order_edit_enabled = false;
 
+std::array<bool, gt::MAX_PATT> g_pattern_empty;
+
 
 struct SongCopyBuffer {
     gt::Array2<gt::OrderRow, gt::MAX_CHN, gt::MAX_SONG_ROWS> order;
     int num_chans;
     int len;
 };
-
-
-SongCopyBuffer                 g_song_copy_buffer;
-std::array<gt::Pattern, 3>     g_pattern_copy_buffer;
-std::array<bool, gt::MAX_PATT> g_pattern_empty;
-
-
 
 
 void check_empty_patterns() {
@@ -526,6 +521,7 @@ void draw() {
     // buttons
 
     // order edit
+    static SongCopyBuffer song_copy_buffer;
     gui::item_size({ 55, app::BUTTON_HEIGHT });
     if (g_edit_mode == EditMode::Song) {
         int& pos = g_cursor_song_row;
@@ -533,7 +529,7 @@ void draw() {
         assert(pos < len);
 
         if (gui::button(gui::Icon::Paste)) {
-            auto const& b = g_song_copy_buffer;
+            auto const& b = song_copy_buffer;
             for (int c = 0; c < b.num_chans; ++c) {
                 if (g_cursor_chan + c >= 3) break;
                 for (int i = 0; i < b.len; ++i) {
@@ -592,7 +588,7 @@ void draw() {
             int mark_row_max  = std::max(g_mark_row, g_cursor_song_row);
             int mark_chan_min = std::min(g_mark_chan, g_cursor_chan);
             int mark_chan_max = std::max(g_mark_chan, g_cursor_chan);
-            auto& b = g_song_copy_buffer;
+            auto& b = song_copy_buffer;
             b.num_chans = mark_chan_max - mark_chan_min + 1;
             b.len       = mark_row_max - mark_row_min + 1;
             for (int c = 0; c < b.num_chans; ++c) {
@@ -609,6 +605,7 @@ void draw() {
 
 
     // pattern edit
+    static std::array<gt::Pattern, 3> pattern_copy_buffer;
     gt::Pattern& patt = g_song.patterns[patt_nums[g_cursor_chan]];
     if (g_edit_mode == EditMode::Pattern && g_cursor_pattern_row < patt.len) {
 
@@ -665,7 +662,7 @@ void draw() {
         if (gui::button(gui::Icon::Paste)) {
             for (int c = 0; c < 3; ++c) {
                 if (g_cursor_chan + c >= 3) break;
-                gt::Pattern const& src = g_pattern_copy_buffer[c];
+                gt::Pattern const& src = pattern_copy_buffer[c];
                 gt::Pattern&       dst = g_song.patterns[patt_nums[g_cursor_chan + c]];
 
                 for (int i = 0; i < src.len; ++i) {
@@ -735,7 +732,7 @@ void draw() {
         if (gui::button(gui::Icon::Copy)) {
             int num_chans = mark_chan_max - mark_chan_min + 1;
             for (int c = 0; c < 3; ++c) {
-                gt::Pattern& dst = g_pattern_copy_buffer[c];
+                gt::Pattern& dst = pattern_copy_buffer[c];
                 if (c >= num_chans) {
                     dst.len = 0;
                     continue;

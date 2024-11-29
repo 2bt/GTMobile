@@ -80,7 +80,6 @@ void draw() {
 
     enum {
         C1 = 12 + 8 * 8,
-        // C2 = 12 + 32 * 8,
         C2 = app::CANVAS_WIDTH - C1,
     };
 

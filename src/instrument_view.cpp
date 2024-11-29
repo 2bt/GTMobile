@@ -79,103 +79,6 @@ void delete_table_row(int table, int pos) {
 }
 
 
-struct InstrumentCopyBuffer {
-    gt::Instrument                           instr;
-    gt::Array2<uint8_t, 3, gt::MAX_TABLELEN> ltable;
-    gt::Array2<uint8_t, 3, gt::MAX_TABLELEN> rtable;
-    uint8_t                                  lvib;
-    uint8_t                                  rvib;
-
-    void copy() {
-        instr = g_song.instruments[piano::instrument()];
-        for (int t = 0; t < 3; ++t) {
-            ltable[t] = g_song.ltable[t];
-            rtable[t] = g_song.rtable[t];
-        }
-        int idx = instr.ptr[gt::STBL] - 1;
-        lvib = g_song.ltable[gt::STBL][idx];
-        rvib = g_song.rtable[gt::STBL][idx];
-    }
-    void paste() const {
-        gt::Instrument& dst = g_song.instruments[piano::instrument()];
-
-        for (int t = 0; t < 3; ++t) {
-            auto const& src_ltable = ltable[t];
-            auto const& src_rtable = rtable[t];
-            auto&       dst_ltable = g_song.ltable[t];
-            auto&       dst_rtable = g_song.rtable[t];
-
-            // check if current table is shared
-            int share_count = 0;
-            if (dst.ptr[t] > 0) {
-                for (size_t i = 0; i < gt::MAX_INSTR; ++i) {
-                    gt::Instrument const& in = g_song.instruments[i];
-                    if (in.ptr[t] == dst.ptr[t]) {
-                        ++share_count;
-                    }
-                }
-            }
-
-            // delete table if not shared
-            if (share_count == 1) {
-                int start = dst.ptr[t] - 1;
-                for (;;) {
-                    uint8_t v = dst_ltable[start];
-                    delete_table_row(t, start);
-                    if (v == 0xff) break;
-                }
-            }
-
-
-            // check if there's a new table
-            if (instr.ptr[t] == 0) {
-                dst.ptr[t] = 0;
-                continue;
-            }
-
-            // check if there's enough space
-            int start_row = instr.ptr[t] - 1;
-            int end_row   = start_row;
-            for (; end_row < gt::MAX_TABLELEN; ++end_row) {
-                if (src_ltable[end_row] == 0xff) break;
-            }
-            int new_start_row = g_song.get_table_length(t);
-            if (end_row - start_row > gt::MAX_TABLELEN - new_start_row) {
-                LOGW("InstrumentCopyBuffer::paste: not enough space in table %d", t);
-                dst.ptr[t] = 0;
-                continue;
-            }
-
-            // insert new table
-            int r = new_start_row;
-            dst.ptr[t] = r + 1;
-            for (int i = start_row; i <= end_row; ++i, ++r) {
-                dst_ltable[r] = src_ltable[i];
-                dst_rtable[r] = src_rtable[i];
-            }
-            // fix jump address
-            --r;
-            assert(dst_ltable[r] == 0xff);
-            if (dst_rtable[r] > 0) {
-                dst_rtable[r] = dst_rtable[r] - start_row + new_start_row;
-            }
-        }
-
-        dst.ad        = instr.ad;
-        dst.sr        = instr.sr;
-        dst.firstwave = instr.firstwave;
-        dst.gatetimer = instr.gatetimer;
-        dst.vibdelay  = instr.vibdelay;
-        dst.name      = instr.name;
-        int idx = dst.ptr[gt::STBL] - 1;
-        g_song.ltable[gt::STBL][idx] = lvib;
-        g_song.rtable[gt::STBL][idx] = rvib;
-    }
-};
-
-InstrumentCopyBuffer g_instr_copy_buffer;
-
-
 void draw_table_debug() {
     enum class CursorSelect {
         WaveTable,
@@ -188,8 +91,7 @@ void draw_table_debug() {
     static int          g_cursor_row    = 0;
     static int          g_table_scroll[4];
 
-    int             instr_nr = piano::instrument();
-    gt::Instrument& instr    = g_song.instruments[instr_nr];
+    gt::Instrument& instr = g_song.instruments[piano::instrument()];
     char str[32];
 
     gui::DrawContext& dc = gui::draw_context();
@@ -396,6 +298,93 @@ void draw_table_debug() {
 } // namespace
 
 
+void InstrumentCopyBuffer::copy() {
+    instr  = g_song.instruments[piano::instrument()];
+    ltable = g_song.ltable;
+    rtable = g_song.rtable;
+}
+
+
+void InstrumentCopyBuffer::paste() const {
+    gt::Instrument& dst = g_song.instruments[piano::instrument()];
+    for (int t = 0; t < 3; ++t) {
+        auto const& src_ltable = ltable[t];
+        auto const& src_rtable = rtable[t];
+        auto&       dst_ltable = g_song.ltable[t];
+        auto&       dst_rtable = g_song.rtable[t];
+
+        // check if current table is shared
+        int share_count = 0;
+        if (dst.ptr[t] > 0) {
+            for (size_t i = 0; i < gt::MAX_INSTR; ++i) {
+                gt::Instrument const& in = g_song.instruments[i];
+                if (in.ptr[t] == dst.ptr[t]) {
+                    ++share_count;
+                }
+            }
+        }
+
+        // delete table if not shared
+        if (share_count == 1) {
+            int start = dst.ptr[t] - 1;
+            for (;;) {
+                uint8_t v = dst_ltable[start];
+                delete_table_row(t, start);
+                if (v == 0xff) break;
+            }
+        }
+
+        // check if there's a new table
+        if (instr.ptr[t] == 0) {
+            dst.ptr[t] = 0;
+            continue;
+        }
+
+        // check if there's enough space
+        int start_row = instr.ptr[t] - 1;
+        int end_row   = start_row;
+        for (; end_row < gt::MAX_TABLELEN; ++end_row) {
+            if (src_ltable[end_row] == 0xff) break;
+        }
+        int new_start_row = g_song.get_table_length(t);
+        if (end_row - start_row > gt::MAX_TABLELEN - new_start_row) {
+            LOGW("InstrumentCopyBuffer::paste: not enough space in table %d", t);
+            dst.ptr[t] = 0;
+            continue;
+        }
+
+        // insert new table
+        int r = new_start_row;
+        dst.ptr[t] = r + 1;
+        for (int i = start_row; i <= end_row; ++i, ++r) {
+            dst_ltable[r] = src_ltable[i];
+            dst_rtable[r] = src_rtable[i];
+        }
+        // fix jump address
+        --r;
+        assert(dst_ltable[r] == 0xff);
+        if (dst_rtable[r] > 0) {
+            dst_rtable[r] = dst_rtable[r] - start_row + new_start_row;
+        }
+    }
+    int di = dst.ptr[gt::STBL] - 1;
+    g_song.ltable[gt::STBL][di] = 0;
+    g_song.rtable[gt::STBL][di] = 0;
+    if (instr.ptr[gt::STBL] > 0) {
+        int si = instr.ptr[gt::STBL] - 1;
+        g_song.ltable[gt::STBL][di] = ltable[gt::STBL][si];
+        g_song.rtable[gt::STBL][di] = rtable[gt::STBL][si];
+    }
+    dst.ad        = instr.ad;
+    dst.sr        = instr.sr;
+    dst.firstwave = instr.firstwave;
+    dst.gatetimer = instr.gatetimer;
+    dst.vibdelay  = instr.vibdelay;
+    dst.name      = instr.name;
+}
+
+
+
 
 void draw() {
     if (DEBUG_TABLE) {
@@ -464,14 +453,14 @@ void draw() {
 
     gui::cursor({ app::CANVAS_WIDTH - app::BUTTON_HEIGHT * 2, gui::cursor().y - app::BUTTON_HEIGHT * 2 });
     gui::item_size({ app::BUTTON_HEIGHT * 2, app::BUTTON_HEIGHT });
+    static InstrumentCopyBuffer instr_copy_buffer;
     if (gui::button(gui::Icon::Copy)) {
-        g_instr_copy_buffer.copy();
+        instr_copy_buffer.copy();
     }
     if (gui::button(gui::Icon::Paste)) {
-        g_instr_copy_buffer.paste();
+        instr_copy_buffer.paste();
     }
     gui::cursor({ 0, gui::cursor().y });
-
 
 
     // tables
@@ -517,20 +506,12 @@ void draw() {
     auto& rtable = g_song.rtable[g_table];
     int start_row = 0;
     int end_row = 0;
-    int len = 0;
     if (instr.ptr[g_table] > 0) {
         start_row = instr.ptr[g_table] - 1;
-        end_row = start_row;
-        for (; end_row < gt::MAX_TABLELEN; ++end_row) {
-            if (ltable[end_row] == 0xff) break;
-        }
-        len = end_row - start_row;
-        // TODO: verify in Song::load
-        assert(end_row < gt::MAX_TABLELEN);
-        assert(len > 0);
-        int loop = rtable[end_row];
-        assert(loop == 0 || (loop - 1 >= start_row && loop - 1 < end_row));
+        end_row   = start_row + g_song.get_table_part_length(g_table, start_row) - 1;
     }
+    // NOTE: number of visible rows (excluding the jump row)
+    int len = end_row - start_row;
 
     g_scroll = clamp(g_scroll, 0, len - table_page);
     g_cursor_row = std::min(g_cursor_row, len - 1);

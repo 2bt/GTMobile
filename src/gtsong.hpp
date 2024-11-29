@@ -120,6 +120,7 @@ struct Song {
     std::array<char, MAX_STR>                 copyright_name;
 
     int get_table_length(int table) const;
+    int get_table_part_length(int table, int row) const;
 
     void load(char const* filename);
     void load(uint8_t const* data, size_t size);
