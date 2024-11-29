@@ -170,14 +170,7 @@ int main(int argc, char** argv) {
     app::resize(app::CANVAS_WIDTH, app::CANVAS_MIN_HEIGHT);
 
 #ifdef __EMSCRIPTEN__
-    {
-        EmscriptenFullscreenStrategy s = {};
-        s.scaleMode                 = EMSCRIPTEN_FULLSCREEN_SCALE_DEFAULT;
-        s.canvasResolutionScaleMode = EMSCRIPTEN_FULLSCREEN_CANVAS_SCALE_HIDEF;
-        s.filteringMode             = EMSCRIPTEN_FULLSCREEN_FILTERING_DEFAULT;
-        emscripten_enter_soft_fullscreen("#canvas", &s);
-        emscripten_set_main_loop(main_loop, 0, 1);
-    }
+    emscripten_set_main_loop(main_loop, 0, 1);
 #else
     while (g_running) main_loop();
 #endif

@@ -5,70 +5,25 @@
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
     <title>GTMobile</title>
     <style>
-      body {
+      * {
         padding: 0;
         margin: 0;
-        background-color: #111;
       }
-      /* the canvas *must not* have any border or padding, or mouse coords will be wrong */
       canvas {
+        position: absolute;
         border: 0px none;
-        padding: 0;
-        margin: 0;
+        width: 100%;
+        height: 100%;
       }
-
     </style>
   </head>
   <body>
-    <div id="status">Downloading...</div>
-    <div>
-      <progress value="0" max="100" id="progress" hidden=1></progress>
-    </div>
     <canvas id="canvas" oncontextmenu="event.preventDefault()" tabindex=-1></canvas>
     <script type='text/javascript'>
-
-      var statusElement   = document.getElementById('status');
-      var progressElement = document.getElementById('progress');
-
       var Module = {
         print: (...args) => console.log(args.join(' ')),
-        canvas: (() => {
-          var canvas = document.getElementById("canvas");
-          canvas.addEventListener("webglcontextlost", (e) => { alert('WebGL context lost. You will need to reload the page.'); e.preventDefault(); }, false);
-          return canvas;
-        })(),
-        setStatus: (text) => {
-          Module.setStatus.last ??= { time: Date.now(), text: '' };
-          if (text === Module.setStatus.last.text) return;
-          var m = text.match(/([^(]+)\((\d+(\.\d+)?)\/(\d+)\)/);
-          var now = Date.now();
-          if (m && now - Module.setStatus.last.time < 30) return;
-          Module.setStatus.last.time = now;
-          Module.setStatus.last.text = text;
-          if (m) {
-            text = m[1];
-            progressElement.value = parseInt(m[2])*100;
-            progressElement.max = parseInt(m[4])*100;
-            progressElement.hidden = false;
-          } else {
-            progressElement.value = null;
-            progressElement.max = null;
-            progressElement.hidden = true;
-          }
-          statusElement.innerHTML = text;
-        },
-        totalDependencies: 0,
-        monitorRunDependencies: (left) => {
-          this.totalDependencies = Math.max(this.totalDependencies, left);
-          Module.setStatus(left ? 'Preparing... (' + (this.totalDependencies-left) + '/' + this.totalDependencies + ')' : 'All downloads complete.');
-        },
-      };
-      Module.setStatus('Downloading...');
-      window.onerror = () => {
-        Module.setStatus('Exception thrown, see JavaScript console');
-        Module.setStatus = (text) => {
-          if (text) console.error('[post-exception status] ' + text);
-        };
+        canvas: document.getElementById("canvas"),
+        fullscreen: true,
       };
     </script>
     {{{ SCRIPT }}}
