@@ -51,6 +51,7 @@ int          g_input_text_len;
 int          g_input_text_pos;
 float        g_input_cursor_blink;
 bool         g_disabled;
+ivec2        g_drag_start;
 
 
 
@@ -117,6 +118,7 @@ ButtonState button_state(Box const& box, void const* addr) {
     if (id) {
         if (g_active_item == nullptr && touch::just_touched(box)) {
             g_active_item = id;
+            g_drag_start = g_touch_pos;
             return ButtonState::Pressed;
         }
         if (g_active_item != id) return ButtonState::Normal;
@@ -453,8 +455,9 @@ bool horizontal_drag_bar(int& value, int min, int max, int page) {
 
     int old_value = value;
     if (is_active && range > 0) {
-        int x = g_touch_pos.x - box.pos.x - handle_w / 2 + move_w / range / 2;
-        value = clamp(min + x * range / move_w, min, max);
+        int dv = (g_touch_pos.x - g_drag_start.x) * range / move_w;
+        g_drag_start.x += dv * move_w / range;
+        value = clamp(value + dv, min, max);
     }
     int handle_x = range == 0 ? 0 : (value - min) * move_w / range;
 
@@ -491,8 +494,9 @@ bool vertical_drag_bar(int& value, int min, int max, int page) {
 
     int old_value = value;
     if (is_active && range > 0) {
-        int y = g_touch_pos.y - box.pos.y - handle_h / 2 + move_h / range / 2;
-        value = clamp(min + y * range / move_h, min, max);
+        int dv = (g_touch_pos.y - g_drag_start.y) * range / move_h;
+        g_drag_start.y += dv * move_h / range;
+        value = clamp(value + dv, min, max);
     }
     int handle_y = range == 0 ? 0 : (value - min) * move_h / range;
 

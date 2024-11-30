@@ -384,8 +384,6 @@ void InstrumentCopyBuffer::paste() const {
 }
 
 
-
-
 void draw() {
     if (DEBUG_TABLE) {
         gui::item_size(app::BUTTON_HEIGHT);

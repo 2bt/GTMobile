@@ -37,7 +37,7 @@ std::vector<std::string> list_assets(std::string const& dir) {
 }
 
 void show_keyboard(bool enabled) {
-    // do nothing
+    SDL_StartTextInput();
 }
 
 } // namespace platform
