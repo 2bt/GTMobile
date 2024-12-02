@@ -7,4 +7,7 @@ namespace song_view {
     void reset();
     void draw();
 
+    bool get_follow();
+    void toggle_follow();
+
 } // namespace song_view

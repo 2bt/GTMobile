@@ -91,24 +91,28 @@ void Song::load(std::istream& stream) {
         for (int i = 0; i < buffer_len;) {
             uint8_t x = buffer[i++];
             if (x == LOOPSONG) break;
-            if (pos >= int(order.size())) {
-                load_error("max song length exceeded");
-            }
             // transpose
             if (x >= TRANSDOWN && x < LOOPSONG) {
                 if (i <= buffer[buffer_len - 1]) --loop;
                 trans = x - TRANSUP;
                 x = buffer[i++];
             }
+            int repeat = 1;
             if (x >= REPEAT && x < TRANSDOWN) {
-                load_error("repeat command not supported");
+                repeat = x - REPEAT + 1;
+                x = buffer[i++];
             }
             if (x >= MAX_PATT) {
                 load_error("invalid pattern number");
             }
-            order[pos].trans   = trans;
-            order[pos].pattnum = x;
-            ++pos;
+            for (int j = 0; j < repeat; ++j) {
+                if (pos >= int(order.size())) {
+                    load_error("max song length exceeded");
+                }
+                order[pos].trans   = trans;
+                order[pos].pattnum = x;
+                ++pos;
+            }
         }
         if (c == 0) {
             song_len  = pos;

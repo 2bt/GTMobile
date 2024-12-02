@@ -20,6 +20,7 @@ namespace {
 enum class View {
     Project,
     Song,
+    Pattern,
     Instrument,
     InstrumentManager,
     Settings,
@@ -38,6 +39,82 @@ std::string g_storage_dir = ".";
 
 ConfirmCallback g_confirm_callback;
 std::string     g_confirm_msg;
+
+
+void draw_play_buttons() {
+
+    gui::cursor({ 0, app::canvas_height() - app::TAB_HEIGHT - gui::FRAME_WIDTH  });
+    gt::Player& player = app::player();
+    gui::item_size(app::CANVAS_WIDTH);
+    gui::separator();
+    gui::item_size(app::TAB_HEIGHT);
+
+
+    static float backward_time = 0.0f;
+    backward_time += gui::get_frame_time();
+    if (gui::button(gui::Icon::FastBackward)) {
+        if (backward_time < 0.5f) {
+            for (int& x : player.m_start_song_pos) {
+                if (x > 0) --x;
+            }
+        }
+        player.m_start_patt_pos = {};
+        if (player.is_playing()) player.play_song();
+        else {
+            player.m_current_song_pos = player.m_start_song_pos;
+            player.m_current_patt_pos = {};
+        }
+        backward_time = 0.0f;
+    }
+    gui::same_line();
+
+    if (gui::button(gui::Icon::Stop)) {
+        player.m_start_song_pos.fill(song_view::song_position());
+        player.m_start_patt_pos = {};
+        player.stop_song();
+    }
+
+
+    // play button
+    int w = app::CANVAS_WIDTH - app::TAB_HEIGHT * 5;
+    gui::item_size({ w, app::TAB_HEIGHT });
+    bool is_playing = player.is_playing();
+    gui::same_line();
+    if (gui::button(gui::Icon::Play, is_playing)) {
+        if (is_playing) {
+            player.pause_song();
+        }
+        else {
+            player.play_song();
+        }
+    }
+
+    gui::item_size(app::TAB_HEIGHT);
+    gui::same_line();
+    if (gui::button(gui::Icon::Follow, song_view::get_follow())) {
+        song_view::toggle_follow();
+    }
+    gui::same_line();
+
+    bool loop = player.get_loop();
+    if (gui::button(gui::Icon::Loop, loop)) {
+        player.set_loop(!loop);
+    }
+
+    gui::same_line();
+    if (gui::button(gui::Icon::FastForward)) {
+        for (int& x : player.m_start_song_pos) {
+            if (x < g_song.song_len - 1) ++x;
+            else x = 0;
+        }
+        player.m_start_patt_pos = {};
+        if (player.is_playing()) player.play_song();
+        else {
+            player.m_current_song_pos = player.m_start_song_pos;
+            player.m_current_patt_pos = {};
+        }
+    }
+}
 
 
 } // namespace
@@ -112,7 +189,7 @@ void init() {
     g_song.clear();
 
     // simple beep instrument
-    strcpy(g_song.instruments[1].name.data(), "BEEP");
+    strcpy(g_song.instruments[1].name.data(), "beep");
     g_song.instruments[1].sr = 0xf3;
     g_song.instruments[1].ptr[0] = 1;
     g_song.ltable[0][0] = 0x11;
@@ -186,8 +263,13 @@ void draw() {
         project_view::init();
     }
     gui::same_line();
-    if (gui::button("SONG", g_view == View::Song)) {
-        g_view = View::Song;
+    if (gui::button("SONG", g_view == View::Song || g_view == View::Pattern)) {
+        if (g_view == View::Song) {
+            g_view = View::Pattern;
+        }
+        else {
+            g_view = View::Song;
+        }
     }
     gui::same_line();
     if (gui::button("INSTRUMENT", g_view == View::Instrument || g_view == View::InstrumentManager)) {
@@ -216,7 +298,7 @@ void draw() {
     case View::Settings: settings_view::draw(); break;
     }
 
-
+    draw_play_buttons();
     gui::end_frame();
 
 

@@ -344,7 +344,6 @@ bool slider(int width, char const* fmt, T& value, int min, int max, void const* 
 }
 
 
-
 // low level functions
 enum class ButtonState { Normal, Pressed, Held, Released };
 DrawContext& draw_context();

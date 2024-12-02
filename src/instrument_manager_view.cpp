@@ -183,7 +183,7 @@ void draw() {
     gui::align(gui::Align::Left);
 
     gui::item_size({ C1, app::BUTTON_HEIGHT });
-    gui::text("FILE");
+    gui::item_box();
     gui::same_line();
     gui::item_size({ C2, app::BUTTON_HEIGHT });
     gui::input_text(g_file_name);

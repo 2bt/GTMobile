@@ -26,7 +26,9 @@ bool note_on() {
     return g_note_on;
 }
 
-void draw(bool* follow) {
+
+
+void draw() {
     static bool show_instrument_select = false;
     g_note_on = false;
 
@@ -161,82 +163,6 @@ void draw(bool* follow) {
         };
         dc.box(b, gui::BoxStyle::PianoKey);
     });
-
-    // player buttons
-    gt::Player& player = app::player();
-    y_pos += KEY_HALF_HEIGHT * 2;
-    gui::cursor({ 0, y_pos });
-    gui::item_size(app::CANVAS_WIDTH);
-    gui::separator();
-    gui::item_size(app::TAB_HEIGHT);
-
-
-    static float backward_time = 0.0f;
-    backward_time += gui::get_frame_time();
-    if (gui::button(gui::Icon::FastBackward)) {
-        if (backward_time < 0.5f) {
-            for (int& x : player.m_start_song_pos) {
-                if (x > 0) --x;
-            }
-        }
-        player.m_start_patt_pos = {};
-        if (player.is_playing()) player.play_song();
-        else {
-            player.m_current_song_pos = player.m_start_song_pos;
-            player.m_current_patt_pos = {};
-        }
-        backward_time = 0.0f;
-    }
-    gui::same_line();
-
-    if (gui::button(gui::Icon::Stop)) {
-        player.m_start_song_pos.fill(song_view::song_position());
-        player.m_start_patt_pos = {};
-        player.stop_song();
-    }
-
-    // play button
-    int w = app::CANVAS_WIDTH - app::TAB_HEIGHT * 4;
-    if (follow) w -= app::TAB_HEIGHT;
-    gui::item_size({ w, app::TAB_HEIGHT });
-    bool is_playing = player.is_playing();
-    gui::same_line();
-    if (gui::button(gui::Icon::Play, is_playing)) {
-        if (is_playing) {
-            player.pause_song();
-        }
-        else {
-            player.play_song();
-        }
-    }
-
-    gui::item_size(app::TAB_HEIGHT);
-    if (follow) {
-        gui::same_line();
-        if (gui::button(gui::Icon::Follow, *follow)) {
-            *follow ^= 1;
-        }
-    }
-    gui::same_line();
-
-    bool loop = player.get_loop();
-    if (gui::button(gui::Icon::Loop, loop)) {
-        player.set_loop(!loop);
-    }
-
-    gui::same_line();
-    if (gui::button(gui::Icon::FastForward)) {
-        for (int& x : player.m_start_song_pos) {
-            if (x < g_song.song_len - 1) ++x;
-            else x = 0;
-        }
-        player.m_start_patt_pos = {};
-        if (player.is_playing()) player.play_song();
-        else {
-            player.m_current_song_pos = player.m_start_song_pos;
-            player.m_current_patt_pos = {};
-        }
-    }
 }
 
 

@@ -172,7 +172,7 @@ void key_event(int key, int unicode) {
 
     g_input_cursor_blink = 0;
     int c = unicode;
-    if (isalnum(c) || (g_input_text_pos > 0 && strchr(" _-.+()", c))) {
+    if (c >= ' ' && c < '~' && c != '/') {
         g_input_text_str[g_input_text_pos++] = c;
     }
 }
@@ -456,7 +456,8 @@ bool horizontal_drag_bar(int& value, int min, int max, int page) {
     int old_value = value;
     if (is_active && range > 0) {
         int dv = (g_touch_pos.x - g_drag_start.x) * range / move_w;
-        g_drag_start.x += dv * move_w / range;
+        if (range > move_w) g_drag_start.x = g_touch_pos.x;
+        else g_drag_start.x += dv * move_w / range;
         value = clamp(value + dv, min, max);
     }
     int handle_x = range == 0 ? 0 : (value - min) * move_w / range;
@@ -495,7 +496,8 @@ bool vertical_drag_bar(int& value, int min, int max, int page) {
     int old_value = value;
     if (is_active && range > 0) {
         int dv = (g_touch_pos.y - g_drag_start.y) * range / move_h;
-        g_drag_start.y += dv * move_h / range;
+        if (range > move_h) g_drag_start.y = g_touch_pos.y;
+        else g_drag_start.y += dv * move_h / range;
         value = clamp(value + dv, min, max);
     }
     int handle_y = range == 0 ? 0 : (value - min) * move_h / range;

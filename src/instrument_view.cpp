@@ -5,7 +5,9 @@
 #include "log.hpp"
 #include <cassert>
 
-#define DEBUG_TABLE 0
+
+#define DEBUG_TABLE 1
+
 
 namespace instrument_view {
 namespace {
