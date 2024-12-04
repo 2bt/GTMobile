@@ -191,6 +191,15 @@ void toggle_follow() {
 }
 
 
+void draw_pattern() {
+    int patt_num = g_song.song_order[g_cursor_chan][g_cursor_song_row].pattnum;
+    gt::Pattern& patt = g_song.patterns[patt_num];
+
+
+
+}
+
+
 void draw() {
 
     gt::Player& player = app::player();
@@ -452,7 +461,6 @@ void draw() {
                 dc.rgb(color::BUTTON_HELD);
                 dc.box(box, gui::BoxStyle::Cursor);
             }
-
 
             ivec2 t = box.pos + ivec2(5, text_offset);
             dc.rgb(color::WHITE);

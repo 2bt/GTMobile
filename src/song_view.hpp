@@ -6,6 +6,7 @@ namespace song_view {
     int  song_position();
     void reset();
     void draw();
+    void draw_pattern();
 
     bool get_follow();
     void toggle_follow();

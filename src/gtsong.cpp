@@ -296,8 +296,7 @@ void Song::load(std::istream& stream) {
                 }
                 addr_to_instr[addr] = ++instr_count;
                 Instrument& instr = instruments[addr_to_instr[addr]];
-                char const* LABELS[] = { "", "PULS", "FILT" };
-                sprintf(instr.name.data(), "%s PTR %02X X", LABELS[table], addr + 1);
+                sprintf(instr.name.data(), "%s PTR %02X", LABELS[table], addr + 1);
                 instr.ptr[table] = addr + 1;
             }
             data = addr_to_instr[addr];
@@ -349,14 +348,22 @@ bool Song::save(std::ostream& stream) {
     // songorderlists
     write<uint8_t>(stream, 1);
     for (auto const& order : song_order) {
-        // TODO: remove transpose
-        write<uint8_t>(stream, song_len * 2 + 1);
+        int loop  = song_loop;
+        int trans = 0;
+        std::vector<uint8_t> buffer;
         for (int r = 0; r < song_len; ++r) {
-            write<uint8_t>(stream, order[r].trans + TRANSUP);
-            write<uint8_t>(stream, order[r].pattnum);
+            OrderRow const& row = order[r];
+            if (row.trans != trans) {
+                trans = row.trans;
+                buffer.push_back(trans + TRANSUP);
+                if (r < song_loop) ++loop;
+            }
+            buffer.push_back(row.pattnum);
         }
+        write<uint8_t>(stream, buffer.size() + 1);
+        stream.write((char const*) buffer.data(), buffer.size());
         write<uint8_t>(stream, LOOPSONG);
-        write<uint8_t>(stream, song_loop);
+        write<uint8_t>(stream, loop);
     }
 
     // instruments

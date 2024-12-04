@@ -293,6 +293,7 @@ void draw() {
     switch (g_view) {
     case View::Project: project_view::draw(); break;
     case View::Song: song_view::draw(); break;
+    case View::Pattern: song_view::draw_pattern(); break;
     case View::Instrument: instrument_view::draw(); break;
     case View::InstrumentManager: instrument_manager_view::draw(); break;
     case View::Settings: settings_view::draw(); break;
