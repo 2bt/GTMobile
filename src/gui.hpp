@@ -4,6 +4,7 @@
 
 namespace color {
 
+
     constexpr uint32_t mix(uint32_t c1, uint32_t c2, float x) {
         float y = 1.0f - x;
         return uint8_t(uint8_t(c1 >> 16) * y + uint8_t(c2 >> 16) * x) << 16 |
@@ -11,22 +12,41 @@ namespace color {
                uint8_t(uint8_t(c1) * y + uint8_t(c2) * x);
     }
 
+    constexpr uint32_t C64[] = {
+        0x000000,
+        0x626262,
+        0x898989,
+        0xadadad,
+        0xffffff,
+        0x9f4e44,
+        0xcb7e75,
+        0x6d5412,
+        0xa1683c,
+        0xc9d487,
+        0x9ae29b,
+        0x5cab5e,
+        0x6abfc6,
+        0x887ecb,
+        0x50459b,
+        0xa057a3,
+    };
+
     constexpr uint32_t BLACK       = 0x000000;
-    constexpr uint32_t DARK_BLUE   = 0x1D2B53;
-    constexpr uint32_t DARK_PURPLE = 0x7E2553;
+    constexpr uint32_t DARK_BLUE   = 0x1d2b53;
+    constexpr uint32_t DARK_PURPLE = 0x7e2553;
     constexpr uint32_t DARK_GREEN  = 0x008751;
-    constexpr uint32_t BROWN       = 0xAB5236;
-    constexpr uint32_t DARK_GREY   = 0x5F574F;
-    constexpr uint32_t LIGHT_GREY  = 0xC2C3C7;
+    constexpr uint32_t BROWN       = 0xab5236;
+    constexpr uint32_t DARK_GREY   = 0x5f574f;
+    constexpr uint32_t LIGHT_GREY  = 0xc2c3c7;
     constexpr uint32_t WHITE       = 0xffffff;
-    constexpr uint32_t RED         = 0xFF004D;
-    constexpr uint32_t ORANGE      = 0xFFA300;
-    constexpr uint32_t YELLOW      = 0xFFEC27;
-    constexpr uint32_t GREEN       = 0x00E436;
-    constexpr uint32_t BLUE        = 0x29ADFF;
-    constexpr uint32_t LAVENDER    = 0x83769C;
-    constexpr uint32_t PINK        = 0xFF77A8;
-    constexpr uint32_t LIGHT_PEACH = 0xFFCCAA;
+    constexpr uint32_t RED         = 0xff004d;
+    constexpr uint32_t ORANGE      = 0xffa300;
+    constexpr uint32_t YELLOW      = 0xffec27;
+    constexpr uint32_t GREEN       = 0x00e436;
+    constexpr uint32_t BLUE        = 0x29adff;
+    constexpr uint32_t LAVENDER    = 0x83769c;
+    constexpr uint32_t PINK        = 0xff77a8;
+    constexpr uint32_t LIGHT_PEACH = 0xffccaa;
 
 
     constexpr uint32_t DRAG_BG            = 0x222222;
@@ -36,44 +56,60 @@ namespace color {
 
     constexpr uint32_t FRAME              = mix(DARK_GREY, BLACK, 0.3f);
     constexpr uint32_t BUTTON_NORMAL      = DARK_GREY;
-    constexpr uint32_t BUTTON_ACTIVE      = mix(ORANGE, BLACK, 0.3f);
-    constexpr uint32_t BUTTON_PRESSED     = mix(ORANGE, YELLOW, 0.3f);
-    constexpr uint32_t BUTTON_HELD        = mix(ORANGE, YELLOW, 0.3f);
-    constexpr uint32_t BUTTON_RELEASED    = YELLOW;
+    // constexpr uint32_t BUTTON_ACTIVE      = mix(ORANGE, BLACK, 0.3f);
+    constexpr uint32_t BUTTON_ACTIVE      = C64[5];
+    // constexpr uint32_t BUTTON_PRESSED     = mix(ORANGE, YELLOW, 0.3f);
+    constexpr uint32_t BUTTON_PRESSED     = C64[6];
+    constexpr uint32_t BUTTON_HELD        = BUTTON_PRESSED;
+    // constexpr uint32_t BUTTON_RELEASED    = YELLOW;
+    constexpr uint32_t BUTTON_RELEASED    = C64[9];
 
     constexpr uint32_t CMDS[16] = {
         mix(0x000000, WHITE, 0.2f),
 
-        mix(0xff77a8, WHITE, 0.2f), // 1 portamento up
-        mix(0xff77a8, WHITE, 0.2f), // 2 portamento down
-        mix(0xff77a8, WHITE, 0.2f), // 3 tone portamento
+        mix(PINK, WHITE, 0.2f), // 1 portamento up
+        mix(PINK, WHITE, 0.2f), // 2 portamento down
+        mix(PINK, WHITE, 0.2f), // 3 tone portamento
 
         mix(0xff2030, WHITE, 0.2f), // 4 vibrato
 
-        mix(0x00e436, WHITE, 0.2f), // 5 attack/decay
-        mix(0x00e436, WHITE, 0.2f), // 6 sustain/release
+        mix(GREEN, WHITE, 0.2f), // 5 attack/decay
+        mix(GREEN, WHITE, 0.2f), // 6 sustain/release
 
-        mix(0xffa300, WHITE, 0.2f), // 7 waveform reg
-        mix(0xffa300, WHITE, 0.2f), // 8 wavetable ptr
-        mix(0xffa300, WHITE, 0.2f), // 9 pulsetable ptr
+        mix(ORANGE, WHITE, 0.2f), // 7 waveform reg
+        mix(ORANGE, WHITE, 0.2f), // 8 wavetable ptr
+        mix(ORANGE, WHITE, 0.2f), // 9 pulsetable ptr
 
-        mix(0x29adff, WHITE, 0.2f), // A filtertable ptr
-        mix(0x29adff, WHITE, 0.2f), // B filter control
-        mix(0x29adff, WHITE, 0.2f), // C filter cutoff
+        mix(BLUE, WHITE, 0.2f), // A filtertable ptr
+        mix(BLUE, WHITE, 0.2f), // B filter control
+        mix(BLUE, WHITE, 0.2f), // C filter cutoff
 
-        mix(0x00e436, WHITE, 0.2f), // D master volume
+        mix(GREEN, WHITE, 0.2f), // D master volume
 
-        mix(0xffec27, WHITE, 0.2f), // E funk tempo
-        mix(0xffec27, WHITE, 0.2f), // F tempo
-
+        mix(YELLOW, WHITE, 0.2f), // E funk tempo
+        mix(YELLOW, WHITE, 0.2f), // F tempo
     };
 
     constexpr uint32_t ROW_NUMBER     = 0xaaaaaa;
     constexpr uint32_t INSTRUMENT     = 0xaabbdd;
-    constexpr uint32_t PLAYER_ROW     = 0x553311;
+    // constexpr uint32_t PLAYER_ROW     = 0x553311;
+    constexpr uint32_t PLAYER_ROW     = mix(C64[12], BLACK, 0.7f);
     constexpr uint32_t BACKGROUND_ROW = 0x171717;
     constexpr uint32_t HIGHLIGHT_ROW  = 0x2b2b2b;
     constexpr uint32_t MARKED_ROW     = mix(BACKGROUND_ROW, BUTTON_PRESSED, 0.2f);
+
+
+    constexpr uint32_t PALETTE[] = {
+        WHITE,
+        mix(0xff2030, WHITE, 0.2f), // red
+        mix(ORANGE, WHITE, 0.2f),
+        mix(YELLOW, WHITE, 0.2f),
+        mix(GREEN, WHITE, 0.2f),
+        mix(BLUE, WHITE, 0.2f),
+        mix(PINK, WHITE, 0.2f),
+
+        mix(0xff2030, BACKGROUND_ROW, 0.9f), // dark red
+    };
 
 } // namespace color
 
@@ -142,7 +178,7 @@ public:
                 w += m_char_size.x / 2;
                 continue;
             }
-            if (c == 0x81) { // set cmd color
+            if (c == 0x81 || c == 0x82) { // set cmd color
                 text++;
                 continue;
             }
@@ -160,6 +196,10 @@ public:
             }
             if (c == 0x81) { // set cmd color
                 rgb(color::CMDS[uint8_t(*text++)]);
+                continue;
+            }
+            if ((c & 0xf0) == 0xf0) { // palette color
+                rgb(color::PALETTE[c & 0xf]);
                 continue;
             }
             character(p, c);

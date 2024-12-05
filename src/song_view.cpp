@@ -373,7 +373,8 @@ void draw() {
         dc.rgb(color::BLACK);
         dc.fill({ p + ivec2(28, 11), { 48, 8 } });
         dc.fill({ p + ivec2(27, 12), { 50, 6 } });
-        dc.rgb(color::mix(color::GREEN, 0, 0.2f));
+        // dc.rgb(color::mix(color::GREEN, 0, 0.2f));
+        dc.rgb(color::mix(color::C64[11], 0, 0.2f));
         dc.fill({ p + ivec2(29, 13), ivec2(sid::chan_level(c) * 46.0f + 0.9f, 4) });
     }
 
@@ -612,9 +613,9 @@ void draw() {
                     b.order[c][i] = g_song.song_order[mark_chan_min + c][mark_row_min + i];
                 }
             }
-            g_edit_mode       = EditMode::Song;
-            g_cursor_chan     = mark_chan_min;
-            g_cursor_song_row = mark_row_min;
+            // g_edit_mode       = EditMode::Song;
+            // g_cursor_chan     = mark_chan_min;
+            // g_cursor_song_row = mark_row_min;
         }
         gui::separator();
     }
@@ -760,9 +761,9 @@ void draw() {
                     dst.rows[i] = src.rows[i + mark_row_min];
                 }
             }
-            g_edit_mode          = EditMode::Pattern;
-            g_cursor_chan        = mark_chan_min;
-            g_cursor_pattern_row = mark_row_min;
+            // g_edit_mode          = EditMode::Pattern;
+            // g_cursor_chan        = mark_chan_min;
+            // g_cursor_pattern_row = mark_row_min;
         }
         gui::separator();
 

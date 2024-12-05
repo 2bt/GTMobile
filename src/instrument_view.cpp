@@ -6,7 +6,7 @@
 #include <cassert>
 
 
-#define DEBUG_TABLE 1
+#define DEBUG_TABLE 0
 
 
 namespace instrument_view {
@@ -406,8 +406,8 @@ void draw() {
     gui::input_text(instr.name);
 
     {
-        int adsr_w = 4 * 8 + 4;
-        int vib_w  = 7 * 8;
+        int adsr_w = 5 * 8;
+        int vib_w  = 8 * 8;
         int gate_w = 2 * 8;
         int pad    = app::CANVAS_WIDTH - app::BUTTON_HEIGHT * 2 - adsr_w - vib_w - gate_w * 2;
         pad /= 4;
@@ -418,7 +418,7 @@ void draw() {
         // adsr
         gui::item_size({ adsr_w, app::BUTTON_HEIGHT });
         gui::button_style(gui::ButtonStyle::PaddedTableCell);
-        sprintf(str, "%02X\x80%02X", instr.ad, instr.sr);
+        sprintf(str, "%02X %02X", instr.ad, instr.sr);
         if (gui::button(str, g_cursor_select == CursorSelect::Adsr)) {
             g_cursor_select = CursorSelect::Adsr;
         }
@@ -426,12 +426,19 @@ void draw() {
         // vibrato
         gui::same_line();
         gui::item_size({ vib_w, app::BUTTON_HEIGHT });
-        int idx = instr.ptr[gt::STBL] - 1;
-        sprintf(str, "%02X\x80%02X\x80%02X", instr.vibdelay,
-                g_song.ltable[gt::STBL][idx],
-                g_song.rtable[gt::STBL][idx]);
-        if (gui::button(str, g_cursor_select == CursorSelect::Vibrato)) {
-            g_cursor_select = CursorSelect::Vibrato;
+        {
+            int idx = instr.ptr[gt::STBL] - 1;
+            int lval = g_song.ltable[gt::STBL][idx];
+            int rval = g_song.rtable[gt::STBL][idx];
+            if (lval < 0x80) {
+                sprintf(str, "%02X %02X %02X", instr.vibdelay, lval, rval);
+            }
+            else {
+                sprintf(str, "%02X %02X *%X", instr.vibdelay, lval & 0x7f, rval);
+            }
+            if (gui::button(str, g_cursor_select == CursorSelect::Vibrato)) {
+                g_cursor_select = CursorSelect::Vibrato;
+            }
         }
 
 
@@ -567,60 +574,51 @@ void draw() {
         uint8_t& rval = rtable[start_row + r];
         assert(lval != 0xff);
 
-        // chose colors
-        uint32_t colors[2] = {
-            color::WHITE,
-            color::WHITE,
-        };
+        ivec2 p = box.pos + ivec2(5, 6);
+        char* s = str;
         if (g_table == gt::WTBL) {
             // left side:
             // + 00-0F delay
             // + 10-DF waveform
             // + E0-EF inaudible waveform 00-0F
             // + F0-FE pattern command
-            // + FF    jump
             // right side:
             // + 00-5F relative note
             // + 60-7F negative relative note
             // + 80    no change
             // + 81-DD absolute notes C#0 - B-7
-
-            if (lval >= 0x10 && lval <= 0xef) {
-                colors[0] = color::CMDS[7]; // color like waveform command
-            }
-
             if (lval >= 0xf0 && lval <= 0xfe) {
-                // pattern command
                 int cmd = lval & 0xf;
-                constexpr bool valid_command[] = {
-                    0, 1, 1, 1,
-                    1, 1, 1, 1,
-                    0, 1, 1, 1,
-                    1, 1, 0,
-                };
-                if (valid_command[cmd]) {
-                    colors[0] = color::CMDS[cmd];
-                    colors[1] = color::CMDS[cmd];
-                }
+                sprintf(s, "COMMAND \x81%c%X%02X", cmd, cmd, rval);
             }
-            else if (lval != 0xff) {
+            else {
+                if (lval < 0x10) {
+                    s += sprintf(s, "DELAY \xf3%X ", lval);
+                }
+                else {
+                    uint8_t v = lval;
+                    if (v >= 0xe0) v -= 0xe0;
+                    s += sprintf(s, "WAVE \xf2%02X ", v);
+                }
                 if (rval >= 0 && rval <= 0x7f) { // relative pitch
-                    colors[1] = color::CMDS[5]; // green
+                    int v = rval < 0x60 ? rval : rval - 0x80;
+                    s += sprintf(s, "\xf4%+3d ", v);
                 }
                 if (rval > 0x80 && rval <= 0xdf) { // absolute pitch
-                    colors[1] = color::CMDS[10]; // blue
+                    s += sprintf(s, "\xf5 %2d", rval - 0x80);
                 }
             }
         }
         else if (g_table == gt::PTBL) {
             // 01-7F pulse mod step time/speed
             // 8X-FX set pulsewidth XYY
-            // FF    jump
-            if (lval > 0 && lval <= 0x7f) { // mod step
-                colors[0] = colors[1] = color::CMDS[5]; // green
+            if (lval < 0x80) {
+                int v = int8_t(rval);
+                s += sprintf(s, "MOD \xf3%02X \xf4%c%02X", lval, "+-"[v < 0], abs(v));
             }
-            if (lval >= 0x80 && lval < 0xff) { // set
-                colors[0] = colors[1] = color::CMDS[10]; // blue
+            else {
+                int v = ((lval & 0xf) << 8) | rval;
+                s += sprintf(s, "SET    \xf5%03X", v);
             }
         }
         else if (g_table == gt::FTBL) {
@@ -628,30 +626,35 @@ void draw() {
             // 01-7F filter mod step time/speed
             // 80-F0 set params
             if (lval == 0) { // set
-                colors[0] = colors[1] = color::CMDS[10]; // blue
+                s += sprintf(s, "SET CUTOFF     \xf5%02X", rval);
             }
             if (lval >= 0x01 && lval <= 0x7f) { // mod
-                colors[0] = colors[1] = color::CMDS[5]; // green
+                int v = int8_t(rval);
+                s += sprintf(s, "MOD CUTOFF \xf3%02X \xf4%c%02X", lval, "+-"[v < 0], abs(v));
             }
             if (lval >= 0x80 && lval < 0xff) { // params
-                colors[0] = colors[1] = color::CMDS[4];
-            }
-        }
-        else if (g_table == gt::STBL) {
-            if (lval | rval) {
-                colors[0] = colors[1] = color::CMDS[5]; // green
+                s += sprintf(s, "PARAMS  ");
+
+
+                *s++ = (rval & 0x1) ? 0xf1 : 0xf7;
+                *s++ = '1';
+                *s++ = (rval & 0x2) ? 0xf1 : 0xf7;
+                *s++ = '2';
+                *s++ = (rval & 0x4) ? 0xf1 : 0xf7;
+                *s++ = '3';
+                *s++ = ' ';
+                *s++ = (lval & 0x10) ? 0xf1 : 0xf7;
+                *s++ = '\x14';
+                *s++ = (lval & 0x20) ? 0xf1 : 0xf7;
+                *s++ = '\x15';
+                *s++ = (lval & 0x40) ? 0xf1 : 0xf7;
+                *s++ = '\x16';
+                s += sprintf(s, " \xf1%X", rval >> 4);
             }
         }
 
-        sprintf(str, "%02X", lval);
-        dc.rgb(colors[0]);
-        ivec2 p = box.pos + ivec2(5, 6);
+        dc.rgb(color::WHITE);
         dc.text(p, str);
-        p.x += 20;
-        sprintf(str, "%02X", rval);
-        dc.rgb(colors[1]);
-        dc.text(p, str);
-
     }
     int y = gui::cursor().y + 1; // 1px padding
 
@@ -839,7 +842,7 @@ void draw() {
             int mode = (lval <= 0x0f) ? 0 : (lval <= 0xef) ? 1 : 2;
             gui::item_size({ app::CANVAS_WIDTH / 3, app::BUTTON_HEIGHT });
             gui::button_style(gui::ButtonStyle::RadioLeft);
-            if (gui::button("WAIT", mode == 0) && mode != 0) {
+            if (gui::button("DELAY", mode == 0) && mode != 0) {
                 mode = 0;
                 lval = 0;
             }
@@ -914,13 +917,13 @@ void draw() {
 
                 if (mode == 0) {
                     int v = rval < 0x60 ? rval : rval - 0x80;
-                    sprintf(str, "%c%02X", "+-"[v < 0], abs(v));
-                    gui::slider(app::CANVAS_WIDTH, str, v, -0x20, 0x20, &rval);
+                    sprintf(str, "%+3d", v);
+                    gui::slider(app::CANVAS_WIDTH, str, v, -32, 60, &rval);
                     rval = v >= 0 ? v : v + 0x80;
                 }
                 else if (mode == 1) {
                     int v = rval - 0x80;
-                    gui::slider(app::CANVAS_WIDTH, " %02X", v, 1, 95, &rval);
+                    gui::slider(app::CANVAS_WIDTH, " %2d", v, 1, 95, &rval);
                     rval = v + 0x80;
                 }
             }
@@ -948,7 +951,7 @@ void draw() {
             }
             gui::same_line();
             gui::button_style(gui::ButtonStyle::RadioRight);
-            if (gui::button("STEP PULSE WIDTH", mode == 1) && mode != 1) {
+            if (gui::button("MOD PULSE WIDTH", mode == 1) && mode != 1) {
                 mode = 1;
                 lval = 0x7f;
                 rval = 0x20;
@@ -992,7 +995,7 @@ void draw() {
             }
             gui::same_line();
             gui::button_style(gui::ButtonStyle::RadioRight);
-            if (gui::button("STEP CUTOFF", mode == 2) && mode != 2) {
+            if (gui::button("MOD CUTOFF", mode == 2) && mode != 2) {
                 mode = 2;
                 lval = 0x01;
                 rval = 0x00;
@@ -1002,17 +1005,18 @@ void draw() {
                 // set params
                 gui::button_style(gui::ButtonStyle::Normal);
                 gui::item_size({ app::CANVAS_WIDTH / 3, app::BUTTON_HEIGHT });
-                if (gui::button(gui::Icon::Lowpass, lval & 0x10)) lval ^= 0x10;
-                gui::same_line();
-                if (gui::button(gui::Icon::Bandpass, lval & 0x20)) lval ^= 0x20;
-                gui::same_line();
-                if (gui::button(gui::Icon::Highpass, lval & 0x40)) lval ^= 0x40;
 
                 if (gui::button("VOICE 1", rval & 0x1)) rval ^= 0x1;
                 gui::same_line();
                 if (gui::button("VOICE 2", rval & 0x2)) rval ^= 0x2;
                 gui::same_line();
                 if (gui::button("VOICE 3", rval & 0x4)) rval ^= 0x4;
+
+                if (gui::button(gui::Icon::Lowpass, lval & 0x10)) lval ^= 0x10;
+                gui::same_line();
+                if (gui::button(gui::Icon::Bandpass, lval & 0x20)) lval ^= 0x20;
+                gui::same_line();
+                if (gui::button(gui::Icon::Highpass, lval & 0x40)) lval ^= 0x40;
 
                 int v = rval >> 4;
                 gui::slider(app::CANVAS_WIDTH, "RES %X", v, 0, 0xf, &rval);

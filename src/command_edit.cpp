@@ -68,8 +68,10 @@ void draw() {
     gui::separator();
     if (gui::button("CLOSE")) {
         g_edit_enabled = false;
-        g_callback(g_command, g_command_data[g_command]);
     }
+
+    uint8_t prev_command = g_command;
+    uint8_t prev_data    = g_command_data[g_command];
 
     gui::cursor(cmd_cursor);
     gui::align(gui::Align::Left);
@@ -136,13 +138,13 @@ void draw() {
         auto& ltable = g_song.ltable[gt::STBL];
         auto& rtable = g_song.rtable[gt::STBL];
 
+        gui::align(gui::Align::Left);
         for (int i = 0; i < PAGE; ++i) {
             int r = i + scroll;
             if (r > 0) {
                 if (g_command == gt::CMD_VIBRATO)   r += 0x20;
                 if (g_command == gt::CMD_FUNKTEMPO) r += 0x40;
             }
-
             gui::item_size({ CC, app::MAX_ROW_HEIGHT });
             ivec2 p = gui::cursor() + ivec2(6);
 
@@ -151,22 +153,38 @@ void draw() {
 
             bool is_set = lval | rval;
             gui::button_style(is_set || r == 0 ? gui::ButtonStyle::Normal : gui::ButtonStyle::Shaded);
-            if (gui::button("", data == r)) {
-                data = r;
-            }
-            sprintf(str, "%02X", r);
-            dc.text(p, str);
-            p.x += 8 * 3;
+            char* s = str;
+            s += sprintf(s, "%02X  ", r);
             if (r == 0) {
-                if (g_command == gt::CMD_TONEPORTA) dc.text(p, "TIE NOTE");
-                else if (g_command == gt::CMD_FUNKTEMPO) dc.text(p, "NO CHANGE");
-                else dc.text(p, "OFF");
+                if (g_command == gt::CMD_TONEPORTA) sprintf(s, "TIE NOTE");
+                else if (g_command == gt::CMD_FUNKTEMPO) sprintf(s, "NO CHANGE");
+                else sprintf(s, "OFF");
             }
             if (is_set) {
-                sprintf(str, "%02X\x80%02X", lval, rval);
+                if (g_command <= gt::CMD_TONEPORTA) {
+                    if (lval < 0x80) {
+                        sprintf(s, "%02X %02X", lval, rval);
+                    }
+                    else {
+                        sprintf(s, "   *%X", rval);
+                    }
+                }
+                else if (g_command == gt::CMD_VIBRATO) {
+                    if (lval < 0x80) {
+                        sprintf(s, "%02X %02X", lval, rval);
+                    }
+                    else {
+                        sprintf(s, "%02X *%X", lval & 0x7f, rval);
+                    }
+                }
+                else {
+                    sprintf(s, "%02X %02X", lval, rval);
+                }
                 dc.text(p, str);
             }
+            if (gui::button(str, data == r)) data = r;
         }
+        gui::align(gui::Align::Center);
         gui::button_style(gui::ButtonStyle::Normal);
 
         gui::cursor(table_cursor + ivec2(CC, 0));
@@ -271,8 +289,8 @@ void draw() {
         for (int i = 0; i < PAGE; ++i) {
             int r = i + scroll;
             gt::Instrument const& instr = g_song.instruments[r];
-            sprintf(str, "%02X %s", r, instr.name.data());
-            gui::disabled(instr.ptr[g_command - gt::CMD_SETWAVEPTR] == 0);
+            sprintf(str, "%02X %s", r, r == 0 ? "OFF" : instr.name.data());
+            gui::disabled(r != 0 && instr.ptr[g_command - gt::CMD_SETWAVEPTR] == 0);
             if (gui::button(str, data == r)) data = r;
         }
         gui::disabled(false);
@@ -308,6 +326,11 @@ void draw() {
         int v = data & 0x7f;
         gui::slider(WIDTH, "%02X", v, 0, 0x7f);
         data = (data & 0x80) | v;
+    }
+
+    // apply changes
+    if (g_command != prev_command || g_command_data[g_command] != prev_data) {
+        g_callback(g_command, g_command_data[g_command]);
     }
 
     gui::end_window();

@@ -387,11 +387,26 @@ bool Song::save(std::ostream& stream) {
     }
 
     // tables
-    for (int i = 0; i < MAX_TABLES; i++) {
-        int l = get_table_length(i);
+    for (int t = 0; t < MAX_TABLES; t++) {
+        int l = get_table_length(t);
         write<uint8_t>(stream, l);
-        stream.write((char const*) ltable[i].data(), l);
-        stream.write((char const*) rtable[i].data(), l);
+        // fix table pointer commands
+        // map instrument back to table row
+        auto rtbl = rtable[t];
+        if (t == WTBL) {
+            for (int i = 0; i < MAX_TABLELEN; ++i) {
+                if ((ltable[WTBL][i] & 0xf0) != 0xf0) continue;
+                uint8_t& data = rtbl[i];
+                if (data == 0) continue;
+                uint8_t cmd = ltable[WTBL][i] & 0xf;
+                if (cmd >= CMD_SETPULSEPTR && cmd <= CMD_SETFILTERPTR) {
+                    Instrument const& instr = instruments[data];
+                    data = instr.ptr[cmd - CMD_SETWAVEPTR];
+                }
+            }
+        }
+        stream.write((char const*) ltable[t].data(), l);
+        stream.write((char const*) rtbl.data(), l);
     }
 
     // patterns
@@ -411,37 +426,19 @@ bool Song::save(std::ostream& stream) {
         Pattern const& patt = patterns[i];
         write<uint8_t>(stream, patt.len + 1);
         for (int r = 0; r < patt.len; ++r) {
-            write(stream, patt.rows[r]);
+            // fix table pointer commands
+            // map instrument back to table row
+            PatternRow row = patt.rows[r];
+            if (row.data != 0 && row.command >= CMD_SETWAVEPTR && row.command <= CMD_SETFILTERPTR) {
+                Instrument const& instr = instruments[row.data];
+                row.data = instr.ptr[row.command - CMD_SETWAVEPTR];
+            }
+            write(stream, row);
         }
         write<uint8_t>(stream, ENDPATT);
         write<uint8_t>(stream, 0);
         write<uint8_t>(stream, 0);
         write<uint8_t>(stream, 0);
-    }
-
-
-    // fix table pointer commands
-    // map instrument back to table row
-    for (Pattern& patt : patterns) {
-        for (PatternRow& row : patt.rows) {
-            if (row.data == 0) continue;
-            if (row.command >= CMD_SETWAVEPTR && row.command <= CMD_SETFILTERPTR) {
-                int t = row.command - CMD_SETWAVEPTR;
-                Instrument const& instr = instruments[row.data];
-                row.data = instr.ptr[t];
-            }
-        }
-    }
-    for (int i = 0; i < MAX_TABLELEN; ++i) {
-        if ((ltable[WTBL][i] & 0xf0) != 0xf0) continue;
-        uint8_t& data = rtable[WTBL][i];
-        if (data == 0) continue;
-        uint8_t cmd = ltable[WTBL][i] & 0xf;
-        if (cmd >= CMD_SETPULSEPTR && cmd <= CMD_SETFILTERPTR) {
-            int t = cmd - CMD_SETWAVEPTR;
-            Instrument const& instr = instruments[data];
-            data = instr.ptr[t];
-        }
     }
 
     return true;
