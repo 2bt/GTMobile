@@ -290,9 +290,11 @@ void draw() {
             int r = i + scroll;
             gt::Instrument const& instr = g_song.instruments[r];
             sprintf(str, "%02X %s", r, r == 0 ? "OFF" : instr.name.data());
-            gui::disabled(r != 0 && instr.ptr[g_command - gt::CMD_SETWAVEPTR] == 0);
+            bool is_set = r == 0 || instr.ptr[g_command - gt::CMD_SETWAVEPTR] != 0;
+            gui::button_style(is_set ? gui::ButtonStyle::Normal : gui::ButtonStyle::Shaded);
             if (gui::button(str, data == r)) data = r;
         }
+        gui::button_style(gui::ButtonStyle::Normal);
         gui::disabled(false);
         gui::align(gui::Align::Center);
 
