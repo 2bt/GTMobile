@@ -63,6 +63,7 @@ void load() {
         return;
     }
     instrument_view::InstrumentCopyBuffer b = {};
+    b.instr_num = 0;
     b.instr.ad = read8(stream);
     b.instr.sr = read8(stream);
     read(stream, b.instr.ptr);

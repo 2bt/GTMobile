@@ -301,9 +301,10 @@ void draw_table_debug() {
 
 
 void InstrumentCopyBuffer::copy() {
-    instr  = g_song.instruments[piano::instrument()];
-    ltable = g_song.ltable;
-    rtable = g_song.rtable;
+    instr_num = piano::instrument();
+    instr     = g_song.instruments[instr_num];
+    ltable    = g_song.ltable;
+    rtable    = g_song.rtable;
 }
 
 
@@ -341,6 +342,37 @@ void InstrumentCopyBuffer::paste() const {
             dst.ptr[t] = 0;
             continue;
         }
+
+
+        // check if we can borrow new table
+        if (instr_num > 0 && instr_num != piano::instrument()) {
+            gt::Instrument const& orig_instr = g_song.instruments[instr_num];
+            if (orig_instr.ptr[t] > 0) {
+                int i = orig_instr.ptr[t] - 1;
+                int j = instr.ptr[t] - 1;
+                bool borrow = true;
+                for (; i < gt::MAX_TABLELEN && j < gt::MAX_TABLELEN; ++i, ++j) {
+                    if (dst_ltable[i] != src_ltable[j]) {
+                        borrow = false;
+                        break;
+                    }
+                    if (dst_ltable[i] == 0xff) {
+                        if (dst_rtable[i] - i == src_rtable[j] - j) break;
+                    }
+                    if (dst_rtable[i] != src_rtable[j]) {
+                        borrow = false;
+                        break;
+                    }
+                }
+                if (borrow) {
+                    dst.ptr[t] = instr.ptr[t];
+                    continue;
+                }
+            }
+        }
+
+
+
 
         // check if there's enough space
         int start_row = instr.ptr[t] - 1;
@@ -434,7 +466,7 @@ void draw() {
                 sprintf(str, "%02X %02X %02X", instr.vibdelay, lval, rval);
             }
             else {
-                sprintf(str, "%02X %02X *%X", instr.vibdelay, lval & 0x7f, rval);
+                sprintf(str, "%02X %02X \x17%X", instr.vibdelay, lval & 0x7f, rval); // RT speed
             }
             if (gui::button(str, g_cursor_select == CursorSelect::Vibrato)) {
                 g_cursor_select = CursorSelect::Vibrato;
@@ -602,10 +634,10 @@ void draw() {
                 }
                 if (rval >= 0 && rval <= 0x7f) { // relative pitch
                     int v = rval < 0x60 ? rval : rval - 0x80;
-                    s += sprintf(s, "\xf4%+3d ", v);
+                    s += sprintf(s, "\xf4%+03d ", v);
                 }
                 if (rval > 0x80 && rval <= 0xdf) { // absolute pitch
-                    s += sprintf(s, "\xf5 %2d", rval - 0x80);
+                    s += sprintf(s, "\xf5 %02d", rval - 0x80);
                 }
             }
         }
@@ -634,8 +666,6 @@ void draw() {
             }
             if (lval >= 0x80 && lval < 0xff) { // params
                 s += sprintf(s, "PARAMS  ");
-
-
                 *s++ = (rval & 0x1) ? 0xf1 : 0xf7;
                 *s++ = '1';
                 *s++ = (rval & 0x2) ? 0xf1 : 0xf7;
@@ -917,13 +947,13 @@ void draw() {
 
                 if (mode == 0) {
                     int v = rval < 0x60 ? rval : rval - 0x80;
-                    sprintf(str, "%+3d", v);
+                    sprintf(str, "%+03d", v);
                     gui::slider(app::CANVAS_WIDTH, str, v, -32, 60, &rval);
                     rval = v >= 0 ? v : v + 0x80;
                 }
                 else if (mode == 1) {
                     int v = rval - 0x80;
-                    gui::slider(app::CANVAS_WIDTH, " %2d", v, 1, 95, &rval);
+                    gui::slider(app::CANVAS_WIDTH, " %02d", v, 1, 95, &rval);
                     rval = v + 0x80;
                 }
             }
@@ -983,8 +1013,8 @@ void draw() {
             gui::button_style(gui::ButtonStyle::RadioLeft);
             if (gui::button("SET PARAMS", mode == 0) && mode != 0) {
                 mode = 0;
-                lval = 0x80;
-                rval = 0xF0;
+                lval = 0x90;
+                rval = 0xF1;
             }
             gui::same_line();
             gui::button_style(gui::ButtonStyle::RadioCenter);

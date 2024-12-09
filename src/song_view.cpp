@@ -29,17 +29,17 @@ enum class EditMode {
 };
 
 
-gt::Song&       g_song               = app::song();
-int             g_song_page          = 8;
-bool            g_recording;
-EditMode        g_edit_mode;
-int             g_song_scroll;
-int             g_pattern_scroll;
-int             g_cursor_pattern_row = 0;
-int             g_cursor_song_row    = 0;
-int             g_cursor_chan        = 0;
-int             g_transpose          = 0;
-bool            g_order_edit_enabled = false;
+gt::Song& g_song               = app::song();
+int       g_song_page          = 8;
+bool      g_recording;
+EditMode  g_edit_mode;
+int       g_song_scroll;
+int       g_pattern_scroll;
+int       g_cursor_pattern_row = 0;
+int       g_cursor_song_row    = 0;
+int       g_cursor_chan        = 0;
+int       g_transpose          = 0;
+bool      g_order_edit_enabled = false;
 
 std::array<bool, gt::MAX_PATT> g_pattern_empty;
 
@@ -194,9 +194,7 @@ void toggle_follow() {
 void draw_pattern() {
     int patt_num = g_song.song_order[g_cursor_chan][g_cursor_song_row].pattnum;
     gt::Pattern& patt = g_song.patterns[patt_num];
-
-
-
+    // TODO
 }
 
 
@@ -255,8 +253,6 @@ void draw() {
     // put text in the center of the row
     int text_offset = (settings.row_height - 7) / 2;
     char str[32];
-
-
 
     if (g_edit_mode == EditMode::SongMark) {
         update_mark(g_cursor_song_row, g_song_page, g_song.song_len, g_song_scroll);
@@ -560,7 +556,7 @@ void draw() {
         if (gui::button(gui::Icon::AddRowAbove)) {
             for (auto& order : g_song.song_order) {
                 std::rotate(order.begin() + pos, order.end() - 1, order.end());
-                // order[pos] = order[pos + 1];
+                order[pos] = order[pos + 1];
                 order[pos] = {};
             }
             if (g_song.song_loop >= pos) ++g_song.song_loop;
@@ -570,7 +566,7 @@ void draw() {
             ++pos;
             for (auto& order : g_song.song_order) {
                 std::rotate(order.begin() + pos, order.end() - 1, order.end());
-                // order[pos] = order[pos - 1];
+                order[pos] = order[pos - 1];
                 order[pos] = {};
             }
             if (g_song.song_loop >= pos) ++g_song.song_loop;
@@ -613,9 +609,6 @@ void draw() {
                     b.order[c][i] = g_song.song_order[mark_chan_min + c][mark_row_min + i];
                 }
             }
-            // g_edit_mode       = EditMode::Song;
-            // g_cursor_chan     = mark_chan_min;
-            // g_cursor_song_row = mark_row_min;
         }
         gui::separator();
     }
@@ -722,21 +715,21 @@ void draw() {
         gui::disabled(false);
         gui::separator();
 
-        // navigation
-        {
-            gui::disabled(g_cursor_pattern_row == 0);
-            if (gui::button(gui::Icon::MoveUp)) {
-                --g_cursor_pattern_row;
-                g_pattern_scroll = clamp(g_pattern_scroll, g_cursor_pattern_row - pattern_page + 1, g_cursor_pattern_row);
-            }
-            gui::disabled(g_cursor_pattern_row >= patt.len - 1);
-            if (gui::button(gui::Icon::MoveDown)) {
-                ++g_cursor_pattern_row;
-                g_pattern_scroll = clamp(g_pattern_scroll, g_cursor_pattern_row - pattern_page + 1, g_cursor_pattern_row);
-            }
-            gui::disabled(false);
-        }
-        gui::separator();
+        // // navigation
+        // {
+        //     gui::disabled(g_cursor_pattern_row == 0);
+        //     if (gui::button(gui::Icon::MoveUp)) {
+        //         --g_cursor_pattern_row;
+        //         g_pattern_scroll = clamp(g_pattern_scroll, g_cursor_pattern_row - pattern_page + 1, g_cursor_pattern_row);
+        //     }
+        //     gui::disabled(g_cursor_pattern_row >= patt.len - 1);
+        //     if (gui::button(gui::Icon::MoveDown)) {
+        //         ++g_cursor_pattern_row;
+        //         g_pattern_scroll = clamp(g_pattern_scroll, g_cursor_pattern_row - pattern_page + 1, g_cursor_pattern_row);
+        //     }
+        //     gui::disabled(false);
+        //     gui::separator();
+        // }
     }
 
     if (g_edit_mode == EditMode::PatternMark) {
@@ -761,9 +754,16 @@ void draw() {
                     dst.rows[i] = src.rows[i + mark_row_min];
                 }
             }
-            // g_edit_mode          = EditMode::Pattern;
-            // g_cursor_chan        = mark_chan_min;
-            // g_cursor_pattern_row = mark_row_min;
+        }
+        // delete
+        if (gui::button(gui::Icon::X)) {
+            for (int c = mark_chan_min; c <= mark_chan_max; ++c) {
+                gt::Pattern& patt = g_song.patterns[patt_nums[c]];
+                for (int i = mark_row_min; i <= mark_row_max; ++i) {
+                    if (i >= patt.len) break;
+                    patt.rows[i] = gt::PatternRow{};
+                }
+            }
         }
         gui::separator();
 

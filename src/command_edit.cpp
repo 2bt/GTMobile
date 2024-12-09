@@ -166,7 +166,7 @@ void draw() {
                         sprintf(s, "%02X %02X", lval, rval);
                     }
                     else {
-                        sprintf(s, "   *%X", rval);
+                        sprintf(s, "   \x17%X", rval); // RT speed
                     }
                 }
                 else if (g_command == gt::CMD_VIBRATO) {
@@ -174,7 +174,7 @@ void draw() {
                         sprintf(s, "%02X %02X", lval, rval);
                     }
                     else {
-                        sprintf(s, "%02X *%X", lval & 0x7f, rval);
+                        sprintf(s, "%02X \x17%X", lval & 0x7f, rval); // RT speed
                     }
                 }
                 else {

@@ -28,7 +28,10 @@ JNIEnv*            g_env;
 
 bool start_audio() {
     LOGI("start_audio");
-    if (g_stream) return true;
+    if (g_stream) {
+        stop_audio();
+        //return true;
+    }
 
     oboe::AudioStreamBuilder builder;
     builder.setDirection(oboe::Direction::Output);
