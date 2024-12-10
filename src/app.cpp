@@ -188,7 +188,7 @@ void reset() {
     command_edit::reset();
     g_player.reset();
     g_song.clear();
-    sid::init(MIXRATE);
+    sid::init();
 }
 
 void init() {

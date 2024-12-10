@@ -12,9 +12,13 @@ class Native {
     public static native void draw();
     public static native void touch(int x, int y, int action);
     public static native void key(int key, int unicode);
-    public static native void startAudio();
-    public static native void stopAudio();
 
+    public static native void setPlaying(boolean stream, boolean player);
+    public static native boolean isStreamPlaying();
+    public static native boolean isPlayerPlaying();
+    public static native String getSongName();
+
+    // settings
     public static native String getValueName(int i);
     public static native int getValue(int i);
     public static native void setValue(int i, int v);

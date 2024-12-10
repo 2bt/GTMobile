@@ -1,6 +1,7 @@
 #include "log.hpp"
 #include "app.hpp"
 #include "gui.hpp"
+#include "sid.hpp"
 #include "settings_view.hpp"
 
 #include <vector>
@@ -26,12 +27,19 @@ AAssetManager*     g_asset_manager;
 JNIEnv*            g_env;
 
 
+void stop_audio() {
+    LOGI("stop_audio");
+    if (!g_stream) return;
+    g_stream->stop();
+    g_stream->close();
+    delete g_stream;
+    g_stream = nullptr;
+}
+
+
 bool start_audio() {
     LOGI("start_audio");
-    if (g_stream) {
-        stop_audio();
-        //return true;
-    }
+    if (g_stream) return true;
 
     oboe::AudioStreamBuilder builder;
     builder.setDirection(oboe::Direction::Output);
@@ -59,15 +67,6 @@ bool start_audio() {
         return false;
     }
     return true;
-}
-
-void stop_audio() {
-    LOGI("stop_audio");
-    if (!g_stream) return;
-    g_stream->stop();
-    g_stream->close();
-    delete g_stream;
-    g_stream = nullptr;
 }
 
 
@@ -120,7 +119,7 @@ void show_keyboard(bool enabled) {
 extern "C" {
     JNIEXPORT void JNICALL Java_com_twobit_gtmobile_Native_init(
             JNIEnv* env,
-            jobject thiz,
+            jclass,
             jobject asset_manager,
             jstring jstorage_dir,
             jfloat refresh_rate)
@@ -133,44 +132,55 @@ extern "C" {
         app::init();
         gui::set_refresh_rate(refresh_rate);
     }
-    JNIEXPORT void JNICALL Java_com_twobit_gtmobile_Native_free(JNIEnv* env, jobject thiz) {
+    JNIEXPORT void JNICALL Java_com_twobit_gtmobile_Native_free(JNIEnv* env, jclass) {
         g_env = env;
         app::free();
     }
-    JNIEXPORT void JNICALL Java_com_twobit_gtmobile_Native_resize(JNIEnv* env, jobject thiz, jint width, jint height) {
+    JNIEXPORT void JNICALL Java_com_twobit_gtmobile_Native_resize(JNIEnv* env, jclass, jint width, jint height) {
         g_env = env;
         app::resize(width, height);
     }
-    JNIEXPORT void JNICALL Java_com_twobit_gtmobile_Native_draw(JNIEnv* env, jobject thiz) {
+    JNIEXPORT void JNICALL Java_com_twobit_gtmobile_Native_draw(JNIEnv* env, jclass) {
         g_env = env;
         app::draw();
     }
-    JNIEXPORT void JNICALL Java_com_twobit_gtmobile_Native_touch(JNIEnv* env, jobject thiz, jint x, jint y, jint action) {
+    JNIEXPORT void JNICALL Java_com_twobit_gtmobile_Native_touch(JNIEnv* env, jclass, jint x, jint y, jint action) {
         g_env = env;
         app::touch(x, y, action == 0 || action == 2);
     }
-    JNIEXPORT void JNICALL Java_com_twobit_gtmobile_Native_key(JNIEnv* env, jobject thiz, jint key, jint unicode) {
+    JNIEXPORT void JNICALL Java_com_twobit_gtmobile_Native_key(JNIEnv* env, jclass, jint key, jint unicode) {
         g_env = env;
         app::key(key, unicode);
     }
-    JNIEXPORT void JNICALL Java_com_twobit_gtmobile_Native_startAudio(JNIEnv* env, jobject thiz) {
+    JNIEXPORT void JNICALL Java_com_twobit_gtmobile_Native_setPlaying(JNIEnv* env, jclass, jboolean stream, jboolean player) {
         g_env = env;
-        start_audio();
-    }
-    JNIEXPORT void JNICALL Java_com_twobit_gtmobile_Native_stopAudio(JNIEnv* env, jobject thiz) {
-        g_env = env;
-        if (!settings_view::settings().play_in_background) {
-            stop_audio();
+        if (player != app::player().is_playing()) {
+            if (player) app::player().play_song();
+            else {
+                sid::init(); // reset SID to make it silent
+                app::player().pause_song();
+            }
         }
+        if (stream) start_audio();
+        else stop_audio();
+    }
+    JNIEXPORT jboolean JNICALL Java_com_twobit_gtmobile_Native_isStreamPlaying(JNIEnv* env, jclass) {
+        return g_stream != nullptr;
+    }
+    JNIEXPORT jboolean JNICALL Java_com_twobit_gtmobile_Native_isPlayerPlaying(JNIEnv* env, jclass) {
+        return app::player().is_playing();
     }
 
+    JNIEXPORT jstring JNICALL Java_com_twobit_gtmobile_Native_getSongName(JNIEnv* env, jclass) {
+        return env->NewStringUTF(app::song().song_name.data());
+    }
 
     enum {
         #define X(n, ...) SETTING_##n,
         SETTINGS(X)
         #undef X
     };
-    JNIEXPORT jstring JNICALL Java_com_twobit_gtmobile_Native_getValueName(JNIEnv* env, jobject thiz, jint i) {
+    JNIEXPORT jstring JNICALL Java_com_twobit_gtmobile_Native_getValueName(JNIEnv* env, jclass, jint i) {
         switch (i) {
         #define X(n, ...) case SETTING_##n: return env->NewStringUTF(#n);
         SETTINGS(X)
@@ -178,7 +188,7 @@ extern "C" {
         default: return nullptr;
         }
     }
-    JNIEXPORT jint JNICALL Java_com_twobit_gtmobile_Native_getValue(JNIEnv* env, jobject thiz, jint i) {
+    JNIEXPORT jint JNICALL Java_com_twobit_gtmobile_Native_getValue(JNIEnv* env, jclass, jint i) {
         switch (i) {
         #define X(n, ...) case SETTING_##n: return settings_view::settings().n;
         SETTINGS(X)
@@ -186,7 +196,7 @@ extern "C" {
         default: return 0;
         }
     }
-    JNIEXPORT void JNICALL Java_com_twobit_gtmobile_Native_setValue(JNIEnv* env, jobject thiz, jint i, jint v) {
+    JNIEXPORT void JNICALL Java_com_twobit_gtmobile_Native_setValue(JNIEnv* env, jclass, jint i, jint v) {
         switch (i) {
         #define X(n, ...) case SETTING_##n: settings_view::mutable_settings().n = v; break;
         SETTINGS(X)

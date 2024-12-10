@@ -21,17 +21,19 @@ namespace sid {
 namespace {
     enum {
         PALCLOCKRATE = 985248,
+        MIXRATE      = 44100,
+
     };
     SID        g_sid;
     SID::State g_state;
 } // namespace
 
 
-void init(int mixrate) {
+void init() {
     g_sid.reset();
     g_sid.set_chip_model(MOS8580);
     // g_sid.set_sampling_parameters(PALCLOCKRATE, SAMPLE_RESAMPLE_INTERPOLATE, mixrate);
-    g_sid.set_sampling_parameters(PALCLOCKRATE, SAMPLE_FAST, mixrate);
+    g_sid.set_sampling_parameters(PALCLOCKRATE, SAMPLE_FAST, MIXRATE);
 }
 
 void write(int reg, uint8_t value) {
