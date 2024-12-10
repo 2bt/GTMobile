@@ -64,29 +64,25 @@ private:
         uint8_t  gatetimer;
     };
 
-    gt::Song const& m_song;
+    enum class Action { none, start, pause, stop };
 
     // play options
-    const int      m_multiplier       = 1;      // for multi speed
-    const uint16_t m_adparam          = 0x0f00; // HR
-    const bool     m_optimizepulse    = false;
-    const bool     m_optimizerealtime = false;
+    static constexpr int      m_multiplier       = 1;      // for multi speed
+    static constexpr uint16_t m_adparam          = 0x0f00; // HR
+    static constexpr bool     m_optimizepulse    = false;
+    static constexpr bool     m_optimizerealtime = false;
 
-    enum class Action {
-        none, start, pause, stop,
-    };
-
-    Action m_action     = Action::none;
-    bool   m_is_playing = false;
-
-    bool   m_loop_pattern     = false;
-    bool   m_loop_pattern_req = false;
+    gt::Song const* m_song;
+    Action          m_action           = Action::none;
+    bool            m_is_playing       = false;
+    bool            m_loop_pattern     = false;
+    bool            m_loop_pattern_req = false;
 
 public:
-    std::array<int, MAX_CHN> m_start_song_pos;
-    std::array<int, MAX_CHN> m_start_patt_pos;
-    std::array<int, MAX_CHN> m_current_song_pos;
-    std::array<int, MAX_CHN> m_current_patt_pos;
+    std::array<int, MAX_CHN> m_start_song_pos   = {};
+    std::array<int, MAX_CHN> m_start_patt_pos   = {};
+    std::array<int, MAX_CHN> m_current_song_pos = {};
+    std::array<int, MAX_CHN> m_current_patt_pos = {};
 private:
 
     std::array<Channel, MAX_CHN> m_channels     = {};

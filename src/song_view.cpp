@@ -29,18 +29,21 @@ enum class EditMode {
 };
 
 
-gt::Song& g_song               = app::song();
-int       g_song_page          = 8;
-bool      g_recording;
-EditMode  g_edit_mode;
-int       g_song_scroll;
-int       g_pattern_scroll;
-int       g_cursor_pattern_row = 0;
-int       g_cursor_song_row    = 0;
-int       g_cursor_chan        = 0;
-int       g_transpose          = 0;
-bool      g_order_edit_enabled = false;
-
+gt::Song&                      g_song               = app::song();
+int                            g_song_page          = 8;
+bool                           g_recording          = false;
+EditMode                       g_edit_mode          = EditMode::Pattern;
+int                            g_song_scroll        = 0;
+int                            g_pattern_scroll     = 0;
+int                            g_cursor_pattern_row = 0;
+int                            g_cursor_song_row    = 0;
+int                            g_cursor_chan        = 0;
+int                            g_transpose          = 0;
+bool                           g_mark_edit          = false;
+int                            g_mark_chan;
+int                            g_mark_row;
+bool                           g_show_order_edit_window   = false;
+bool                           g_show_pattern_edit_window = false;
 std::array<bool, gt::MAX_PATT> g_pattern_empty;
 
 
@@ -67,16 +70,16 @@ void check_empty_patterns() {
 
 
 void init_order_edit() {
-    g_order_edit_enabled = true;
+    g_show_order_edit_window = true;
     g_transpose = g_song.song_order[g_cursor_chan][g_cursor_song_row].trans;
     check_empty_patterns();
 }
 
 
 void exit_order_edit() {
-    g_order_edit_enabled = false;
+    g_show_order_edit_window = false;
     // change transpose on all rows below
-    auto&     order = g_song.song_order[g_cursor_chan];
+    auto& order = g_song.song_order[g_cursor_chan];
     int trans = order[g_cursor_song_row].trans;
     for (int i = g_cursor_song_row; i < g_song.song_len; ++i) {
         if (order[i].trans != trans) break;
@@ -86,7 +89,7 @@ void exit_order_edit() {
 
 
 void draw_order_edit() {
-    if (!g_order_edit_enabled) return;
+    if (!g_show_order_edit_window) return;
     enum {
         MIN_HEIGHT = 3 * app::BUTTON_HEIGHT + gui::FRAME_WIDTH * 2,
         CW = (app::CANVAS_WIDTH - 12) / 8,
@@ -126,11 +129,6 @@ void draw_order_edit() {
     gui::end_window();
 }
 
-
-// song marking
-static bool g_mark_edit = false;
-static int  g_mark_chan;
-static int  g_mark_row;
 
 void update_mark(int& row, int page, int len, int& scroll) {
     constexpr float SCROLL_DELAY = 1.0f;
@@ -174,12 +172,18 @@ int song_position() {
 }
 
 void reset() {
-    g_recording          = false;
-    g_edit_mode          = EditMode::Pattern;
-    g_cursor_pattern_row = 0;
-    g_cursor_song_row    = 0;
-    g_song_scroll        = 0;
-    g_pattern_scroll     = 0;
+    g_song_page                = 8;
+    g_recording                = false;
+    g_edit_mode                = EditMode::Pattern;
+    g_song_scroll              = 0;
+    g_pattern_scroll           = 0;
+    g_cursor_pattern_row       = 0;
+    g_cursor_song_row          = 0;
+    g_cursor_chan              = 0;
+    g_transpose                = 0;
+    g_mark_edit                = false;
+    g_show_order_edit_window   = false;
+    g_show_pattern_edit_window = false;
 }
 
 bool get_follow() {
@@ -618,12 +622,10 @@ void draw() {
     static std::array<gt::Pattern, 3> pattern_copy_buffer;
     gt::Pattern& patt = g_song.patterns[patt_nums[g_cursor_chan]];
     if (g_edit_mode == EditMode::Pattern && g_cursor_pattern_row < patt.len) {
-
-        static bool show_window = false;
         if (gui::button(gui::Icon::DotDotDot)) {
-            show_window ^= 1;
+            g_show_pattern_edit_window ^= 1;
         }
-        if (show_window) {
+        if (g_show_pattern_edit_window) {
             gui::Box box = gui::begin_window({ app::CANVAS_WIDTH - 12, app::BUTTON_HEIGHT * 5 });
             gui::item_size({ box.size.x, app::BUTTON_HEIGHT });
             gui::text("PATTERN %02X", patt_nums[g_cursor_chan]);
@@ -660,7 +662,7 @@ void draw() {
             gui::disabled(false);
             gui::item_size({ box.size.x, app::BUTTON_HEIGHT });
             if (gui::button("CLOSE")) {
-                show_window = false;
+                g_show_pattern_edit_window = false;
                 for (int i = patt.len; i < gt::MAX_PATTROWS; ++i) {
                     patt.rows[i] = {};
                 }

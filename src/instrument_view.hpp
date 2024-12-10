@@ -3,6 +3,7 @@
 
 namespace instrument_view {
 
+    void reset();
     void draw();
 
     struct InstrumentCopyBuffer {

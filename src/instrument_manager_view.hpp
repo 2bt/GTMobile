@@ -3,6 +3,7 @@
 
 namespace instrument_manager_view {
 
+    void reset();
     void init();
     void draw();
 

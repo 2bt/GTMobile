@@ -20,11 +20,14 @@ enum class CursorSelect {
     Table,
 };
 
-gt::Song&    g_song          = app::song();
-CursorSelect g_cursor_select = {};
-int          g_table         = 0;
-int          g_cursor_row    = 0;
-int          g_scroll        = 0;
+gt::Song&          g_song              = app::song();
+CursorSelect       g_cursor_select     = {};
+int                g_table             = 0;
+int                g_scroll            = 0;
+int                g_cursor_row        = 0;
+std::array<int, 4> g_table_scroll      = {};
+bool               g_table_debug       = false;
+bool               g_draw_share_window = false;
 
 
 void add_table_row(int table, int pos) {
@@ -88,10 +91,7 @@ void draw_table_debug() {
         FilterTable,
         SpeedTable,
     };
-
-    static CursorSelect g_cursor_select = CursorSelect::WaveTable;
-    static int          g_cursor_row    = 0;
-    static int          g_table_scroll[4];
+    static CursorSelect g_cursor_select = {};
 
     gt::Instrument& instr = g_song.instruments[piano::instrument()];
     char str[32];
@@ -299,6 +299,15 @@ void draw_table_debug() {
 
 } // namespace
 
+void reset() {
+    g_cursor_select     = {};
+    g_table             = 0;
+    g_cursor_row        = 0;
+    g_scroll            = 0;
+    g_table_scroll      = {};
+    g_table_debug       = false;
+    g_draw_share_window = false;
+}
 
 void InstrumentCopyBuffer::copy() {
     instr_num = piano::instrument();
@@ -421,9 +430,8 @@ void InstrumentCopyBuffer::paste() const {
 void draw() {
     if (DEBUG_TABLE) {
         gui::item_size(app::BUTTON_HEIGHT);
-        static bool table_debug = false;
-        if (gui::button("", table_debug)) table_debug ^= 1;
-        if (table_debug) {
+        if (gui::button("", g_table_debug)) g_table_debug ^= 1;
+        if (g_table_debug) {
             draw_table_debug();
             return;
         }
@@ -520,7 +528,6 @@ void draw() {
     gui::button_style(gui::ButtonStyle::Normal);
 
     // instr sharing
-    static bool draw_share_window = false;
     size_t      share_count       = 0;
     if (instr.ptr[g_table] > 0) {
         for (size_t i = 0; i < gt::MAX_INSTR; ++i) {
@@ -532,7 +539,7 @@ void draw() {
     }
     gui::item_size({ app::BUTTON_HEIGHT * 2, app::BUTTON_HEIGHT });
     if (gui::button(gui::Icon::Share, share_count >= 2)) {
-        draw_share_window = true;
+        g_draw_share_window = true;
     }
     gui::item_size(app::CANVAS_WIDTH);
     gui::separator();
@@ -869,18 +876,18 @@ void draw() {
             // + E0-EF inaudible waveform 00-0F
             // + F0-FE pattern command
             // + FF    jump
-            int mode = (lval <= 0x0f) ? 0 : (lval <= 0xef) ? 1 : 2;
+            int mode = (lval <= 0x0f) ? 1 : (lval <= 0xef) ? 0 : 2;
             gui::item_size({ app::CANVAS_WIDTH / 3, app::BUTTON_HEIGHT });
             gui::button_style(gui::ButtonStyle::RadioLeft);
-            if (gui::button("DELAY", mode == 0) && mode != 0) {
+            if (gui::button("WAVE", mode == 0) && mode != 0) {
                 mode = 0;
-                lval = 0;
+                lval = 0x11;
             }
             gui::same_line();
             gui::button_style(gui::ButtonStyle::RadioCenter);
-            if (gui::button("WAVE", mode == 1) && mode != 1) {
+            if (gui::button("DELAY", mode == 1) && mode != 1) {
                 mode = 1;
-                lval = 0x11;
+                lval = 0;
             }
             gui::same_line();
             gui::button_style(gui::ButtonStyle::RadioRight);
@@ -896,12 +903,6 @@ void draw() {
 
             gui::button_style(gui::ButtonStyle::Normal);
             if (mode == 0) {
-                // wait
-                int v = lval;
-                gui::slider(app::CANVAS_WIDTH, "  %X", v, 0, 0xf, &lval);
-                lval = v;
-            }
-            else if (mode == 1) {
                 // wave
                 uint8_t v = lval;
                 if (v >= 0xe0) v -= 0xe0;
@@ -917,6 +918,12 @@ void draw() {
                 }
                 gui::same_line(false);
                 if (v < 0x10) v += 0xe0;
+                lval = v;
+            }
+            else if (mode == 1) {
+                // delay
+                int v = lval;
+                gui::slider(app::CANVAS_WIDTH, "  %X", v, 0, 0xf, &lval);
                 lval = v;
             }
             if (mode != 2) {
@@ -1070,7 +1077,7 @@ void draw() {
 
 
     // table sharing window
-    if (draw_share_window) {
+    if (g_draw_share_window) {
         int space = app::canvas_height() - 12 - app::BUTTON_HEIGHT * 2;
         int row_h = std::min<int>(space / 32, app::BUTTON_HEIGHT);
         enum {
@@ -1094,7 +1101,7 @@ void draw() {
             sprintf(str, "%02X %s", i, in.name.data());
             gui::disabled(in.ptr[g_table] == 0);
             if (gui::button(str, in.ptr[g_table] > 0 && in.ptr[g_table] == instr.ptr[g_table])) {
-                draw_share_window = false;
+                g_draw_share_window = false;
                 if (instr.ptr[g_table] != in.ptr[g_table] && share_count == 1) {
                     // TODO: confirmation dialog
                     // delete table
@@ -1112,7 +1119,7 @@ void draw() {
         gui::item_size({ COL_W * 2 / 3, app::BUTTON_HEIGHT });
         gui::disabled(share_count < 2 || num_free_rows < (len + 1));
         if (gui::button("CLONE")) {
-            draw_share_window = false;
+            g_draw_share_window = false;
             // copy
             int new_start_row = ltable.size() - num_free_rows;
             for (int i = 0; i <= len; ++i) {
@@ -1130,7 +1137,7 @@ void draw() {
         gui::same_line();
         gui::disabled(instr.ptr[g_table] == 0);
         if (gui::button("DELETE")) {
-            draw_share_window = false;
+            g_draw_share_window = false;
             if (share_count == 1) {
                 // delete table
                 for (int i = 0; i <= len; ++i) delete_table_row(g_table, start_row);
@@ -1139,7 +1146,7 @@ void draw() {
         }
         gui::disabled(false);
         gui::same_line();
-        if (gui::button("CLOSE")) draw_share_window = false;
+        if (gui::button("CLOSE")) g_draw_share_window = false;
         gui::end_window();
     }
 

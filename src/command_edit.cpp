@@ -4,24 +4,28 @@
 namespace command_edit {
 namespace {
 
-bool       g_edit_enabled = false;
-gt::Song&  g_song = app::song();
-Location   g_location;
-uint8_t    g_command;
-uint8_t    g_command_data[16] = {
-    0,
-    0, 0, 0,
-    0,
-    0, 0,
-    0, 0, 0, 0, 0, 0,
-    0x0f, // master volume
-    0,
-    0x06, // tempo
-};
-CommandCallback g_callback;
+gt::Song&               g_song = app::song();
+bool                    g_edit_enabled;
+Location                g_location;
+uint8_t                 g_command;
+std::array<uint8_t, 16> g_command_data;
+CommandCallback         g_callback;
 
 } // namespace
 
+void reset() {
+    g_edit_enabled = false;
+    g_command_data = {
+        0,
+        0, 0, 0,
+        0,
+        0, 0,
+        0, 0, 0, 0, 0, 0,
+        0x0f, // master volume
+        0,
+        0x06, // tempo
+    };
+}
 
 void init(Location location, uint8_t cmd, uint8_t data, std::function<void(uint8_t, uint8_t)> cb) {
     g_edit_enabled      = true;

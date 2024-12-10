@@ -17,12 +17,12 @@ namespace {
 
 
 gt::Song&                g_song = app::song();
-std::string              g_songs_dir;
-std::array<char, 32>     g_file_name;
-std::vector<std::string> g_file_names;
+std::string              g_songs_dir   = {};
+std::array<char, 32>     g_file_name   = {};
+std::vector<std::string> g_file_names  = {};
 int                      g_file_scroll = 0;
-std::string              g_status_msg;
-float                    g_status_age = 0.0f;
+std::string              g_status_msg  = {};
+float                    g_status_age  = 0.0f;
 
 
 #define FILE_SUFFIX ".sng"
@@ -44,11 +44,17 @@ void save() {
 
 } // namespace
 
+void reset() {
+    g_songs_dir   = {};
+    g_file_name   = {};
+    g_file_names  = {};
+    g_file_scroll = 0;
+    g_status_msg  = {};
+    g_status_age  = 0.0f;
+}
 
 void init() {
-    static bool init_dirs_done = false;
-    if (!init_dirs_done) {
-        init_dirs_done = true;
+    if (g_songs_dir.empty()) {
         g_songs_dir = app::storage_dir() + "/songs/";
         // copy demo songs
         fs::create_directories(g_songs_dir);
@@ -176,7 +182,6 @@ void draw() {
     if (gui::button("LOAD")) {
         app::confirm("LOSE CHANGES TO THE CURRENT SONG?", [](bool ok) {
             if (!ok) return;
-            app::player().stop_song();
             app::player().reset();
             song_view::reset();
             try {
@@ -213,7 +218,6 @@ void draw() {
     if (gui::button("RESET")) {
         app::confirm("LOSE CHANGES TO THE CURRENT SONG?", [](bool ok) {
             if (!ok) return;
-            app::player().stop_song();
             app::player().reset();
             g_song.clear();
             song_view::reset();
