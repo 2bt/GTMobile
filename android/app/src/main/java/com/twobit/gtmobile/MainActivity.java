@@ -116,6 +116,10 @@ public class MainActivity extends Activity {
         mMediaSession.setActive(true);
     }
 
+    private void removeNotification() {
+        NotificationManager manager = getSystemService(NotificationManager.class);
+        manager.cancel(63913);
+    }
     private void updateNotification(boolean isPlaying) {
 
         int s = isPlaying ? PlaybackStateCompat.STATE_PLAYING : PlaybackStateCompat.STATE_PAUSED;
@@ -125,10 +129,13 @@ public class MainActivity extends Activity {
             .build();
         mMediaSession.setPlaybackState(playbackState);
 
+        String songName = Native.getSongName();
+        if (songName.isEmpty()) songName = "<unnamed>";
+
         Notification notification = new NotificationCompat.Builder(this, CHANNEL_ID)
                 .setSmallIcon(R.drawable.ic_launcher_foreground)
                 .setContentTitle("GTMobile")
-                .setContentText(Native.getSongName())
+                .setContentText(songName)
                 .setStyle(
                     new androidx.media.app.NotificationCompat.MediaStyle()
                     .setMediaSession(mMediaSession.getSessionToken())
@@ -138,7 +145,7 @@ public class MainActivity extends Activity {
                 .build();
 
         NotificationManager manager = getSystemService(NotificationManager.class);
-        manager.notify(1, notification);
+        manager.notify(63913, notification);
     }
 
     @Override
@@ -161,10 +168,9 @@ public class MainActivity extends Activity {
         saveSettings();
         Native.setPlaying(false, false);
         Native.free();
-
-        // remove notification
-        NotificationManager manager = getSystemService(NotificationManager.class);
-        manager.cancel(1);
+        removeNotification();
+        mMediaSession.setActive(false);
+        mMediaSession.release();
     }
 
     @Override
@@ -172,12 +178,12 @@ public class MainActivity extends Activity {
         Log.i(TAG, "onPause");
         super.onPause();
         mView.onPause();
-        if (!Native.isPlayerPlaying()) {
-            Native.setPlaying(false, true);
-            updateNotification(false);
+        if (Native.isPlayerPlaying()) {
+            updateNotification(true);
         }
         else {
-            updateNotification(true);
+            Native.setPlaying(false, false);
+            updateNotification(false);
         }
     }
 
@@ -186,11 +192,10 @@ public class MainActivity extends Activity {
         Log.i(TAG, "onResume");
         super.onResume();
         mView.onResume();
-        Native.setPlaying(true, Native.isStreamPlaying());
-
-        // remove notification
-        NotificationManager manager = getSystemService(NotificationManager.class);
-        manager.cancel(1);
+        if (!Native.isStreamPlaying()) {
+            Native.setPlaying(true, false);
+        }
+        removeNotification();
     }
 
     @Override
