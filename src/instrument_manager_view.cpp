@@ -190,26 +190,23 @@ void draw() {
 
     gui::align(gui::Align::Left);
 
-    gui::item_size({ C1, app::BUTTON_HEIGHT });
-    gui::item_box();
-    gui::same_line();
-    gui::item_size({ C2, app::BUTTON_HEIGHT });
+    gui::item_size({ app::CANVAS_WIDTH, app::BUTTON_HEIGHT });
     gui::input_text(g_file_name);
     gui::align(gui::Align::Center);
 
     gui::item_size({ app::CANVAS_WIDTH, app::BUTTON_HEIGHT });
     gui::separator();
 
-    ivec2 cursor = gui::cursor();
-    int table_height = app::canvas_height() - piano::HEIGHT - cursor.y - 2 - app::MAX_ROW_HEIGHT - gui::FRAME_WIDTH;
+    ivec2 table_cursor = gui::cursor();
+    int table_height = app::canvas_height() - piano::HEIGHT - table_cursor.y - 2 - app::MAX_ROW_HEIGHT - gui::FRAME_WIDTH;
     int page = table_height / app::MAX_ROW_HEIGHT;
     table_height = page * app::MAX_ROW_HEIGHT + 2;
 
-    gui::item_size({ C1 - gui::FRAME_WIDTH, table_height });
+    gui::item_size({ C2, table_height });
     gui::item_box();
     gui::same_line();
     gui::separator();
-    ivec2 table_cursor = gui::cursor();
+    ivec2 button_cursor = gui::cursor();
     gui::same_line(false);
     gui::item_size(app::CANVAS_WIDTH);
     gui::separator();
@@ -241,7 +238,7 @@ void draw() {
     }
     gui::align(gui::Align::Center);
     gui::button_style(gui::ButtonStyle::Normal);
-    gui::cursor(ivec2(app::CANVAS_WIDTH - app::SCROLL_WIDTH, cursor.y));
+    gui::cursor({ C2 - app::SCROLL_WIDTH, table_cursor.y });
     gui::item_size({ app::SCROLL_WIDTH, table_height });
     int max_scroll = std::max(0, int(g_file_names.size()) - page);
     gui::drag_bar_style(gui::DragBarStyle::Scrollbar);
@@ -249,7 +246,7 @@ void draw() {
 
 
     // button column
-    gui::cursor(cursor);
+    gui::cursor(button_cursor);
     gui::align(gui::Align::Center);
     gui::item_size({ C1 - gui::FRAME_WIDTH, app::BUTTON_HEIGHT });
     bool file_selected = false;
