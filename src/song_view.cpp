@@ -560,8 +560,7 @@ void draw() {
         if (gui::button(gui::Icon::AddRowAbove)) {
             for (auto& order : g_song.song_order) {
                 std::rotate(order.begin() + pos, order.end() - 1, order.end());
-                order[pos] = order[pos + 1];
-                order[pos] = {};
+                order[pos] = order[pos + 1]; // copy row
             }
             if (g_song.song_loop >= pos) ++g_song.song_loop;
             ++len;
@@ -570,8 +569,7 @@ void draw() {
             ++pos;
             for (auto& order : g_song.song_order) {
                 std::rotate(order.begin() + pos, order.end() - 1, order.end());
-                order[pos] = order[pos - 1];
-                order[pos] = {};
+                order[pos] = order[pos - 1]; // copy row
             }
             if (g_song.song_loop >= pos) ++g_song.song_loop;
             ++len;

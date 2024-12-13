@@ -231,9 +231,9 @@ private:
         return index;
     }
 
-    u8vec4     m_color       = {255};
+    u8vec4     m_color       = { 255 };
     int        m_font_offset = 256;
-    ivec2      m_char_size   = {8, 8};
+    ivec2      m_char_size   = { 8, 8 };
     gfx::Mesh* m_mesh;
 
 };
@@ -250,9 +250,8 @@ enum class Icon {
     AddRowAbove = 24,
     AddRowBelow,
     DeleteRow,
-    EditRow,
-    Settings,
     JumpBack,
+    Settings,
     X = 32,
     DotDotDot,
     Edit,
