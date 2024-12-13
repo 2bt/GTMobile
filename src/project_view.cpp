@@ -224,10 +224,9 @@ void draw() {
             status("SONG WAS RESET");
         });
     }
-
+    gui::separator();
 
     app::draw_confirm();
-
     piano::draw();
 }
 

@@ -281,6 +281,7 @@ void draw() {
         });
     }
     gui::disabled(false);
+    gui::separator();
 
     app::draw_confirm();
     piano::draw();

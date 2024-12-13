@@ -756,6 +756,7 @@ void draw() {
             else rtable[end_row] = start_row + g_cursor_row + 1;
         }
         gui::disabled(false);
+        gui::separator();
     }
 
     // draw box

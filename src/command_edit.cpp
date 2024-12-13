@@ -158,7 +158,7 @@ void draw() {
             bool is_set = lval | rval;
             gui::button_style(is_set || r == 0 ? gui::ButtonStyle::Normal : gui::ButtonStyle::Shaded);
             char* s = str;
-            s += sprintf(s, "%02X  ", r);
+            s += sprintf(s, "%02X ", r);
             if (r == 0) {
                 if (g_command == gt::CMD_TONEPORTA) sprintf(s, "TIE NOTE");
                 else if (g_command == gt::CMD_FUNKTEMPO) sprintf(s, "NO CHANGE");
