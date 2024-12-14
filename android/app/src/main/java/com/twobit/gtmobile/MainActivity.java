@@ -118,7 +118,7 @@ public class MainActivity extends Activity {
 
     private void removeNotification() {
         NotificationManager manager = getSystemService(NotificationManager.class);
-        manager.cancel(63913);
+        manager.cancelAll();
     }
     private void updateNotification(boolean isPlaying) {
 
@@ -145,7 +145,7 @@ public class MainActivity extends Activity {
                 .build();
 
         NotificationManager manager = getSystemService(NotificationManager.class);
-        manager.notify(63913, notification);
+        manager.notify(1, notification);
     }
 
     @Override
@@ -164,13 +164,12 @@ public class MainActivity extends Activity {
     @Override
     protected void onDestroy() {
         Log.i(TAG, "onDestroy");
-        super.onDestroy();
-        saveSettings();
+        removeNotification();
         Native.setPlaying(false, false);
         Native.free();
-        removeNotification();
         mMediaSession.setActive(false);
         mMediaSession.release();
+        super.onDestroy();
     }
 
     @Override
@@ -178,6 +177,7 @@ public class MainActivity extends Activity {
         Log.i(TAG, "onPause");
         super.onPause();
         mView.onPause();
+        saveSettings();
         if (Native.isPlayerPlaying()) {
             updateNotification(true);
         }

@@ -379,7 +379,7 @@ bool button(Icon icon, bool active) {
 
     int i = int(icon);
     g_dc.rgb(color::WHITE);
-    g_dc.rect(box.pos + box.size / 2 - 8, 16, { i % 8 * 16, i / 8 * 16 });
+    g_dc.rect(box.pos + box.size / 2 - 8, 16, { i % 16 * 16, i / 16 * 16 });
     return state == ButtonState::Released;
 }
 bool button(char const* label, bool active) {
@@ -511,7 +511,7 @@ bool vertical_drag_bar(int& value, int min, int max, int page) {
             g_dc.rgb(color::DRAG_ICON);
             int i = int(Icon::VGrab);
             g_dc.rect(box.pos + ivec2(0, handle_y) + ivec2(box.size.x, handle_h) / 2 - 8, 16,
-                      { i % 8 * 16, i / 8 * 16 });
+                      { i % 16 * 16, i / 16 * 16 });
         }
         else {
             g_dc.rgb(is_active ? color::BUTTON_HELD : color::BUTTON_NORMAL);
@@ -536,7 +536,7 @@ bool vertical_drag_button(int& pos, int row_height) {
 
     g_dc.rgb(color::DRAG_ICON);
     int i = int(Icon::VGrab);
-    g_dc.rect(box.pos + box.size / 2 - 8, 16, { i % 8 * 16, i / 8 * 16 });
+    g_dc.rect(box.pos + box.size / 2 - 8, 16, { i % 16 * 16, i / 16 * 16 });
     return pos != old_pos;
 }
 
@@ -581,7 +581,7 @@ void DrawContext::box(Box const& box, BoxStyle style) {
     i16vec2 p1 = box.pos + 8;
     i16vec2 p2 = box.pos + box.size - 8;
     i16vec2 p3 = box.pos + box.size;
-    i16vec2 t0(int(style) % 8 * 16, int(style) / 8 * 16);
+    i16vec2 t0(int(style) % 16 * 16, int(style) / 16 * 16);
     i16vec2 t1 = t0 + 8;
     i16vec2 t2 = t1;
     i16vec2 t3 = t2 + 8;

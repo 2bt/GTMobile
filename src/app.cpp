@@ -19,6 +19,7 @@ namespace app {
 namespace {
 
 enum class View {
+    Splash,
     Project,
     Song,
     Pattern,
@@ -36,7 +37,7 @@ int16_t         g_canvas_offset;
 ConfirmCallback g_confirm_callback;
 std::string     g_confirm_msg;
 
-View            g_view        = View::Project;
+View            g_view        = View::Splash;
 bool            g_initialized = false;
 std::string     g_storage_dir = ".";
 
@@ -116,6 +117,43 @@ void draw_play_buttons() {
 }
 
 
+void draw_splash() {
+    gui::begin_window({ CANVAS_WIDTH, canvas_height() });
+
+    gui::DrawContext& dc = gui::draw_context();
+    dc.rgb(color::WHITE);
+    int cy = canvas_height() / 2;
+    dc.rect({ 52, cy - 176 }, { 256, 176 }, { 0, 336 });
+
+
+    char const* lines[] = {
+        "CREATE AUTHENTIC C64 SID MUSIC",
+        "",
+        "          ON THE GO!",
+        "",
+        "",
+        "",
+        "    BASED ON \xf1GoatTracker2\xf0",
+        "                 \x1f\x1f",
+        "        BY LASSE OORNI",
+    };
+    int y = cy + 24;
+    for (char const* l : lines) {
+        dc.text({ 60, y }, l);
+        y += 8;
+    }
+
+    gui::cursor({ 60, y + 24 });
+    gui::item_size({ CANVAS_WIDTH - 120, BUTTON_HEIGHT });
+    if (gui::button("READY")) {
+        g_view = View::Project;
+        project_view::init();
+    }
+
+    gui::end_window();
+}
+
+
 } // namespace
 
 
@@ -180,7 +218,7 @@ void audio_callback(int16_t* buffer, int length) {
 
 void reset() {
     g_initialized = false;
-    g_view        = View::Project;
+    g_view        = View::Splash;
     project_view::reset();
     song_view::reset();
     instrument_view::reset();
@@ -302,6 +340,7 @@ void draw() {
     gui::button_style(gui::ButtonStyle::Normal);
 
     switch (g_view) {
+    case View::Splash: draw_splash(); break;
     case View::Project: project_view::draw(); break;
     case View::Song: song_view::draw(); break;
     case View::Pattern: song_view::draw_pattern(); break;
@@ -311,6 +350,7 @@ void draw() {
     }
 
     draw_play_buttons();
+
     gui::end_frame();
 
 

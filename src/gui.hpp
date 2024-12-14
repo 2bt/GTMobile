@@ -128,7 +128,7 @@ struct Box {
 
 
 enum class BoxStyle {
-    Fill,
+    Fill = 128,
     Normal,
     Shaded,
     Tab,
@@ -148,7 +148,7 @@ class DrawContext {
 public:
 
     void fill(Box const& box) {
-        i16vec2 uv(8, 8); // a white pixel
+        i16vec2 uv(1, 1); // a white pixel
         auto i0 = add_vertex(box.pos, uv);
         auto i1 = add_vertex(box.pos + box.size.xo(), uv);
         auto i2 = add_vertex(box.pos + box.size, uv);
@@ -166,8 +166,8 @@ public:
 
     void character(ivec2 pos, uint8_t g) {
         if (g >= 128) return;
-        int o = g < 32 ? 256 : m_font_offset;
-        ivec2 uv(g % 16 * m_char_size.x, g / 16 * m_char_size.x + o);
+        int o = g < 32 ? 0 : m_font_offset;
+        ivec2 uv(g % 32 * m_char_size.x, g / 32 * m_char_size.x + o);
         rect(pos, m_char_size, uv);
     }
 
@@ -221,7 +221,7 @@ public:
         m_color.w = alpha;
     }
     void font(int i) {
-        m_font_offset = 256 + 64 * i;
+        m_font_offset = 32 * i;
     }
 
 private:
@@ -232,7 +232,7 @@ private:
     }
 
     u8vec4     m_color       = { 255 };
-    int        m_font_offset = 256;
+    int        m_font_offset = 0;
     ivec2      m_char_size   = { 8, 8 };
     gfx::Mesh* m_mesh;
 
@@ -240,24 +240,24 @@ private:
 
 
 enum class Icon {
-    Decrease = 16,
+    Decrease = 144,
     Increase,
     MoveUp,
     MoveDown,
     VGrab,
     HGrab,
 
-    AddRowAbove = 24,
+    AddRowAbove = 160,
     AddRowBelow,
     DeleteRow,
     JumpBack,
     Settings,
-    X = 32,
+    X = 176,
     DotDotDot,
     Edit,
     Piano,
 
-    Loop = 40,
+    Loop = 192,
     Stop,
     Play,
     FastBackward,
@@ -265,11 +265,11 @@ enum class Icon {
     Follow,
     Record,
 
-    Copy = 48,
+    Copy = 208,
     Paste,
     Share,
 
-    Noise = 56,
+    Noise = 224,
     Pulse,
     Saw,
     Triangle,
@@ -277,8 +277,7 @@ enum class Icon {
     Ring,
     Sync,
     Gate,
-
-    Lowpass = 64,
+    Lowpass,
     Bandpass,
     Highpass,
 };
