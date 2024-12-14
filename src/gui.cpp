@@ -33,6 +33,12 @@ ivec2        g_cursor_max;
 ivec2        g_item_size;
 bool         g_same_line;
 Align        g_align;
+ColorTheme   g_color_theme = {
+    color::BUTTON_NORMAL,
+    color::BUTTON_ACTIVE,
+    color::BUTTON_PRESSED,
+    color::BUTTON_RELEASED,
+};
 ButtonStyle  g_button_style;
 DragBarStyle g_drag_bar_style;
 
@@ -81,11 +87,10 @@ void const* get_id(void const* addr) {
 }
 
 void button_color(ButtonState state, bool active) {
-    g_dc.rgb(state == ButtonState::Normal && !active ? color::BUTTON_NORMAL :
-             state == ButtonState::Normal && active  ? color::BUTTON_ACTIVE :
-             state == ButtonState::Pressed           ? color::BUTTON_PRESSED :
-             state == ButtonState::Held              ? color::BUTTON_HELD :
-           /*state == ButtonState::Released*/          color::BUTTON_RELEASED);
+    g_dc.rgb(state == ButtonState::Normal && !active ? g_color_theme.button_normal :
+             state == ButtonState::Normal && active  ? g_color_theme.button_active :
+             state == ButtonState::Pressed           ? g_color_theme.button_pressed :
+           /*state == ButtonState::Released*/          g_color_theme.button_released);
 }
 
 
@@ -123,7 +128,7 @@ ButtonState button_state(Box const& box, void const* addr) {
         }
         if (g_active_item != id) return ButtonState::Normal;
         if (touch::just_released()) return ButtonState::Released;
-        return ButtonState::Held;
+        return ButtonState::Pressed;
     }
 
     if (g_active_item || !touch::touched(box)) return ButtonState::Normal;
@@ -140,9 +145,8 @@ ButtonState button_state(Box const& box, void const* addr) {
     }
     else g_hold_time = 0;
 
-    if (touch::just_pressed()) return ButtonState::Pressed;
     if (touch::just_released()) return ButtonState::Released;
-    return ButtonState::Held;
+    return ButtonState::Pressed;
 }
 
 
@@ -280,7 +284,6 @@ void begin_window() {
 Box begin_window(ivec2 size) {
     begin_window();
     ivec2 pos = ivec2(app::CANVAS_WIDTH, app::canvas_height()) / 2 - size / 2;
-    // g_dc.rgb(color::BUTTON_NORMAL);
     g_dc.rgb(color::FRAME);
     g_dc.box({ pos - 6, size + 12 }, BoxStyle::Window);
     cursor(pos);
@@ -310,6 +313,9 @@ void same_line(bool same_line) {
 }
 void id(void const* addr) {
     if (!g_id) g_id = addr;
+}
+ColorTheme& color_theme() {
+    return g_color_theme;
 }
 void button_style(ButtonStyle style) {
     g_button_style = style;
@@ -474,7 +480,7 @@ bool horizontal_drag_bar(int& value, int min, int max, int page) {
                     { i % 8 * 16, i / 8 * 16 });
         }
         else {
-            g_dc.rgb(is_active ? color::BUTTON_HELD : color::BUTTON_NORMAL);
+            g_dc.rgb(is_active ? g_color_theme.button_pressed : g_color_theme.button_normal);
             g_dc.box({ box.pos + ivec2(handle_x, 0), { handle_w, box.size.y } }, BoxStyle::Normal);
         }
     }
@@ -514,7 +520,7 @@ bool vertical_drag_bar(int& value, int min, int max, int page) {
                       { i % 16 * 16, i / 16 * 16 });
         }
         else {
-            g_dc.rgb(is_active ? color::BUTTON_HELD : color::BUTTON_NORMAL);
+            g_dc.rgb(is_active ? g_color_theme.button_pressed : g_color_theme.button_normal);
             g_dc.box({ box.pos + ivec2(0, handle_y), { box.size.x, handle_h } }, BoxStyle::Normal);
         }
     }
@@ -524,16 +530,13 @@ bool vertical_drag_button(int& pos, int row_height) {
     Box box = item_box();
     ButtonState state = button_state(box, &pos);
     bool is_active = state != ButtonState::Normal;
-
     int old_pos = pos;
     if (is_active) {
         int dy = g_touch_pos.y - (box.pos.y + box.size.y / 2);
         pos += dy / row_height;
     }
-
     g_dc.rgb(is_active ? color::DRAG_HANDLE_ACTIVE : color::DRAG_HANDLE_NORMAL);
     g_dc.box(box, BoxStyle::Normal);
-
     g_dc.rgb(color::DRAG_ICON);
     int i = int(Icon::VGrab);
     g_dc.rect(box.pos + box.size / 2 - 8, 16, { i % 16 * 16, i / 16 * 16 });

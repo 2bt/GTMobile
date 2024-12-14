@@ -55,14 +55,15 @@ namespace color {
     constexpr uint32_t DRAG_ICON          = 0x777777;
 
     constexpr uint32_t FRAME              = mix(DARK_GREY, BLACK, 0.3f);
+
     constexpr uint32_t BUTTON_NORMAL      = DARK_GREY;
-    // constexpr uint32_t BUTTON_ACTIVE      = mix(ORANGE, BLACK, 0.3f);
     constexpr uint32_t BUTTON_ACTIVE      = C64[5];
-    // constexpr uint32_t BUTTON_PRESSED     = mix(ORANGE, YELLOW, 0.3f);
     constexpr uint32_t BUTTON_PRESSED     = C64[6];
-    constexpr uint32_t BUTTON_HELD        = BUTTON_PRESSED;
-    // constexpr uint32_t BUTTON_RELEASED    = YELLOW;
     constexpr uint32_t BUTTON_RELEASED    = C64[9];
+
+    constexpr uint32_t BUTTON_ALT_ACTIVE  = C64[11];
+    constexpr uint32_t BUTTON_ALT_PRESSED = C64[10];
+
 
     constexpr uint32_t CMDS[16] = {
         mix(0x000000, WHITE, 0.2f),
@@ -92,7 +93,6 @@ namespace color {
 
     constexpr uint32_t ROW_NUMBER     = 0xaaaaaa;
     constexpr uint32_t INSTRUMENT     = 0xaabbdd;
-    // constexpr uint32_t PLAYER_ROW     = 0x553311;
     constexpr uint32_t PLAYER_ROW     = mix(C64[12], BLACK, 0.7f);
     constexpr uint32_t BACKGROUND_ROW = 0x171717;
     constexpr uint32_t HIGHLIGHT_ROW  = 0x2b2b2b;
@@ -108,13 +108,21 @@ namespace color {
         mix(BLUE, WHITE, 0.2f),
         mix(PINK, WHITE, 0.2f),
 
-        mix(0xff2030, BACKGROUND_ROW, 0.9f), // dark red
+        mix(0xff2030, BACKGROUND_ROW, 0.8f), // dark red
     };
 
 } // namespace color
 
 
 namespace gui {
+
+
+struct ColorTheme {
+    uint32_t button_normal;
+    uint32_t button_active;
+    uint32_t button_pressed;
+    uint32_t button_released;
+};
 
 
 struct Box {
@@ -347,6 +355,7 @@ bool has_active_item();
 void align(Align a);
 void button_style(ButtonStyle style);
 void drag_bar_style(DragBarStyle style);
+ColorTheme& color_theme();
 
 void separator(bool leave_gap = false);
 bool hold();
@@ -381,7 +390,7 @@ bool slider(int width, char const* fmt, T& value, int min, int max, void const* 
 
 
 // low level functions
-enum class ButtonState { Normal, Pressed, Held, Released };
+enum class ButtonState { Normal, Pressed, Released };
 DrawContext& draw_context();
 Box          item_box();
 ButtonState  button_state(Box const& box, void const* addr = nullptr);

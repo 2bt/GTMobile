@@ -313,15 +313,24 @@ void draw() {
     }
     gui::same_line();
     if (gui::button("SONG", g_view == View::Song || g_view == View::Pattern)) {
-        if (g_view == View::Song) {
-            g_view = View::Pattern;
-        }
-        else {
+        // if (g_view == View::Song) {
+        //     g_view = View::Pattern;
+        // }
+        // else {
             g_view = View::Song;
-        }
+        // }
     }
     gui::same_line();
-    if (gui::button("INSTRUMENT", g_view == View::Instrument || g_view == View::InstrumentManager)) {
+
+    gui::ColorTheme old_theme = gui::color_theme();
+    if (g_view == View::Instrument) {
+        gui::color_theme().button_normal = color::BUTTON_ACTIVE;
+        gui::color_theme().button_pressed = color::BUTTON_ALT_PRESSED;
+    }
+    else if (g_view == View::InstrumentManager) {
+        gui::color_theme().button_normal = color::BUTTON_ALT_ACTIVE;
+    }
+    if (gui::button("INSTRUMENT")) {
         if (g_view == View::Instrument) {
             g_view = View::InstrumentManager;
             instrument_manager_view::init();
@@ -330,6 +339,9 @@ void draw() {
             g_view = View::Instrument;
         }
     }
+    gui::color_theme() = old_theme;
+
+
     gui::same_line();
     gui::item_size({ CANVAS_WIDTH - gui::cursor().x, TAB_HEIGHT });
     if (gui::button(gui::Icon::Settings, g_view == View::Settings)) {
@@ -348,9 +360,7 @@ void draw() {
     case View::InstrumentManager: instrument_manager_view::draw(); break;
     case View::Settings: settings_view::draw(); break;
     }
-
     draw_play_buttons();
-
     gui::end_frame();
 
 

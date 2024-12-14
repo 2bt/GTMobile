@@ -157,7 +157,7 @@ void draw_table_debug() {
                 g_cursor_row    = row;
             }
             if (state != gui::ButtonState::Normal) {
-                dc.rgb(color::BUTTON_HELD);
+                dc.rgb(color::BUTTON_PRESSED);
                 dc.box(box, gui::BoxStyle::Cursor);
             }
             if (CursorSelect(t) == g_cursor_select && row == g_cursor_row) {
@@ -591,7 +591,7 @@ void draw() {
 
         // loop marker
         if (start_row + r + 1 == rtable[end_row]) {
-            dc.rgb(color::BUTTON_HELD);
+            dc.rgb(color::BUTTON_PRESSED);
             dc.text(box.pos + ivec2(box.size.x - 8, 6), "\x05");
         }
 
@@ -601,7 +601,7 @@ void draw() {
             g_cursor_select = CursorSelect::Table;
         }
         if (state != gui::ButtonState::Normal) {
-            dc.rgb(color::BUTTON_HELD);
+            dc.rgb(color::BUTTON_PRESSED);
             dc.box(box, gui::BoxStyle::Cursor);
         }
         if (g_cursor_select == CursorSelect::Table && g_cursor_row == r) {

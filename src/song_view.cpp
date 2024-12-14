@@ -334,7 +334,7 @@ void draw() {
             }
 
             if (state != gui::ButtonState::Normal) {
-                dc.rgb(color::BUTTON_HELD);
+                dc.rgb(color::BUTTON_PRESSED);
                 dc.box(box, gui::BoxStyle::Cursor);
             }
 
@@ -350,7 +350,7 @@ void draw() {
 
         // loop marker
         if (r == g_song.song_loop) {
-            dc.rgb(color::BUTTON_HELD);
+            dc.rgb(color::BUTTON_PRESSED);
             dc.text(box.pos + ivec2(CN + CC * 3 - 9, text_offset), "\x05");
         }
     }
@@ -459,7 +459,7 @@ void draw() {
             }
 
             if (state != gui::ButtonState::Normal) {
-                dc.rgb(color::BUTTON_HELD);
+                dc.rgb(color::BUTTON_PRESSED);
                 dc.box(box, gui::BoxStyle::Cursor);
             }
 
