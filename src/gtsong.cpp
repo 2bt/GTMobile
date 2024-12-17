@@ -63,9 +63,9 @@ void Song::load(uint8_t const* data, size_t size) {
     load(stream);
 }
 void Song::load(std::istream& stream) {
-    std::array<char, 4> ident;
+    char ident[4];
     read(stream, ident);
-    if (ident != std::array<char, 4>{'G', 'T', 'S', '5'}) {
+    if (strncmp(ident, "GTS5", 4) != 0) {
         load_error("bad file format");
     }
 
@@ -166,6 +166,13 @@ void Song::load(std::istream& stream) {
             patt.rows[i] = row;
         }
     }
+
+    // read extra stuff
+    read(stream, ident);
+    if (strncmp(ident, "GTM ", 4) == 0) {
+        read(stream, adparam);
+    }
+
 
     // set up speed table
     // 01 - 1f: portamento
@@ -440,6 +447,10 @@ bool Song::save(std::ostream& stream) {
         write<uint8_t>(stream, 0);
         write<uint8_t>(stream, 0);
     }
+
+    // write extra stuff
+    stream.write("GTM ", 4);
+    write(stream, adparam);
 
     return true;
 }

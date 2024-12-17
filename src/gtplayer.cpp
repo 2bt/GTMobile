@@ -66,8 +66,8 @@ void Player::play_test_note(int note, int ins, int chnnum) {
     if (!(m_song->instruments[ins].gatetimer & 0x40)) {
         m_channels[chnnum].gate = 0xfe; // keyoff
         if (!(m_song->instruments[ins].gatetimer & 0x80)) {
-            regs[0x5 + chnnum * 7] = m_adparam >> 8; // hardrestart
-            regs[0x6 + chnnum * 7] = m_adparam & 0xff;
+            regs[0x5 + chnnum * 7] = m_song->adparam >> 8; // hardrestart
+            regs[0x6 + chnnum * 7] = m_song->adparam & 0xff;
         }
     }
 
@@ -679,8 +679,8 @@ GETNEWNOTES:
                     if (!(m_song->instruments[chan.instr].gatetimer & 0x40)) {
                         chan.gate = 0xfe;
                         if (!(m_song->instruments[chan.instr].gatetimer & 0x80)) {
-                            regs[0x5 + 7 * c] = m_adparam >> 8;
-                            regs[0x6 + 7 * c] = m_adparam & 0xff;
+                            regs[0x5 + 7 * c] = m_song->adparam >> 8;
+                            regs[0x6 + 7 * c] = m_song->adparam & 0xff;
                         }
                     }
                 }

@@ -119,6 +119,8 @@ struct Song {
     std::array<char, MAX_STR>                 author_name;
     std::array<char, MAX_STR>                 copyright_name;
 
+    uint16_t                                  adparam = 0x0f00;
+
     int get_table_length(int table) const;
     int get_table_part_length(int table, int row) const;
 

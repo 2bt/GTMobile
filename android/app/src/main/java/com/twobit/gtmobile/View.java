@@ -4,9 +4,13 @@ import android.content.Context;
 import android.hardware.display.DisplayManager;
 import android.opengl.GLSurfaceView;
 import android.os.Build;
+import android.os.Environment;
 import android.view.Display;
 import android.view.MotionEvent;
 import android.util.Log;
+
+import java.io.File;
+
 import javax.microedition.khronos.egl.EGLConfig;
 import javax.microedition.khronos.opengles.GL10;
 
@@ -14,20 +18,24 @@ import javax.microedition.khronos.opengles.GL10;
 public class View extends GLSurfaceView {
     static final String TAG = "View";
 
-    float  mRefreshRate = 60.0f;
-    String mStorageDir  = null;
 
     public View(Context context) {
         super(context);
 
+        float refreshRate;
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O_MR1) {
             DisplayManager displayManager = (DisplayManager) context.getSystemService(Context.DISPLAY_SERVICE);
             Display display = displayManager.getDisplay(Display.DEFAULT_DISPLAY);
-            mRefreshRate = display.getRefreshRate();
+            refreshRate = display.getRefreshRate();
+        }
+        else {
+            refreshRate = 60.0f;
         }
 
-
-        mStorageDir = context.getExternalFilesDir(null).getAbsolutePath();
+        // mStorageDir = context.getExternalFilesDir(null).getAbsolutePath();
+        File storage = new File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOCUMENTS), "gtmobile");
+        storage.mkdirs();
+        String storageDir = storage.getAbsolutePath();
 
         setPreserveEGLContextOnPause(true);
         setEGLContextClientVersion(2);
@@ -35,7 +43,7 @@ public class View extends GLSurfaceView {
         setRenderer(new GLSurfaceView.Renderer() {
             @Override
             public void onSurfaceCreated(GL10 gl, EGLConfig config) {
-                Native.init(getResources().getAssets(), mStorageDir, mRefreshRate);
+                Native.init(getResources().getAssets(), storageDir, refreshRate);
             }
             @Override
             public void onSurfaceChanged(GL10 gl, int width, int height) {

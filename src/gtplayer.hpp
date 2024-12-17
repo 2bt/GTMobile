@@ -68,7 +68,6 @@ private:
 
     // play options
     static constexpr int      m_multiplier       = 1;      // for multi speed
-    static constexpr uint16_t m_adparam          = 0x0f00; // HR
     static constexpr bool     m_optimizepulse    = false;
     static constexpr bool     m_optimizerealtime = false;
 
