@@ -17,41 +17,40 @@
 
 #include "sid.hpp"
 
-namespace sid {
-namespace {
-    enum {
-        PALCLOCKRATE = 985248,
-        MIXRATE      = 44100,
 
-    };
-    SID        g_sid;
-    SID::State g_state;
-} // namespace
+struct Sid::Impl {
+    SID sid;
+};
+
+Sid::Sid() = default;
+Sid::~Sid() = default;
+Sid::Sid(Sid&&) noexcept = default;
+Sid& Sid::operator=(Sid&&) noexcept = default;
 
 
-void init() {
-    g_sid.reset();
-    g_sid.set_chip_model(MOS8580);
-    // g_sid.set_sampling_parameters(PALCLOCKRATE, SAMPLE_RESAMPLE_INTERPOLATE, mixrate);
-    g_sid.set_sampling_parameters(PALCLOCKRATE, SAMPLE_FAST, MIXRATE);
+Sid::Sid(Model model, int clock_rate, SamplingMethod sampling_method) {
+    impl = std::make_unique<Impl>();
+    impl->sid.reset();
+    impl->sid.set_chip_model(model == Model::MOS6581 ? MOS6581 : MOS8580);
+    impl->sid.set_sampling_parameters(
+            clock_rate,
+            sampling_method == SamplingMethod::Fast ? SAMPLE_FAST : SAMPLE_RESAMPLE_INTERPOLATE,
+            MIXRATE);
 }
 
-void write(int reg, uint8_t value) {
-    g_sid.write(reg, value);
+void Sid::set_reg(int reg, uint8_t value) {
+    impl->sid.write(reg, value);
 }
 
-void mix(int16_t* buffer, int length) {
-    int c = 999999999;
-    g_sid.clock(c, buffer, length);
+int Sid::clock(int cycles, int16_t* buffer, int length) {
+    return impl->sid.clock(cycles, buffer, length);
 }
 
-void update_state() {
-    g_state = g_sid.read_state();
+std::array<float, 3> Sid::get_env_levels() {
+    SID::State state = impl->sid.read_state();
+    std::array<float, 3> levels = {};
+    for (int c = 0; c < 3; ++c) {
+        if (state.sid_register[c * 7 + 4] & 0xf0) levels[c] = state.envelope_counter[c] * (1.0f / 0xff);
+    }
+    return levels;
 }
-
-float chan_level(int c) {
-    if (!(g_state.sid_register[c * 7 + 4] & 0xf0)) return 0;
-    return g_state.envelope_counter[c] * (1.0f / 0xff);
-}
-
-} // namespace sid

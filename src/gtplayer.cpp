@@ -66,8 +66,8 @@ void Player::play_test_note(int note, int ins, int chnnum) {
     if (!(m_song->instruments[ins].gatetimer & 0x40)) {
         m_channels[chnnum].gate = 0xfe; // keyoff
         if (!(m_song->instruments[ins].gatetimer & 0x80)) {
-            regs[0x5 + chnnum * 7] = m_song->adparam >> 8; // hardrestart
-            regs[0x6 + chnnum * 7] = m_song->adparam & 0xff;
+            m_regs[0x5 + chnnum * 7] = m_song->adparam >> 8; // hardrestart
+            m_regs[0x6 + chnnum * 7] = m_song->adparam & 0xff;
         }
     }
 
@@ -122,7 +122,7 @@ void Player::play_routine() {
             chan.tick       = 6 * m_multiplier - 1;
             chan.gatetimer  = m_song->instruments[1].gatetimer & 0x3f;
             chan.gate       = 0xfe;    // note off
-            regs[0x6 + 7 * c] &= 0xf0; // fast release
+            m_regs[0x6 + 7 * c] &= 0xf0; // fast release
             if (m_action == Action::stop && chan.tempo < 2) chan.tick = 0;
         }
         if (m_action == Action::pause) {
@@ -197,10 +197,10 @@ void Player::play_routine() {
     }
 
 FILTERSTOP:
-    regs[0x15] = 0x00;
-    regs[0x16] = m_filtercutoff;
-    regs[0x17] = m_filterctrl;
-    regs[0x18] = m_filtertype | m_masterfader;
+    m_regs[0x15] = 0x00;
+    m_regs[0x16] = m_filtercutoff;
+    m_regs[0x17] = m_filterctrl;
+    m_regs[0x18] = m_filtertype | m_masterfader;
 
     for (int c = 0; c < MAX_CHN; c++) {
         Channel&          chan  = m_channels[c];
@@ -271,8 +271,8 @@ TICK0:
                         if (m_song->ltable[FTBL][m_filterptr - 1] == 0xff) stop_song();
                     }
                 }
-                regs[0x5 + 7 * c] = instr.ad;
-                regs[0x6 + 7 * c] = instr.sr;
+                m_regs[0x5 + 7 * c] = instr.ad;
+                m_regs[0x6 + 7 * c] = instr.sr;
             }
         }
 
@@ -297,9 +297,9 @@ TICK0:
             chan.cmddata = chan.newcmddata;
             break;
 
-        case CMD_SETAD: regs[0x5 + 7 * c] = chan.newcmddata; break;
+        case CMD_SETAD: m_regs[0x5 + 7 * c] = chan.newcmddata; break;
 
-        case CMD_SETSR: regs[0x6 + 7 * c] = chan.newcmddata; break;
+        case CMD_SETSR: m_regs[0x6 + 7 * c] = chan.newcmddata; break;
 
         case CMD_SETWAVE: chan.wave = chan.newcmddata; break;
 
@@ -461,10 +461,10 @@ WAVEEXEC:
                         else                     chan.freq += speed;
                     } break;
 
-                    case CMD_SETAD: regs[0x5 + 7 * c] = param; break;
+                    case CMD_SETAD: m_regs[0x5 + 7 * c] = param; break;
 
                     case CMD_SETSR:
-                        regs[0x6 + 7 * c] = param;
+                        m_regs[0x6 + 7 * c] = param;
                         break;
 
                     case CMD_SETWAVE: chan.wave = param; break;
@@ -679,23 +679,23 @@ GETNEWNOTES:
                     if (!(m_song->instruments[chan.instr].gatetimer & 0x40)) {
                         chan.gate = 0xfe;
                         if (!(m_song->instruments[chan.instr].gatetimer & 0x80)) {
-                            regs[0x5 + 7 * c] = m_song->adparam >> 8;
-                            regs[0x6 + 7 * c] = m_song->adparam & 0xff;
+                            m_regs[0x5 + 7 * c] = m_song->adparam >> 8;
+                            m_regs[0x6 + 7 * c] = m_song->adparam & 0xff;
                         }
                     }
                 }
             }
         }
 NEXTCHN:
-        regs[0x0 + 7 * c] = chan.freq & 0xff;
-        regs[0x1 + 7 * c] = chan.freq >> 8;
-        regs[0x2 + 7 * c] = chan.pulse & 0xfe;
-        regs[0x3 + 7 * c] = chan.pulse >> 8;
+        m_regs[0x0 + 7 * c] = chan.freq & 0xff;
+        m_regs[0x1 + 7 * c] = chan.freq >> 8;
+        m_regs[0x2 + 7 * c] = chan.pulse & 0xfe;
+        m_regs[0x3 + 7 * c] = chan.pulse >> 8;
         if (chan.mute) {
-            regs[0x4 + 7 * c] = chan.wave & 0x08; // don't set test bit every time
+            m_regs[0x4 + 7 * c] = chan.wave & 0x08; // don't set test bit every time
         }
         else {
-            regs[0x4 + 7 * c] = chan.wave & chan.gate;
+            m_regs[0x4 + 7 * c] = chan.wave & chan.gate;
         }
     }
 }

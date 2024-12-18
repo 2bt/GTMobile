@@ -361,6 +361,7 @@ void draw() {
     gui::item_size({ CN, settings.row_height });
     gui::item_box();
     gui::item_size({ CC, app::BUTTON_HEIGHT });
+    auto levels = app::sid().get_env_levels();
     for (int c = 0; c < 3; ++c) {
         gui::same_line();
         ivec2 p = gui::cursor();
@@ -375,7 +376,7 @@ void draw() {
         dc.fill({ p + ivec2(27, 12), { 50, 6 } });
         // dc.rgb(color::mix(color::GREEN, 0, 0.2f));
         dc.rgb(color::mix(color::C64[11], 0, 0.2f));
-        dc.fill({ p + ivec2(29, 13), ivec2(sid::chan_level(c) * 46.0f + 0.9f, 4) });
+        dc.fill({ p + ivec2(29, 13), ivec2(levels[c] * 46.0f + 0.9f, 4) });
     }
 
     gui::cursor({ 0, gui::cursor().y + 1 }); // 1px padding

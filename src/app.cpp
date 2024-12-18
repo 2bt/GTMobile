@@ -30,6 +30,7 @@ enum class View {
 
 gt::Song        g_song;
 gt::Player      g_player(g_song);
+Sid             g_sid;
 int             g_canvas_height;
 gfx::Canvas     g_canvas;
 float           g_canvas_scale;
@@ -48,7 +49,6 @@ void draw_play_buttons() {
     gui::item_size(CANVAS_WIDTH);
     gui::separator();
     gui::item_size(TAB_HEIGHT);
-
 
     static float backward_time = 0.0f;
     backward_time += gui::get_frame_time();
@@ -159,6 +159,7 @@ void draw_splash() {
 
 gt::Song&          song() { return g_song; }
 gt::Player&        player() { return g_player; }
+Sid&               sid() { return g_sid; }
 int                canvas_height() { return g_canvas_height; }
 std::string const& storage_dir() { return g_storage_dir; }
 void set_storage_dir(std::string const& storage_dir) { g_storage_dir = storage_dir; }
@@ -200,18 +201,23 @@ void audio_callback(int16_t* buffer, int length) {
 
     enum {
         SAMPLES_PER_FRAME = MIXRATE / 50,
+        // MIXRATE       = 44100,
+        // PALCLOCKRATE  = 985248,
+        // NTSCCLOCKRATE = 1022727,
     };
+
     static int sample = 0;
+
     while (length > 0) {
         if (sample == 0) {
             g_player.play_routine();
-            for (int i = 0; i < 25; ++i) sid::write(i, g_player.regs[i]);
+            for (int i = 0; i < 25; ++i) g_sid.set_reg(i, g_player.registers()[i]);
         }
         int l = std::min(SAMPLES_PER_FRAME - sample, length);
         sample += l;
         if (sample == SAMPLES_PER_FRAME) sample = 0;
         length -= l;
-        sid::mix(buffer, l);
+        g_sid.clock(99999999, buffer, l);
         buffer += l;
     }
 }
@@ -226,7 +232,7 @@ void reset() {
     command_edit::reset();
     g_player.reset();
     g_song.clear();
-    sid::init();
+    g_sid = Sid(Sid::Model::MOS8580, Sid::PALCLOCKRATE, Sid::SamplingMethod::Fast);
 }
 
 void init() {
@@ -296,8 +302,6 @@ void key(int key, int unicode) {
 
 
 void draw() {
-    sid::update_state();
-
     gfx::canvas(g_canvas);
     gfx::blend(true);
     gfx::clear(0.0, 0.0, 0.0);

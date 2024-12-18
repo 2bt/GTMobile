@@ -13,7 +13,6 @@ uint16_t get_freq(int note);
 class Player {
 public:
     Player(gt::Song const& song);
-
     void reset();
 
     void play_song() { m_action = Action::start; }
@@ -31,7 +30,11 @@ public:
     bool is_channel_active(int chnnum) const { return !m_channels[chnnum].mute; }
 
     void play_routine();
-    std::array<uint8_t, 25> regs;
+
+    using Registers = std::array<uint8_t, 25>;
+
+    Registers const& registers() const { return m_regs; }
+    gt::Song const&  song() const { return *g_song; }
 
 private:
     void sequencer(int c);
@@ -72,6 +75,7 @@ private:
     static constexpr bool     m_optimizerealtime = false;
 
     gt::Song const* m_song;
+    Registers       m_regs             = {};
     Action          m_action           = Action::none;
     bool            m_is_playing       = false;
     bool            m_loop_pattern     = false;

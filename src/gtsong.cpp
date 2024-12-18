@@ -344,7 +344,6 @@ int Song::get_table_part_length(int table, int start) const {
 
 
 bool Song::save(std::ostream& stream) {
-
     assert(song_len <= MAX_SONG_ROWS);
 
     stream.write("GTS5", 4);

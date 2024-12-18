@@ -6,6 +6,7 @@
 #include "gtplayer.hpp"
 #include "gtsong.hpp"
 #include "gui.hpp"
+#include "sid.hpp"
 
 
 namespace app {
@@ -23,6 +24,7 @@ namespace app {
 
     gt::Song&          song();
     gt::Player&        player();
+    Sid&               sid();
     int                canvas_height();
     void               set_storage_dir(std::string const& storage_dir);
     std::string const& storage_dir();
