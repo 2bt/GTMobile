@@ -34,7 +34,7 @@ public:
     using Registers = std::array<uint8_t, 25>;
 
     Registers const& registers() const { return m_regs; }
-    gt::Song const&  song() const { return *g_song; }
+    gt::Song const&  song() const { return *m_song; }
 
 private:
     void sequencer(int c);
