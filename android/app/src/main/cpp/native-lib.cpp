@@ -1,7 +1,6 @@
 #include "log.hpp"
 #include "app.hpp"
 #include "gui.hpp"
-#include "sid.hpp"
 #include "settings_view.hpp"
 
 #include <vector>
@@ -157,7 +156,7 @@ extern "C" {
         if (player != app::player().is_playing()) {
             if (player) app::player().play_song();
             else {
-                sid::init(); // reset SID to make it silent
+                app::sid().reset(); // reset SID to make it silent
                 app::player().pause_song();
             }
         }

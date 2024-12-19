@@ -229,7 +229,7 @@ void set_storage_dir(std::string const& storage_dir) { g_storage_dir = storage_d
 
 void draw_confirm() {
     if (g_confirm_msg.empty()) return;
-    gui::Box box = gui::begin_window({ CANVAS_WIDTH - 24 * 2, BUTTON_HEIGHT * 2 });
+    gui::Box box = gui::begin_window({ CANVAS_WIDTH - 48, BUTTON_HEIGHT * 2 });
 
     gui::item_size({ box.size.x, BUTTON_HEIGHT });
     gui::align(gui::Align::Center);
@@ -255,12 +255,25 @@ void confirm(std::string msg, ConfirmCallback cb) {
     g_confirm_callback = std::move(cb);
 }
 
-
 void audio_callback(int16_t* buffer, int length) {
     if (!g_initialized) {
         memset(buffer, 0, sizeof(int16_t) * length);
         return;
     }
+
+    // update sid settings
+    static int chip_model      = int(g_song.model);
+    static int sampling_method = settings_view::settings().sampling_method;
+
+    if (chip_model != int(g_song.model)) {
+        chip_model = int(g_song.model);
+        g_sid.set_chip_model(Sid::Model(chip_model));
+    }
+    if (sampling_method != settings_view::settings().sampling_method) {
+        sampling_method = settings_view::settings().sampling_method;
+        g_sid.set_sampling_method(Sid::SamplingMethod(sampling_method));
+    }
+
     g_mixer.mix(buffer, length);
 }
 

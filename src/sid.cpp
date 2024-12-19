@@ -30,12 +30,19 @@ Sid& Sid::operator=(Sid&&) noexcept = default;
 
 void Sid::init(Model model, SamplingMethod sampling_method) {
     if (!impl) impl = std::make_unique<Impl>();
+    reset();
+    set_chip_model(model);
+    set_sampling_method(sampling_method);
+}
+
+void Sid::reset() {
     impl->sid.reset();
+}
+void Sid::set_chip_model(Model model) {
     impl->sid.set_chip_model(model == Model::MOS6581 ? MOS6581 : MOS8580);
-    impl->sid.set_sampling_parameters(
-            CLOCKRATE_PAL,
-            sampling_method == SamplingMethod::Fast ? SAMPLE_FAST : SAMPLE_RESAMPLE_INTERPOLATE,
-            MIXRATE);
+}
+void Sid::set_sampling_method(SamplingMethod sampling_method) {
+    impl->sid.set_sampling_parameters(CLOCKRATE_PAL, ::sampling_method(sampling_method), MIXRATE);
 }
 
 void Sid::set_reg(int reg, uint8_t value) {
