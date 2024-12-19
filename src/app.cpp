@@ -50,14 +50,16 @@ public:
     void mix(int16_t* buffer, int length) {
 
         enum {
-            REGISTER_COUNT   = 25,
-            WRITE_CYCLES     = 14,
-            WAIT_CYCLES_PAL  = Sid::PALCLOCKRATE / 50 - WRITE_CYCLES * REGISTER_COUNT,
-            WAIT_CYCLES_NTSC = Sid::NTSCCLOCKRATE / 60 - WRITE_CYCLES * REGISTER_COUNT,
+            REGISTER_COUNT = 25,
+            WRITE_CYCLES   = 14,
+            // WAIT_CYCLES    = Sid::CLOCKRATE_PAL / 50 - WRITE_CYCLES * (REGISTER_COUNT - 1),
         };
 
+        int ticks_per_second = m_player.song().multiplier * 50 ?: 25;
+        int wait_cycles = Sid::CLOCKRATE_PAL / ticks_per_second - WRITE_CYCLES * (REGISTER_COUNT - 1);
+
         const bool reverse_reg_order = m_player.song().adparam < 0xf000;
-        int cycles_left = length * uint64_t(Sid::PALCLOCKRATE) / MIXRATE;
+        int        cycles_left       = length * uint64_t(Sid::CLOCKRATE_PAL) / MIXRATE;
 
         while (cycles_left > 0) {
             if (m_cycles_to_next_write == 0) {
@@ -70,7 +72,8 @@ public:
                 // next register
                 if (++m_reg >= REGISTER_COUNT) {
                     m_reg = 0;
-                    m_cycles_to_next_write = WAIT_CYCLES_PAL;
+                    // m_cycles_to_next_write = WAIT_CYCLES;
+                    m_cycles_to_next_write = wait_cycles;
                 }
                 else {
                     m_cycles_to_next_write = WRITE_CYCLES;
@@ -271,7 +274,7 @@ void reset() {
     command_edit::reset();
     g_player.reset();
     g_song.clear();
-    g_sid = Sid(Sid::Model::MOS8580, Sid::PALCLOCKRATE, Sid::SamplingMethod::Fast);
+    g_sid.init(Sid::Model::MOS8580, Sid::SamplingMethod::Fast);
 }
 
 void init() {

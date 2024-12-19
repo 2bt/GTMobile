@@ -106,6 +106,8 @@ struct LoadError : public std::exception {
     std::string msg;
 };
 
+enum class Model : uint8_t { MOS6581, MOS8580 };
+
 struct Song {
     std::array<Instrument, MAX_INSTR>         instruments;
     Array2<uint8_t, MAX_TABLES, MAX_TABLELEN> ltable;
@@ -119,7 +121,10 @@ struct Song {
     std::array<char, MAX_STR>                 author_name;
     std::array<char, MAX_STR>                 copyright_name;
 
-    uint16_t                                  adparam = 0x0f00;
+    // GTU extra stuff
+    uint16_t                                  adparam    = 0x0f00;
+    uint8_t                                   multiplier = 1;
+    Model                                     model      = Model::MOS8580;
 
     int get_table_length(int table) const;
     int get_table_part_length(int table, int row) const;

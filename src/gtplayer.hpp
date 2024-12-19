@@ -70,9 +70,8 @@ private:
     enum class Action { none, start, pause, stop };
 
     // play options
-    static constexpr int      m_multiplier       = 1;      // for multi speed
-    static constexpr bool     m_optimizepulse    = false;
-    static constexpr bool     m_optimizerealtime = false;
+    static constexpr bool m_optimizepulse    = false;
+    static constexpr bool m_optimizerealtime = false;
 
     gt::Song const* m_song;
     Registers       m_regs             = {};

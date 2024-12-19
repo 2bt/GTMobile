@@ -171,6 +171,8 @@ void Song::load(std::istream& stream) {
     read(stream, ident);
     if (strncmp(ident, "GTM ", 4) == 0) {
         read(stream, adparam);
+        read(stream, multiplier);
+        read(stream, model);
     }
 
 
@@ -450,6 +452,8 @@ bool Song::save(std::ostream& stream) {
     // write extra stuff
     stream.write("GTM ", 4);
     write(stream, adparam);
+    write(stream, multiplier);
+    write(stream, model);
 
     return true;
 }

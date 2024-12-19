@@ -38,13 +38,14 @@ uint16_t get_freq(int note) {
 
 
 Player::Player(Song const& song) : m_song(&song) {
+    int multiplier = std::max<int>(1, m_song->multiplier);
     for (int c = 0; c < MAX_CHN; c++) {
         m_channels[c].trans = 0;
         m_channels[c].instr = 1;
-        m_channels[c].tempo = 6 * m_multiplier - 1;
+        m_channels[c].tempo = 6 * multiplier - 1;
     }
-    m_funktable[0] = 9 * m_multiplier - 1;
-    m_funktable[1] = 6 * m_multiplier - 1;
+    m_funktable[0] = 9 * multiplier - 1;
+    m_funktable[1] = 6 * multiplier - 1;
 }
 
 void Player::reset() {
@@ -108,6 +109,7 @@ void Player::sequencer(int c) {
 
 void Player::play_routine() {
     m_loop_pattern = m_loop_pattern_req;
+    int multiplier = std::max<int>(1, m_song->multiplier);
 
     if (m_action == Action::pause || m_action == Action::stop) {
         m_is_playing = false;
@@ -119,7 +121,7 @@ void Player::play_routine() {
             chan.newcmddata = 0;
             chan.ptr[WTBL]  = 0;
             chan.newnote    = 0;
-            chan.tick       = 6 * m_multiplier - 1;
+            chan.tick       = 6 * multiplier - 1;
             chan.gatetimer  = m_song->instruments[1].gatetimer & 0x3f;
             chan.gate       = 0xfe;    // note off
             m_regs[0x6 + 7 * c] &= 0xf0; // fast release
@@ -151,7 +153,7 @@ void Player::play_routine() {
             chan.wave       = 0;
             chan.ptr[WTBL]  = 0;
             chan.newnote    = 0;
-            chan.tick       = 6 * m_multiplier - 1;
+            chan.tick       = 6 * m_song->multiplier - 1;
             chan.gatetimer  = m_song->instruments[1].gatetimer & 0x3f;
             chan.songptr    = m_start_song_pos[c];
             chan.pattptr    = m_start_patt_pos[c];
