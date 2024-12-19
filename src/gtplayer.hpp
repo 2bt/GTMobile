@@ -1,6 +1,7 @@
 #pragma once
 #include <cstdint>
 #include <array>
+#include <atomic>
 #include "gtsong.hpp"
 
 
@@ -15,9 +16,13 @@ public:
     Player(gt::Song const& song);
     void reset();
 
-    void play_song() { m_action = Action::start; }
-    void stop_song() { m_action = Action::stop; }
-    void pause_song() { m_action = Action::pause; }
+    enum class Action { None, Start, FastBackward, FastForward, Pause, Stop };
+
+    void set_action(Action action) { m_action = action; }
+
+    void play_song() { m_action = Action::Start; }
+    void stop_song() { m_action = Action::Stop; }
+    void pause_song() { m_action = Action::Pause; }
     bool is_playing() const { return m_is_playing; }
 
     bool get_loop() const { return m_loop_pattern_req; }
@@ -67,35 +72,33 @@ private:
         uint8_t  gatetimer;
     };
 
-    enum class Action { none, start, pause, stop };
 
     // play options
     static constexpr bool m_optimizepulse    = false;
     static constexpr bool m_optimizerealtime = false;
 
-    gt::Song const* m_song;
-    Registers       m_regs             = {};
-    Action          m_action           = Action::none;
-    bool            m_is_playing       = false;
-    bool            m_loop_pattern     = false;
-    bool            m_loop_pattern_req = false;
+    gt::Song const*     m_song;
+    Registers           m_regs;
+    std::atomic<Action> m_action;
+    bool                m_is_playing;
+    bool                m_loop_pattern;
+    bool                m_loop_pattern_req;
 
 public:
-    std::array<int, MAX_CHN> m_start_song_pos   = {};
-    std::array<int, MAX_CHN> m_start_patt_pos   = {};
-    std::array<int, MAX_CHN> m_current_song_pos = {};
-    std::array<int, MAX_CHN> m_current_patt_pos = {};
+    std::array<int, MAX_CHN> m_start_song_pos;
+    std::array<int, MAX_CHN> m_start_patt_pos;
+    std::array<int, MAX_CHN> m_current_song_pos;
+    std::array<int, MAX_CHN> m_current_patt_pos;
 private:
 
-    std::array<Channel, MAX_CHN> m_channels     = {};
-    uint8_t                      m_filterctrl   = 0;
-    uint8_t                      m_filtertype   = 0;
-    uint8_t                      m_filtercutoff = 0;
-    uint8_t                      m_filtertime   = 0;
-    uint8_t                      m_filterptr    = 0;
-    uint8_t                      m_funktable[2];
-    uint8_t                      m_masterfader  = 0x0f;
-
+    std::array<Channel, MAX_CHN> m_channels;
+    uint8_t                      m_filterctrl;
+    uint8_t                      m_filtertype;
+    uint8_t                      m_filtercutoff;
+    uint8_t                      m_filtertime;
+    uint8_t                      m_filterptr;
+    std::array<uint8_t, 2>       m_funktable;
+    uint8_t                      m_masterfader;
 };
 
 

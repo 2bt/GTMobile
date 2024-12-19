@@ -38,6 +38,29 @@ uint16_t get_freq(int note) {
 
 
 Player::Player(Song const& song) : m_song(&song) {
+    reset();
+}
+
+void Player::reset() {
+    m_regs             = {};
+    m_action           = Action::None;
+    m_is_playing       = false;
+    m_loop_pattern     = false;
+    m_loop_pattern_req = false;
+
+    m_start_song_pos   = {};
+    m_start_patt_pos   = {};
+    m_current_song_pos = {};
+    m_current_patt_pos = {};
+
+    m_channels         = {};
+    m_filterctrl       = 0;
+    m_filtertype       = 0;
+    m_filtercutoff     = 0;
+    m_filtertime       = 0;
+    m_filterptr        = 0;
+    m_masterfader      = 0x0f;
+
     int multiplier = std::max<int>(1, m_song->multiplier);
     for (int c = 0; c < MAX_CHN; c++) {
         m_channels[c].trans = 0;
@@ -46,10 +69,7 @@ Player::Player(Song const& song) : m_song(&song) {
     }
     m_funktable[0] = 9 * multiplier - 1;
     m_funktable[1] = 6 * multiplier - 1;
-}
 
-void Player::reset() {
-    *this = Player(*m_song);
 }
 
 void Player::release_note(int chnnum) {
@@ -109,9 +129,11 @@ void Player::sequencer(int c) {
 
 void Player::play_routine() {
     m_loop_pattern = m_loop_pattern_req;
+
     int multiplier = std::max<int>(1, m_song->multiplier);
 
-    if (m_action == Action::pause || m_action == Action::stop) {
+    Action action = std::atomic_exchange(&m_action, Action::None);
+    if (action == Action::Pause || action == Action::Stop) {
         m_is_playing = false;
         for (int c = 0; c < MAX_CHN; c++) {
             Channel& chan = m_channels[c];
@@ -125,9 +147,9 @@ void Player::play_routine() {
             chan.gatetimer  = m_song->instruments[1].gatetimer & 0x3f;
             chan.gate       = 0xfe;    // note off
             m_regs[0x6 + 7 * c] &= 0xf0; // fast release
-            if (m_action == Action::stop && chan.tempo < 2) chan.tick = 0;
+            if (action == Action::Stop && chan.tempo < 2) chan.tick = 0;
         }
-        if (m_action == Action::pause) {
+        if (action == Action::Pause) {
             m_start_song_pos = m_current_song_pos;
             m_start_patt_pos = m_current_patt_pos;
         }
@@ -135,11 +157,12 @@ void Player::play_routine() {
             m_current_song_pos = m_start_song_pos;
             m_current_patt_pos = m_start_patt_pos;
         }
-        m_action = Action::none;
     }
 
-    if (m_action == Action::start) {
-        m_action = Action::none;
+    if (action == Action::Start ||
+        action == Action::FastForward ||
+        action == Action::FastBackward) {
+        bool prev_is_playing = m_is_playing;
         m_is_playing = true;
 
         m_filterctrl = 0;
@@ -155,8 +178,24 @@ void Player::play_routine() {
             chan.newnote    = 0;
             chan.tick       = 6 * m_song->multiplier - 1;
             chan.gatetimer  = m_song->instruments[1].gatetimer & 0x3f;
-            chan.songptr    = m_start_song_pos[c];
-            chan.pattptr    = m_start_patt_pos[c];
+
+            if (action == Action::FastForward) {
+                chan.songptr = m_current_song_pos[c] + 1;
+                chan.pattptr = 0;
+            }
+            else if (action == Action::FastBackward) {
+                chan.songptr = std::max(0, m_current_song_pos[c] - 1);
+                chan.pattptr = 0;
+            }
+            else if (prev_is_playing) {
+                chan.songptr = m_current_song_pos[c];
+                chan.pattptr = 0;
+            }
+            else {
+                chan.songptr = m_start_song_pos[c];
+                chan.pattptr = m_start_patt_pos[c];
+            }
+
             sequencer(c);
         }
     }

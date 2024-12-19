@@ -116,16 +116,25 @@ void draw_play_buttons() {
     static float backward_time = 0.0f;
     backward_time += gui::get_frame_time();
     if (gui::button(gui::Icon::FastBackward)) {
-        if (backward_time < 0.5f) {
-            for (int& x : g_player.m_start_song_pos) {
-                if (x > 0) --x;
+        if (g_player.is_playing()) {
+            if (backward_time < 0.5f) {
+                g_player.set_action(gt::Player::Action::FastBackward);
+            }
+            else {
+                g_player.set_action(gt::Player::Action::Start);
             }
         }
-        g_player.m_start_patt_pos = {};
-        if (g_player.is_playing()) g_player.play_song();
         else {
-            g_player.m_current_song_pos = g_player.m_start_song_pos;
-            g_player.m_current_patt_pos = {};
+            g_player.m_start_patt_pos = {};
+            if (g_player.m_current_patt_pos == std::array<int, 3>()) {
+                for (int& x : g_player.m_current_song_pos) {
+                    if (x > 0) --x;
+                }
+            }
+            else {
+                g_player.m_current_patt_pos = {};
+            }
+            g_player.m_start_song_pos = g_player.m_current_song_pos;
         }
         backward_time = 0.0f;
     }
@@ -166,15 +175,18 @@ void draw_play_buttons() {
 
     gui::same_line();
     if (gui::button(gui::Icon::FastForward)) {
-        for (int& x : g_player.m_start_song_pos) {
-            if (x < g_song.song_len - 1) ++x;
-            else x = 0;
+        if (g_player.is_playing()) {
+            g_player.set_action(gt::Player::Action::FastForward);
         }
-        g_player.m_start_patt_pos = {};
-        if (g_player.is_playing()) g_player.play_song();
         else {
-            g_player.m_current_song_pos = g_player.m_start_song_pos;
+            g_player.m_start_patt_pos   = {};
             g_player.m_current_patt_pos = {};
+
+            for (int& x : g_player.m_current_song_pos) {
+                if (x < g_song.song_len - 1) ++x;
+                else x = 0;
+            }
+            g_player.m_start_song_pos = g_player.m_current_song_pos;
         }
     }
 }

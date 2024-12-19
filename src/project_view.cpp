@@ -16,13 +16,14 @@ namespace project_view {
 namespace {
 
 
-gt::Song&                g_song = app::song();
-std::string              g_songs_dir   = {};
-std::array<char, 32>     g_file_name   = {};
-std::vector<std::string> g_file_names  = {};
-int                      g_file_scroll = 0;
-std::string              g_status_msg  = {};
-float                    g_status_age  = 0.0f;
+gt::Song&                g_song               = app::song();
+std::string              g_songs_dir          = {};
+std::array<char, 32>     g_file_name          = {};
+std::vector<std::string> g_file_names         = {};
+int                      g_file_scroll        = 0;
+std::string              g_status_msg         = {};
+float                    g_status_age         = 0.0f;
+bool                     g_show_export_window = false;
 
 
 #define FILE_SUFFIX ".sng"
@@ -45,12 +46,13 @@ void save() {
 } // namespace
 
 void reset() {
-    g_songs_dir   = {};
-    g_file_name   = {};
-    g_file_names  = {};
-    g_file_scroll = 0;
-    g_status_msg  = {};
-    g_status_age  = 0.0f;
+    g_songs_dir          = {};
+    g_file_name          = {};
+    g_file_names         = {};
+    g_file_scroll        = 0;
+    g_status_msg         = {};
+    g_status_age         = 0.0f;
+    g_show_export_window = false;
 }
 
 void init() {

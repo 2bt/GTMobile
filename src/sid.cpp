@@ -34,7 +34,6 @@ void Sid::init(Model model, SamplingMethod sampling_method) {
     set_chip_model(model);
     set_sampling_method(sampling_method);
 }
-
 void Sid::reset() {
     impl->sid.reset();
 }
