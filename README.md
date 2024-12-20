@@ -1,6 +1,8 @@
 # GTMobile
 
-![goat](android/app/src/main/ic_launcher-playstore.png)
+<div align="center">
+    <img src="android/app/src/main/ic_launcher-playstore.png">
+</div>
 
 *Create authentic C64 SID music on the go!*
 
