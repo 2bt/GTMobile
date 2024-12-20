@@ -7,6 +7,9 @@
 #include <filesystem>
 #include <cstring>
 #include <fstream>
+#include <thread>
+#include <cassert>
+#include <sndfile.h>
 
 
 namespace fs = std::filesystem;
@@ -15,15 +18,23 @@ namespace fs = std::filesystem;
 namespace project_view {
 namespace {
 
+enum class ExportFormat { Wav, Ogg };
 
-gt::Song&                g_song               = app::song();
-std::string              g_songs_dir          = {};
-std::array<char, 32>     g_file_name          = {};
-std::vector<std::string> g_file_names         = {};
-int                      g_file_scroll        = 0;
-std::string              g_status_msg         = {};
-float                    g_status_age         = 0.0f;
-bool                     g_show_export_window = false;
+gt::Song&                g_song = app::song();
+std::string              g_song_dir;
+std::array<char, 32>     g_file_name;
+std::vector<std::string> g_file_names;
+int                      g_file_scroll;
+std::string              g_status_msg;
+float                    g_status_age;
+
+bool                     g_show_export_window;
+ExportFormat             g_export_format;
+SNDFILE*                 g_export_sndfile;
+std::thread              g_export_thread;
+bool                     g_export_canceled;
+bool                     g_export_done;
+float                    g_export_progress;
 
 
 #define FILE_SUFFIX ".sng"
@@ -36,32 +47,97 @@ void status(std::string const& msg) {
 
 
 void save() {
-    bool ok = g_song.save((g_songs_dir + g_file_name.data() + FILE_SUFFIX).c_str());
+    bool ok = g_song.save((g_song_dir + g_file_name.data() + FILE_SUFFIX).c_str());
     init();
     if (ok) status("SONG WAS SAVED");
     else status("SAVE ERROR");
 }
 
 
+
+
+void start_export() {
+    assert(g_file_name.data()[0] != '\0');
+
+    std::string export_dir = app::storage_dir() + "/exports/";
+    fs::create_directories(export_dir);
+
+    SF_INFO info = { 0, app::MIXRATE, 1 };
+    std::string path = export_dir + std::string(g_file_name.data());
+    if (g_export_format == ExportFormat::Ogg) {
+        info.format = SF_FORMAT_OGG | SF_FORMAT_VORBIS;
+        path += ".ogg";
+    }
+    else {
+        info.format = SF_FORMAT_WAV | SF_FORMAT_PCM_16;
+        path += ".wav";
+    }
+
+    g_export_sndfile = sf_open(path.c_str(), SFM_WRITE, &info);
+    if (!g_export_sndfile) {
+        status("EXPORT ERROR");
+        g_show_export_window = false;
+        return;
+    }
+
+    sf_set_string(g_export_sndfile, SF_STR_TITLE, g_song.song_name.data());
+    sf_set_string(g_export_sndfile, SF_STR_ARTIST, g_song.author_name.data());
+
+    g_export_canceled = false;
+    g_export_done     = false;
+    g_export_progress = 0.0f;
+    g_export_thread = std::thread([] {
+        std::array<int16_t, 1024> buffer;
+
+        // count frames of whole song
+        // int frames = 6 * 32;
+        // int samples = frames * (app::MIXRATE / 50);
+        int samples = app::MIXRATE * 60;
+        int samples_left = samples;
+
+        gt::Player player{ g_song };
+        player.play_song();
+        Sid sid;
+        sid.init(Sid::Model(g_song.model), Sid::SamplingMethod::ResampleInterpolate);
+        app::Mixer mixer{ player, sid };
+
+
+        while (samples_left > 0 && !g_export_canceled) {
+            int len = std::min<int>(samples_left, buffer.size());
+            samples_left -= len;
+            mixer.mix(buffer.data(), len);
+            sf_writef_short(g_export_sndfile, buffer.data(), len);
+            g_export_progress = float(samples - samples_left) / samples;
+        }
+
+        sf_close(g_export_sndfile);
+        g_export_sndfile = nullptr;
+        g_export_done    = true;
+    });
+}
+
 } // namespace
 
+
 void reset() {
-    g_songs_dir          = {};
+    g_song_dir           = {};
     g_file_name          = {};
     g_file_names         = {};
-    g_file_scroll        = 0;
+    g_file_scroll        = {};
     g_status_msg         = {};
-    g_status_age         = 0.0f;
-    g_show_export_window = false;
+    g_status_age         = {};
+    g_show_export_window = {};
+    g_export_format      = {};
+    g_export_sndfile     = {};
 }
 
 void init() {
-    if (g_songs_dir.empty()) {
-        g_songs_dir = app::storage_dir() + "/songs/";
+    if (g_song_dir.empty()) {
+        g_song_dir = app::storage_dir() + "/songs/";
         // copy demo songs
-        fs::create_directories(g_songs_dir);
+        fs::create_directories(g_song_dir);
         for (std::string const& s : platform::list_assets("songs")) {
-            std::string dst_name = g_songs_dir + s;
+            std::string dst_name = g_song_dir + s;
             if (fs::exists(dst_name)) continue;
             std::vector<uint8_t> buffer;
             if (!platform::load_asset("songs/" + s, buffer)) continue;
@@ -72,7 +148,7 @@ void init() {
     }
 
     g_file_names.clear();
-    for (auto const& entry : fs::directory_iterator(g_songs_dir)) {
+    for (auto const& entry : fs::directory_iterator(g_song_dir)) {
         if (!entry.is_regular_file()) continue;
         if (entry.path().extension().string() != FILE_SUFFIX) continue;
         g_file_names.emplace_back(entry.path().stem().string());
@@ -187,7 +263,7 @@ void draw() {
             app::player().reset();
             song_view::reset();
             try {
-                g_song.load((g_songs_dir + g_file_name.data() + FILE_SUFFIX).c_str());
+                g_song.load((g_song_dir + g_file_name.data() + FILE_SUFFIX).c_str());
                 status("SONG WAS LOADED");
             }
             catch (gt::LoadError const& e) {
@@ -211,7 +287,7 @@ void draw() {
     if (gui::button("DELETE")) {
         app::confirm("DELETE SONG?", [](bool ok) {
             if (!ok) return;
-            fs::remove(g_songs_dir + g_file_name.data() + FILE_SUFFIX);
+            fs::remove(g_song_dir + g_file_name.data() + FILE_SUFFIX);
             init();
             status("SONG WAS DELETED");
         });
@@ -226,6 +302,76 @@ void draw() {
             status("SONG WAS RESET");
         });
     }
+
+    gui::disabled(g_file_name[0] == '\0');
+    if (gui::button("EXPORT")) g_show_export_window = true;
+    gui::disabled(false);
+
+
+
+    if (g_show_export_window) {
+        gui::Box box = gui::begin_window({ app::CANVAS_WIDTH - 48, app::BUTTON_HEIGHT * 3 });
+        gui::item_size({ box.size.x, app::BUTTON_HEIGHT });
+        gui::text("SONG EXPORT");
+
+        if (!g_export_thread.joinable()) {
+
+            gui::item_size({ box.size.x / 2, app::BUTTON_HEIGHT });
+            gui::text("FORMAT");
+            gui::same_line();
+            gui::item_size({ box.size.x / 4, app::BUTTON_HEIGHT });
+            gui::button_style(gui::ButtonStyle::RadioLeft);
+            if (gui::button("WAV", g_export_format == ExportFormat::Wav)) {
+                g_export_format = ExportFormat::Wav;
+            }
+            gui::same_line();
+            gui::button_style(gui::ButtonStyle::RadioRight);
+            if (gui::button("OGG", g_export_format == ExportFormat::Ogg)) {
+                g_export_format = ExportFormat::Ogg;
+            }
+            gui::button_style(gui::ButtonStyle::Normal);
+
+            gui::item_size({ box.size.x / 2, app::BUTTON_HEIGHT });
+            if (gui::button("EXPORT")) {
+                start_export();
+            }
+            gui::same_line();
+            if (gui::button("CLOSE")) g_show_export_window = false;
+        }
+        else {
+            gui::item_size({ box.size.x, app::BUTTON_HEIGHT });
+
+            gui::DrawContext& dc = gui::draw_context();
+            gui::Box b = gui::item_box();
+            b.pos.x  += 1;
+            b.pos.y  += 1;
+            b.size.x -= 2;
+            b.size.y -= 2;
+            dc.rgb(color::FRAME);
+            dc.fill(b);
+            dc.rgb(color::BUTTON_ACTIVE);
+            b.pos.x  += 2;
+            b.pos.y  += 2;
+            b.size.x -= 4;
+            b.size.y -= 4;
+            b.size.x *= g_export_progress;
+            dc.fill(b);
+            if (gui::button("CANCEL")) g_export_canceled = true;
+
+            if (g_export_done) {
+                g_export_thread.join();
+                g_show_export_window = false;
+                if (g_export_canceled) {
+                    status("SONG EXPORT CANCELED");
+                }
+                else {
+                    status("SONG WAS EXPORTED");
+                }
+            }
+        }
+        gui::end_window();
+    }
+
     gui::separator();
 
     app::draw_confirm();

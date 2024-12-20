@@ -1,6 +1,10 @@
 cmake_minimum_required(VERSION 3.22.1)
 
+set(LIB_DIR "../../../../native-libs")
+
 project(native)
+
+add_subdirectory(${LIB_DIR}/libsndfile libsndfile_build)
 
 add_library(
     native
@@ -51,9 +55,11 @@ find_package (
 
 target_link_libraries(
     native
+    PRIVATE
     log
     EGL
     GLESv2
     oboe::oboe
     android
+    sndfile
 )

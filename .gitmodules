@@ -1,0 +1,3 @@
+[submodule "android/native-libs/libsndfile"]
+	path = android/native-libs/libsndfile
+	url = https://github.com/libsndfile/libsndfile.git

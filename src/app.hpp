@@ -22,6 +22,18 @@ namespace app {
     };
 
 
+    class Mixer {
+    public:
+        Mixer(gt::Player& player, Sid& sid) : m_player(player), m_sid(sid) {}
+        void mix(int16_t* buffer, int length);
+    private:
+        gt::Player& m_player;
+        Sid&        m_sid;
+        int         m_cycles_to_next_write = 0;
+        int         m_reg                  = 0;
+    };
+
+
     gt::Song&          song();
     gt::Player&        player();
     Sid&               sid();

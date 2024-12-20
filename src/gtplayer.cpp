@@ -130,9 +130,8 @@ void Player::sequencer(int c) {
 void Player::play_routine() {
     m_loop_pattern = m_loop_pattern_req;
 
-    int multiplier = std::max<int>(1, m_song->multiplier);
-
-    Action action = std::atomic_exchange(&m_action, Action::None);
+    int    multiplier = std::max<int>(1, m_song->multiplier);
+    Action action     = std::atomic_exchange(&m_action, Action::None);
     if (action == Action::Pause || action == Action::Stop) {
         m_is_playing = false;
         for (int c = 0; c < MAX_CHN; c++) {
@@ -145,7 +144,7 @@ void Player::play_routine() {
             chan.newnote    = 0;
             chan.tick       = 6 * multiplier - 1;
             chan.gatetimer  = m_song->instruments[1].gatetimer & 0x3f;
-            chan.gate       = 0xfe;    // note off
+            chan.gate       = 0xfe;      // note off
             m_regs[0x6 + 7 * c] &= 0xf0; // fast release
             if (action == Action::Stop && chan.tempo < 2) chan.tick = 0;
         }
@@ -161,10 +160,8 @@ void Player::play_routine() {
 
     if (action == Action::Start ||
         action == Action::FastForward ||
-        action == Action::FastBackward) {
-        bool prev_is_playing = m_is_playing;
-        m_is_playing = true;
-
+        action == Action::FastBackward)
+    {
         m_filterctrl = 0;
         m_filterptr  = 0;
         for (int c = 0; c < MAX_CHN; c++) {
@@ -176,7 +173,7 @@ void Player::play_routine() {
             chan.wave       = 0;
             chan.ptr[WTBL]  = 0;
             chan.newnote    = 0;
-            chan.tick       = 6 * m_song->multiplier - 1;
+            chan.tick       = 6 * multiplier - 1;
             chan.gatetimer  = m_song->instruments[1].gatetimer & 0x3f;
 
             if (action == Action::FastForward) {
@@ -187,7 +184,8 @@ void Player::play_routine() {
                 chan.songptr = std::max(0, m_current_song_pos[c] - 1);
                 chan.pattptr = 0;
             }
-            else if (prev_is_playing) {
+            else if (m_is_playing) {
+                // start from the beginning of the current pattern
                 chan.songptr = m_current_song_pos[c];
                 chan.pattptr = 0;
             }
@@ -195,9 +193,9 @@ void Player::play_routine() {
                 chan.songptr = m_start_song_pos[c];
                 chan.pattptr = m_start_patt_pos[c];
             }
-
             sequencer(c);
         }
+        m_is_playing = true;
     }
 
     if (m_filterptr) {
@@ -739,6 +737,8 @@ NEXTCHN:
             m_regs[0x4 + 7 * c] = chan.wave & chan.gate;
         }
     }
+
+    // printf("%4d %4d %4d\n", m_channels[0].songptr, m_channels[0].pattptr, m_channels[0].tick);
 }
 
 } // namespace gt

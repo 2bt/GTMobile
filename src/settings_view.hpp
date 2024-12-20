@@ -4,7 +4,7 @@
 #define SETTINGS(X) \
     X(row_highlight,   int,   8) \
     X(row_height,      int,  15) \
-    X(sampling_method, int,   0)
+    X(sampling_method, int,   3)
 
 
 namespace settings_view {

@@ -43,72 +43,13 @@ bool            g_initialized = false;
 std::string     g_storage_dir = ".";
 
 
-class Mixer {
-public:
-    Mixer(gt::Player& player, Sid& sid) : m_player(player), m_sid(sid) {}
-
-    void mix(int16_t* buffer, int length) {
-
-        enum {
-            REGISTER_COUNT = 25,
-            WRITE_CYCLES   = 14,
-            // WAIT_CYCLES    = Sid::CLOCKRATE_PAL / 50 - WRITE_CYCLES * (REGISTER_COUNT - 1),
-        };
-
-        int ticks_per_second = m_player.song().multiplier * 50 ?: 25;
-        int wait_cycles = Sid::CLOCKRATE_PAL / ticks_per_second - WRITE_CYCLES * (REGISTER_COUNT - 1);
-
-        const bool reverse_reg_order = m_player.song().adparam < 0xf000;
-        int        cycles_left       = length * uint64_t(Sid::CLOCKRATE_PAL) / MIXRATE;
-
-        while (cycles_left > 0) {
-            if (m_cycles_to_next_write == 0) {
-                if (m_reg == 0) m_player.play_routine();
-
-                // write register
-                int r = reverse_reg_order ? REGISTER_COUNT - 1 - m_reg : m_reg;
-                g_sid.set_reg(r, m_player.registers()[r]);
-
-                // next register
-                if (++m_reg >= REGISTER_COUNT) {
-                    m_reg = 0;
-                    // m_cycles_to_next_write = WAIT_CYCLES;
-                    m_cycles_to_next_write = wait_cycles;
-                }
-                else {
-                    m_cycles_to_next_write = WRITE_CYCLES;
-                }
-            }
-            int c = std::min(cycles_left, m_cycles_to_next_write);
-            cycles_left -= c;
-            m_cycles_to_next_write -= c;
-
-            int n = m_sid.clock(c, buffer, length);
-            buffer += n;
-            length -= n;
-        }
-
-        // sometimes there's a sample left that needs rendering
-        assert(length <= 1);
-        if (length > 0) {
-            m_sid.clock(9999, buffer, length);
-        }
-    }
-
-private:
-    gt::Player& m_player;
-    Sid&        m_sid;
-    int         m_cycles_to_next_write = 0;
-    int         m_reg                  = 0;
-};
-
 
 Mixer g_mixer(g_player, g_sid);
 
 
 void draw_play_buttons() {
 
-    gui::cursor({ 0, canvas_height() - TAB_HEIGHT - gui::FRAME_WIDTH  });
+    gui::cursor({ 0, canvas_height() - TAB_HEIGHT - gui::FRAME_WIDTH });
     gui::item_size(CANVAS_WIDTH);
     gui::separator();
     gui::item_size(TAB_HEIGHT);
@@ -265,6 +206,51 @@ void draw_confirm() {
 void confirm(std::string msg, ConfirmCallback cb) {
     g_confirm_msg      = std::move(msg);
     g_confirm_callback = std::move(cb);
+}
+
+void Mixer::mix(int16_t* buffer, int length) {
+
+    enum {
+        REGISTER_COUNT = 25,
+        WRITE_CYCLES   = 14,
+    };
+    int const ticks_per_second = m_player.song().multiplier * 50 ?: 25;
+    int const wait_cycles      = Sid::CLOCKRATE_PAL / ticks_per_second - WRITE_CYCLES * (REGISTER_COUNT - 1);
+
+    const bool reverse_reg_order = m_player.song().adparam < 0xf000;
+    int        cycles_left       = length * uint64_t(Sid::CLOCKRATE_PAL) / MIXRATE;
+
+    while (cycles_left > 0) {
+        if (m_cycles_to_next_write == 0) {
+            if (m_reg == 0) m_player.play_routine();
+
+            // write register
+            int r = reverse_reg_order ? REGISTER_COUNT - 1 - m_reg : m_reg;
+            m_sid.set_reg(r, m_player.registers()[r]);
+
+            // next register
+            if (++m_reg >= REGISTER_COUNT) {
+                m_reg = 0;
+                m_cycles_to_next_write = wait_cycles;
+            }
+            else {
+                m_cycles_to_next_write = WRITE_CYCLES;
+            }
+        }
+        int c = std::min(cycles_left, m_cycles_to_next_write);
+        cycles_left -= c;
+        m_cycles_to_next_write -= c;
+
+        int n = m_sid.clock(c, buffer, length);
+        buffer += n;
+        length -= n;
+    }
+
+    // sometimes there's a sample left that needs rendering
+    assert(length <= 1);
+    if (length > 0) {
+        m_sid.clock(9999, buffer, length);
+    }
 }
 
 void audio_callback(int16_t* buffer, int length) {
