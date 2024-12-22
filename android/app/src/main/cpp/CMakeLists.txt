@@ -4,7 +4,7 @@ set(LIB_DIR "../../../../native-libs")
 
 project(native)
 
-add_subdirectory(${LIB_DIR}/libsndfile libsndfile_build)
+add_subdirectory(${LIB_DIR}/libsndfile ${CMAKE_BINARY_DIR}/libsndfile_build)
 
 add_library(
     native
