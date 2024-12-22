@@ -42,11 +42,10 @@ Player::Player(Song const& song) : m_song(&song) {
 }
 
 void Player::reset() {
-    m_regs             = {};
-    m_action           = Action::None;
-    m_is_playing       = false;
-    m_loop_pattern     = false;
-    m_loop_pattern_req = false;
+    m_regs              = {};
+    m_action            = Action::None;
+    m_is_playing        = false;
+    m_loop_pattern      = false;
 
     m_start_song_pos   = {};
     m_start_patt_pos   = {};
@@ -69,7 +68,6 @@ void Player::reset() {
     }
     m_funktable[0] = 9 * multiplier - 1;
     m_funktable[1] = 6 * multiplier - 1;
-
 }
 
 void Player::release_note(int chnnum) {
@@ -108,6 +106,7 @@ void Player::sequencer(int c) {
     // song loop
     if (chan.songptr >= m_song->song_len) {
         chan.songptr = m_song->song_loop;
+        ++chan.loop_counter;
     }
     assert(chan.songptr < m_song->song_len);
 
@@ -128,7 +127,7 @@ void Player::sequencer(int c) {
 
 
 void Player::play_routine() {
-    m_loop_pattern = m_loop_pattern_req;
+    bool loop_pattern = m_loop_pattern;
 
     int    multiplier = std::max<int>(1, m_song->multiplier);
     Action action     = std::atomic_exchange(&m_action, Action::None);
@@ -267,7 +266,7 @@ TICK0:
         // tick 0
         if (m_is_playing && chan.pattptr == 0x7fffffff) {
             chan.pattptr = 0;
-            if (!m_loop_pattern) sequencer(c);
+            if (!loop_pattern) sequencer(c);
         }
 
         // get gatetimer compare-value

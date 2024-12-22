@@ -87,13 +87,24 @@ void start_export() {
     g_export_done     = false;
     g_export_progress = 0.0f;
     g_export_thread = std::thread([] {
-        std::array<int16_t, 1024> buffer;
+        std::array<int16_t, 4096> buffer;
 
-        // count frames of whole song
-        // int frames = 6 * 32;
-        // int samples = frames * (app::MIXRATE / 50);
-        int samples = app::MIXRATE * 60;
-        int samples_left = samples;
+        int samples;
+        {
+            // calculate song length in samples
+            gt::Player player{ g_song };
+            player.play_song();
+            int tick_count = 1;
+            while (player.channel_loop_counter(0) == 0) {
+                player.play_routine();
+                ++tick_count;
+            }
+            tick_count += player.channel_tempo(0);
+            int const ticks_per_second = g_song.multiplier * 50 ?: 25;
+            int const cycles_per_tick  = Sid::CLOCKRATE_PAL / ticks_per_second;
+            uint64_t cycles = cycles_per_tick * tick_count;
+            samples = cycles * app::MIXRATE / Sid::CLOCKRATE_PAL;
+        }
 
         gt::Player player{ g_song };
         player.play_song();
@@ -101,8 +112,7 @@ void start_export() {
         sid.init(Sid::Model(g_song.model), Sid::SamplingMethod::ResampleInterpolate);
         app::Mixer mixer{ player, sid };
 
-
-        while (samples_left > 0 && !g_export_canceled) {
+        for(int samples_left = samples; samples_left > 0 && !g_export_canceled;) {
             int len = std::min<int>(samples_left, buffer.size());
             samples_left -= len;
             mixer.mix(buffer.data(), len);

@@ -109,9 +109,9 @@ void draw_play_buttons() {
     }
     gui::same_line();
 
-    bool loop = g_player.get_loop();
+    bool loop = g_player.get_pattern_looping();
     if (gui::button(gui::Icon::Loop, loop)) {
-        g_player.set_loop(!loop);
+        g_player.set_pattern_loopping(!loop);
     }
 
     gui::same_line();
@@ -209,43 +209,36 @@ void confirm(std::string msg, ConfirmCallback cb) {
 }
 
 void Mixer::mix(int16_t* buffer, int length) {
-
     enum {
-        REGISTER_COUNT = 25,
-        WRITE_CYCLES   = 14,
+        REGISTER_COUNT        = 25,
+        REGISTER_WRITE_CYCLES = 14,
     };
-    int const ticks_per_second = m_player.song().multiplier * 50 ?: 25;
-    int const wait_cycles      = Sid::CLOCKRATE_PAL / ticks_per_second - WRITE_CYCLES * (REGISTER_COUNT - 1);
-
-    const bool reverse_reg_order = m_player.song().adparam < 0xf000;
+    int const  ticks_per_second  = m_player.song().multiplier * 50 ?: 25;
+    int const  cycles_per_tick   = Sid::CLOCKRATE_PAL / ticks_per_second;
+    bool const reverse_reg_order = m_player.song().adparam < 0xf000;
     int        cycles_left       = length * uint64_t(Sid::CLOCKRATE_PAL) / MIXRATE;
-
     while (cycles_left > 0) {
         if (m_cycles_to_next_write == 0) {
             if (m_reg == 0) m_player.play_routine();
-
             // write register
             int r = reverse_reg_order ? REGISTER_COUNT - 1 - m_reg : m_reg;
             m_sid.set_reg(r, m_player.registers()[r]);
-
             // next register
             if (++m_reg >= REGISTER_COUNT) {
                 m_reg = 0;
-                m_cycles_to_next_write = wait_cycles;
+                m_cycles_to_next_write = cycles_per_tick - REGISTER_WRITE_CYCLES * (REGISTER_COUNT - 1);
             }
             else {
-                m_cycles_to_next_write = WRITE_CYCLES;
+                m_cycles_to_next_write = REGISTER_WRITE_CYCLES;
             }
         }
         int c = std::min(cycles_left, m_cycles_to_next_write);
         cycles_left -= c;
         m_cycles_to_next_write -= c;
-
         int n = m_sid.clock(c, buffer, length);
         buffer += n;
         length -= n;
     }
-
     // sometimes there's a sample left that needs rendering
     assert(length <= 1);
     if (length > 0) {

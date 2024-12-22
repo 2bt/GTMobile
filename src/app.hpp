@@ -26,6 +26,7 @@ namespace app {
     public:
         Mixer(gt::Player& player, Sid& sid) : m_player(player), m_sid(sid) {}
         void mix(int16_t* buffer, int length);
+
     private:
         gt::Player& m_player;
         Sid&        m_sid;

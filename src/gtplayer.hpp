@@ -25,8 +25,8 @@ public:
     void pause_song() { m_action = Action::Pause; }
     bool is_playing() const { return m_is_playing; }
 
-    bool get_loop() const { return m_loop_pattern_req; }
-    void set_loop(bool loop) { m_loop_pattern_req = loop; }
+    bool get_pattern_looping() const { return m_loop_pattern; }
+    void set_pattern_loopping(bool loop) { m_loop_pattern = loop; }
 
     void play_test_note(int note, int ins, int chnnum);
     void release_note(int chnnum);
@@ -37,9 +37,16 @@ public:
     void play_routine();
 
     using Registers = std::array<uint8_t, 25>;
-
     Registers const& registers() const { return m_regs; }
     gt::Song const&  song() const { return *m_song; }
+
+    // used to calculate song length in ticks
+    int channel_loop_counter(int c) const { return m_channels[c].loop_counter; }
+    int channel_tempo(int c) const {
+        Channel const& chan = m_channels[c];
+        if (chan.tempo >= 2) return chan.tempo;
+        else                 return m_funktable[chan.tempo];
+    }
 
 private:
     void sequencer(int c);
@@ -70,6 +77,7 @@ private:
         uint8_t  tempo;
         uint8_t  mute;
         uint8_t  gatetimer;
+        int      loop_counter;
     };
 
 
@@ -82,7 +90,6 @@ private:
     std::atomic<Action> m_action;
     bool                m_is_playing;
     bool                m_loop_pattern;
-    bool                m_loop_pattern_req;
 
 public:
     std::array<int, MAX_CHN> m_start_song_pos;
