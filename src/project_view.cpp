@@ -30,7 +30,6 @@ float                    g_status_age;
 
 bool                     g_show_export_window;
 ExportFormat             g_export_format;
-SNDFILE*                 g_export_sndfile;
 std::thread              g_export_thread;
 bool                     g_export_canceled;
 bool                     g_export_done;
@@ -73,20 +72,20 @@ void start_export() {
         path += ".wav";
     }
 
-    g_export_sndfile = sf_open(path.c_str(), SFM_WRITE, &info);
-    if (!g_export_sndfile) {
+    SNDFILE* sndfile = sf_open(path.c_str(), SFM_WRITE, &info);
+    if (!sndfile) {
         status("EXPORT ERROR");
         g_show_export_window = false;
         return;
     }
 
-    sf_set_string(g_export_sndfile, SF_STR_TITLE, g_song.song_name.data());
-    sf_set_string(g_export_sndfile, SF_STR_ARTIST, g_song.author_name.data());
+    sf_set_string(sndfile, SF_STR_TITLE, g_song.song_name.data());
+    sf_set_string(sndfile, SF_STR_ARTIST, g_song.author_name.data());
 
     g_export_canceled = false;
     g_export_done     = false;
     g_export_progress = 0.0f;
-    g_export_thread = std::thread([] {
+    g_export_thread = std::thread([sndfile] {
         std::array<int16_t, 4096> buffer;
 
         int samples;
@@ -107,6 +106,9 @@ void start_export() {
         }
 
         gt::Player player{ g_song };
+        for (int i = 0; i < 3; ++i) {
+            player.set_channel_active(i, app::player().is_channel_active(i));
+        }
         player.play_song();
         Sid sid;
         sid.init(Sid::Model(g_song.model), Sid::SamplingMethod::ResampleInterpolate);
@@ -116,13 +118,12 @@ void start_export() {
             int len = std::min<int>(samples_left, buffer.size());
             samples_left -= len;
             mixer.mix(buffer.data(), len);
-            sf_writef_short(g_export_sndfile, buffer.data(), len);
+            sf_writef_short(sndfile, buffer.data(), len);
             g_export_progress = float(samples - samples_left) / samples;
         }
 
-        sf_close(g_export_sndfile);
-        g_export_sndfile = nullptr;
-        g_export_done    = true;
+        sf_close(sndfile);
+        g_export_done = true;
     });
 }
 
@@ -138,7 +139,6 @@ void reset() {
     g_status_age         = {};
     g_show_export_window = {};
     g_export_format      = {};
-    g_export_sndfile     = {};
 }
 
 void init() {
