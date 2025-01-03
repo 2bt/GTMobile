@@ -29,6 +29,7 @@ bool note_on() {
 
 
 void draw() {
+
     static bool show_instrument_select = false;
     g_note_on = false;
 

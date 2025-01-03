@@ -99,7 +99,7 @@ void draw_table_debug() {
     gui::DrawContext& dc = gui::draw_context();
     ivec2 cursor = gui::cursor();
     enum { RH = 13 };
-    int table_page = (app::canvas_height() - cursor.y - app::BUTTON_HEIGHT * 3) / RH;
+    int table_page = (app::canvas_height() - cursor.y - app::BUTTON_HEIGHT * 3 - app::TAB_HEIGHT) / RH;
 
     for (int t = 0; t < 4; ++t) {
         gui::cursor({ 90 * t, cursor.y });

@@ -1,4 +1,5 @@
 #include "song_view.hpp"
+#include "gui.hpp"
 #include "settings_view.hpp"
 #include "command_edit.hpp"
 #include "gtplayer.hpp"
@@ -120,11 +121,12 @@ void draw_order_edit() {
     }
     gui::button_style(gui::ButtonStyle::Normal);
     gui::item_size({ WIDTH, app::BUTTON_HEIGHT });
-    gui::separator();
 
     sprintf(str, "TRANSPOSE %c%X", "+-"[g_transpose < 0], abs(g_transpose));
     gui::slider(WIDTH, str, g_transpose, -0xf, 0xe);
+
     gui::item_size({ WIDTH, app::BUTTON_HEIGHT });
+    gui::separator();
     if (gui::button("CLOSE")) exit_order_edit();
     gui::end_window();
 }
@@ -625,9 +627,10 @@ void draw() {
             g_show_pattern_edit_window ^= 1;
         }
         if (g_show_pattern_edit_window) {
-            gui::Box box = gui::begin_window({ app::CANVAS_WIDTH - 12, app::BUTTON_HEIGHT * 5 });
+            gui::Box box = gui::begin_window({ app::CANVAS_WIDTH - 12, app::BUTTON_HEIGHT * 5 + gui::FRAME_WIDTH * 2 });
             gui::item_size({ box.size.x, app::BUTTON_HEIGHT });
             gui::text("PATTERN %02X", patt_nums[g_cursor_chan]);
+            gui::separator();
             gui::slider(box.size.x, "LENGTH %02X", patt.len, 1, gt::MAX_PATTROWS);
             g_cursor_pattern_row = std::min(g_cursor_pattern_row, patt.len - 1);
             gui::item_size({ box.size.x, app::BUTTON_HEIGHT });
@@ -660,6 +663,7 @@ void draw() {
             }
             gui::disabled(false);
             gui::item_size({ box.size.x, app::BUTTON_HEIGHT });
+            gui::separator();
             if (gui::button("CLOSE")) {
                 g_show_pattern_edit_window = false;
                 for (int i = patt.len; i < gt::MAX_PATTROWS; ++i) {

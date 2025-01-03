@@ -1,5 +1,6 @@
 #include "app.hpp"
 #include "gtsong.hpp"
+#include "gui.hpp"
 #include "platform.hpp"
 #include "gtplayer.hpp"
 #include "sid.hpp"
@@ -182,11 +183,12 @@ void set_storage_dir(std::string const& storage_dir) { g_storage_dir = storage_d
 
 void draw_confirm() {
     if (g_confirm_msg.empty()) return;
-    gui::Box box = gui::begin_window({ CANVAS_WIDTH - 48, BUTTON_HEIGHT * 2 });
+    gui::Box box = gui::begin_window({ CANVAS_WIDTH - 48, BUTTON_HEIGHT * 2 + gui::FRAME_WIDTH });
 
     gui::item_size({ box.size.x, BUTTON_HEIGHT });
     gui::align(gui::Align::Center);
     gui::text(g_confirm_msg.c_str());
+    gui::separator();
     if (!g_confirm_callback) {
         if (gui::button("OK")) g_confirm_msg.clear();
         return;

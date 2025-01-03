@@ -1,5 +1,6 @@
 #include "project_view.hpp"
 #include "app.hpp"
+#include "gui.hpp"
 #include "log.hpp"
 #include "platform.hpp"
 #include "piano.hpp"
@@ -259,6 +260,15 @@ void draw() {
     gui::cursor(button_cursor);
     gui::align(gui::Align::Center);
     gui::item_size({ C1 - gui::FRAME_WIDTH, app::BUTTON_HEIGHT });
+    if (gui::button("RESET")) {
+        app::confirm("LOSE CHANGES TO THE CURRENT SONG?", [](bool ok) {
+            if (!ok) return;
+            app::player().reset();
+            g_song.clear();
+            song_view::reset();
+            status("SONG WAS RESET");
+        });
+    }
     bool file_selected = false;
     for (std::string const& n : g_file_names) {
         if (strcmp(n.c_str(), g_file_name.data()) == 0) {
@@ -303,16 +313,6 @@ void draw() {
         });
     }
     gui::disabled(false);
-    if (gui::button("RESET")) {
-        app::confirm("LOSE CHANGES TO THE CURRENT SONG?", [](bool ok) {
-            if (!ok) return;
-            app::player().reset();
-            g_song.clear();
-            song_view::reset();
-            status("SONG WAS RESET");
-        });
-    }
-
     gui::disabled(g_file_name[0] == '\0');
     if (gui::button("EXPORT")) g_show_export_window = true;
     gui::disabled(false);
@@ -320,9 +320,10 @@ void draw() {
 
 
     if (g_show_export_window) {
-        gui::Box box = gui::begin_window({ app::CANVAS_WIDTH - 48, app::BUTTON_HEIGHT * 3 });
+        gui::Box box = gui::begin_window({ app::CANVAS_WIDTH - 48, app::BUTTON_HEIGHT * 3 + gui::FRAME_WIDTH * 2 });
         gui::item_size({ box.size.x, app::BUTTON_HEIGHT });
         gui::text("SONG EXPORT");
+        gui::separator();
 
         if (!g_export_thread.joinable()) {
 
@@ -340,6 +341,8 @@ void draw() {
                 g_export_format = ExportFormat::Ogg;
             }
             gui::button_style(gui::ButtonStyle::Normal);
+            gui::item_size(box.size.x);
+            gui::separator();
 
             gui::item_size({ box.size.x / 2, app::BUTTON_HEIGHT });
             if (gui::button("EXPORT")) {
@@ -350,22 +353,17 @@ void draw() {
         }
         else {
             gui::item_size({ box.size.x, app::BUTTON_HEIGHT });
-
             gui::DrawContext& dc = gui::draw_context();
             gui::Box b = gui::item_box();
             b.pos.x  += 1;
             b.pos.y  += 1;
             b.size.x -= 2;
             b.size.y -= 2;
-            dc.rgb(color::FRAME);
-            dc.fill(b);
-            dc.rgb(color::BUTTON_ACTIVE);
-            b.pos.x  += 2;
-            b.pos.y  += 2;
-            b.size.x -= 4;
-            b.size.y -= 4;
             b.size.x *= g_export_progress;
+            dc.rgb(color::BUTTON_ACTIVE);
             dc.fill(b);
+
+            gui::separator();
             if (gui::button("CANCEL")) g_export_canceled = true;
 
             if (g_export_done) {
