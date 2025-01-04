@@ -10,7 +10,9 @@
 #include <fstream>
 #include <thread>
 #include <cassert>
+#ifndef __EMSCRIPTEN__
 #include <sndfile.h>
+#endif
 
 
 namespace fs = std::filesystem;
@@ -31,10 +33,12 @@ float                    g_status_age;
 
 bool                     g_show_export_window;
 ExportFormat             g_export_format;
+#ifndef __EMSCRIPTEN__
 std::thread              g_export_thread;
 bool                     g_export_canceled;
 bool                     g_export_done;
 float                    g_export_progress;
+#endif
 
 
 #define FILE_SUFFIX ".sng"
@@ -56,6 +60,7 @@ void save() {
 
 
 
+#ifndef __EMSCRIPTEN__
 void start_export() {
     assert(g_file_name.data()[0] != '\0');
 
@@ -127,6 +132,7 @@ void start_export() {
         g_export_done = true;
     });
 }
+#endif
 
 } // namespace
 
@@ -313,11 +319,11 @@ void draw() {
         });
     }
     gui::disabled(false);
+
+#ifndef __EMSCRIPTEN__
     gui::disabled(g_file_name[0] == '\0');
     if (gui::button("EXPORT")) g_show_export_window = true;
     gui::disabled(false);
-
-
 
     if (g_show_export_window) {
         gui::Box box = gui::begin_window({ app::CANVAS_WIDTH - 48, app::BUTTON_HEIGHT * 3 + gui::FRAME_WIDTH * 2 });
@@ -379,6 +385,7 @@ void draw() {
         }
         gui::end_window();
     }
+#endif
 
     gui::separator();
 
