@@ -256,22 +256,18 @@ void Song::load(std::istream& stream) {
         if (cmd == CMD_FUNKTEMPO)                       data = funk[data - 1] + 1;
     }
 
-    // TODO: check table jumps
-    // we only allow for backward jumps to zero or within the table
-    // we only allow for table addresses (in instruments and table ptr commands)
-
 
     // fix table ptr commands
-    for (int table = WTBL; table <= FTBL; ++table) {
-        int cmd = CMD_SETWAVEPTR + table;
+    for (int t = WTBL; t <= FTBL; ++t) {
+        int cmd = CMD_SETWAVEPTR + t;
         std::array<uint8_t, MAX_TABLELEN> addr_to_instr = {};
         constexpr char const* LABELS[] = { "WAVE", "PULS", "FILT" };
 
         // create initial mapping from table row to instrument
         for (int i = instr_count; i > 0; i--) {
             Instrument& instr = instruments[i];
-            if (instr.ptr[table] == 0) continue;
-            int addr = instr.ptr[table] - 1;
+            if (instr.ptr[t] == 0) continue;
+            int addr = instr.ptr[t] - 1;
             addr_to_instr[addr] = i;
         }
         // apply mapping in patterns
@@ -285,8 +281,8 @@ void Song::load(std::istream& stream) {
                     }
                     addr_to_instr[addr] = ++instr_count;
                     Instrument& instr = instruments[addr_to_instr[addr]];
-                    sprintf(instr.name.data(), "%s PTR %02X", LABELS[table], addr + 1);
-                    instr.ptr[table] = addr + 1;
+                    sprintf(instr.name.data(), "%s PTR %02X", LABELS[t], addr + 1);
+                    instr.ptr[t] = addr + 1;
                 }
                 row.data = addr_to_instr[addr];
             }
@@ -305,11 +301,57 @@ void Song::load(std::istream& stream) {
                 }
                 addr_to_instr[addr] = ++instr_count;
                 Instrument& instr = instruments[addr_to_instr[addr]];
-                sprintf(instr.name.data(), "%s PTR %02X", LABELS[table], addr + 1);
-                instr.ptr[table] = addr + 1;
+                sprintf(instr.name.data(), "%s PTR %02X", LABELS[t], addr + 1);
+                instr.ptr[t] = addr + 1;
             }
             data = addr_to_instr[addr];
         }
+    }
+
+    // Rewrite tables
+    // so that pointers point to the beginning of table parts
+    // and there are only backward jumps.
+    for (int t = WTBL; t <= FTBL; ++t) {
+        std::vector<uint8_t> nlt;
+        std::vector<uint8_t> nrt;
+        std::array<uint8_t, 256> new_ptr = {};
+        for (Instrument& instr : instruments) {
+            int p = instr.ptr[t];
+            if (p == 0) continue;
+            if (new_ptr[p] > 0) {
+                instr.ptr[t] = new_ptr[p];
+                continue;
+            }
+            instr.ptr[t] = new_ptr[p] = nlt.size() + 1;
+            std::array<int, MAX_TABLELEN> mark = {};
+            for (;;) {
+                if (mark[p - 1] > 0) {
+                    // loop
+                    nlt.push_back(0xff);
+                    nrt.push_back(mark[p - 1]);
+                    break;
+                }
+                if (ltable[t][p - 1] == 0xff) {
+                    p = rtable[t][p - 1];
+                    if (p > 0) continue;
+                    // end without loop
+                    nlt.push_back(0xff);
+                    nrt.push_back(0x00);
+                    break;
+                }
+                nlt.push_back(ltable[t][p - 1]);
+                nrt.push_back(rtable[t][p - 1]);
+                mark[p - 1] = nlt.size();
+                ++p;
+            }
+        }
+        if (nlt.size() > ltable[t].size()) {
+            load_error("not enough table space");
+        }
+        ltable[t] = {};
+        rtable[t] = {};
+        std::copy(nlt.begin(), nlt.end(), ltable[t].begin());
+        std::copy(nrt.begin(), nrt.end(), rtable[t].begin());
     }
 }
 
@@ -422,7 +464,7 @@ bool Song::save(std::ostream& stream) {
     for (int i = 0; i < MAX_PATT; ++i) {
         Pattern const& patt = patterns[i];
         for (int r = 0; r < patt.len; ++r) {
-            auto row = patt.rows[r];
+            PatternRow row = patt.rows[r];
             if (row.note != gt::REST || row.instr || row.command) {
                 max_used_patt = i;
                 break;
