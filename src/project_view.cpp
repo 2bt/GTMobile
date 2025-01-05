@@ -230,7 +230,7 @@ void draw() {
     gui::item_size({ app::CANVAS_WIDTH, app::canvas_height() - gui::cursor().y - piano::HEIGHT });
     gui::align(gui::Align::Left);
     gui::text("%s", g_status_msg.c_str());
-    g_status_age += gui::get_frame_time();
+    g_status_age += gui::frame_time();
     if (g_status_age > 2.0f) {
         g_status_msg = "";
     }

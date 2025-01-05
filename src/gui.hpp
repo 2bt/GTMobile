@@ -322,7 +322,7 @@ void free();
 void touch_event(int x, int y, bool pressed);
 void key_event(int key, int unicode);
 void set_refresh_rate(float refresh_rate);
-float get_frame_time();
+float frame_time();
 
 
 namespace touch {

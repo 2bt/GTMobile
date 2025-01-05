@@ -38,14 +38,10 @@ float           g_canvas_scale;
 int16_t         g_canvas_offset;
 ConfirmCallback g_confirm_callback;
 std::string     g_confirm_msg;
-
 View            g_view        = View::Splash;
 bool            g_initialized = false;
 std::string     g_storage_dir = ".";
-
-
-
-Mixer g_mixer(g_player, g_sid);
+Mixer           g_mixer(g_player, g_sid);
 
 
 void draw_play_buttons() {
@@ -56,7 +52,7 @@ void draw_play_buttons() {
     gui::item_size(TAB_HEIGHT);
 
     static float backward_time = 0.0f;
-    backward_time += gui::get_frame_time();
+    backward_time += gui::frame_time();
     if (gui::button(gui::Icon::FastBackward)) {
         if (g_player.is_playing()) {
             if (backward_time < 0.5f) {
@@ -136,33 +132,17 @@ void draw_play_buttons() {
 
 void draw_splash() {
     gui::begin_window({ CANVAS_WIDTH, canvas_height() });
-
-    gui::DrawContext& dc = gui::draw_context();
-    dc.rgb(color::WHITE);
     int cy = canvas_height() / 2;
-    dc.rect({ 52, cy - 176 }, { 256, 176 }, { 0, 336 });
+    gui::DrawContext& dc = gui::draw_context();
+    // dc.rgb(color::BLUE);
+    // dc.fill({ {0, cy - 120}, {CANVAS_WIDTH, 240}});
+    dc.rgb(color::WHITE);
+    cy -= 114;
+    dc.rect({ 52, cy}, { 256, 176 }, { 0, 336 });
+    dc.text({ 60, cy + 176 + 24 }, "CREATE AUTHENTIC C64 SID MUSIC");
+    dc.text({ 60, cy + 176 + 40 }, "          ON THE GO!");
 
-
-    char const* lines[] = {
-        "CREATE AUTHENTIC C64 SID MUSIC",
-        "",
-        "          ON THE GO!",
-        "",
-        "",
-        "",
-        "    BASED ON \xf1GoatTracker2\xf0",
-        "                 \x1f\x1f",
-        "        BY LASSE OORNI",
-    };
-    int y = cy + 24;
-    for (char const* l : lines) {
-        dc.text({ 60, y }, l);
-        y += 8;
-    }
-
-    gui::cursor({ 60, y + 24 });
-    gui::item_size({ CANVAS_WIDTH - 120, BUTTON_HEIGHT });
-    if (gui::button("READY")) {
+    if (gui::touch::just_released()) {
         g_view = View::Project;
         project_view::init();
     }

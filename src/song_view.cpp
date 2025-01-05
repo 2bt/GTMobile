@@ -143,7 +143,7 @@ void update_mark(int& row, int page, int len, int& scroll) {
     // auto scroll
     int dy = gui::touch::pos().y - gui::cursor().y;
     int v = std::min(dy, 0) + std::max(0, dy - settings_view::settings().row_height * page);
-    mark_scroll += v * gui::get_frame_time();
+    mark_scroll += v * gui::frame_time();
     while (mark_scroll < -SCROLL_DELAY) {
         mark_scroll += SCROLL_DELAY;
         scroll = std::max(0, scroll - 1);

@@ -222,7 +222,7 @@ void set_refresh_rate(float refresh_rate) {
     g_frame_time = 1.0f / refresh_rate;
 }
 
-float get_frame_time() { return g_frame_time; }
+float frame_time() { return g_frame_time; }
 
 void begin_frame() {
 
