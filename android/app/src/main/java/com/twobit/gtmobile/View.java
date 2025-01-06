@@ -18,7 +18,6 @@ import javax.microedition.khronos.opengles.GL10;
 public class View extends GLSurfaceView {
     static final String TAG = "View";
 
-
     public View(Context context) {
         super(context);
 
@@ -32,10 +31,7 @@ public class View extends GLSurfaceView {
             refreshRate = 60.0f;
         }
 
-        // mStorageDir = context.getExternalFilesDir(null).getAbsolutePath();
-        File storage = new File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOCUMENTS), "gtmobile");
-        storage.mkdirs();
-        String storageDir = storage.getAbsolutePath();
+        String storageDir = context.getExternalFilesDir(null).getAbsolutePath();
 
         setPreserveEGLContextOnPause(true);
         setEGLContextClientVersion(2);

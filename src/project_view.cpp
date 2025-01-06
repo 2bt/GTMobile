@@ -21,7 +21,7 @@ namespace fs = std::filesystem;
 namespace project_view {
 namespace {
 
-enum class ExportFormat { Wav, Ogg };
+enum class ExportFormat { Sng, Wav, Ogg };
 
 gt::Song&                g_song = app::song();
 std::string              g_song_dir;
@@ -61,24 +61,26 @@ void save() {
 
 
 #ifndef __EMSCRIPTEN__
-void start_export() {
-    assert(g_file_name.data()[0] != '\0');
+void start_export_thread() {
+    assert(g_export_format != ExportFormat::Sng);
+
+    std::string file_name = g_file_name.data();
+    assert(file_name != "");
 
     std::string export_dir = app::storage_dir() + "/exports/";
     fs::create_directories(export_dir);
 
     SF_INFO info = { 0, app::MIXRATE, 1 };
-    std::string path = export_dir + std::string(g_file_name.data());
     if (g_export_format == ExportFormat::Ogg) {
         info.format = SF_FORMAT_OGG | SF_FORMAT_VORBIS;
-        path += ".ogg";
+        file_name += ".ogg";
     }
     else {
         info.format = SF_FORMAT_WAV | SF_FORMAT_PCM_16;
-        path += ".wav";
+        file_name += ".wav";
     }
 
-    SNDFILE* sndfile = sf_open(path.c_str(), SFM_WRITE, &info);
+    SNDFILE* sndfile = sf_open((export_dir + file_name).c_str(), SFM_WRITE, &info);
     if (!sndfile) {
         status("EXPORT ERROR");
         g_show_export_window = false;
@@ -333,11 +335,16 @@ void draw() {
 
         if (!g_export_thread.joinable()) {
 
-            gui::item_size({ box.size.x / 2, app::BUTTON_HEIGHT });
+            gui::item_size({ box.size.x / 4, app::BUTTON_HEIGHT });
             gui::text("FORMAT");
             gui::same_line();
-            gui::item_size({ box.size.x / 4, app::BUTTON_HEIGHT });
+            // gui::item_size({ box.size.x / 4, app::BUTTON_HEIGHT });
             gui::button_style(gui::ButtonStyle::RadioLeft);
+            if (gui::button("SNG", g_export_format == ExportFormat::Sng)) {
+                g_export_format = ExportFormat::Sng;
+            }
+            gui::same_line();
+            gui::button_style(gui::ButtonStyle::RadioCenter);
             if (gui::button("WAV", g_export_format == ExportFormat::Wav)) {
                 g_export_format = ExportFormat::Wav;
             }
@@ -352,7 +359,15 @@ void draw() {
 
             gui::item_size({ box.size.x / 2, app::BUTTON_HEIGHT });
             if (gui::button("EXPORT")) {
-                start_export();
+                if (g_export_format == ExportFormat::Sng) {
+                    std::string file_name = std::string(g_file_name.data()) + FILE_SUFFIX;
+                    platform::export_file(g_song_dir + file_name, file_name, false);
+                    g_show_export_window = false;
+                    status("SONG WAS EXPORTED");
+                }
+                else {
+                    start_export_thread();
+                }
             }
             gui::same_line();
             if (gui::button("CLOSE")) g_show_export_window = false;
@@ -380,6 +395,12 @@ void draw() {
                 }
                 else {
                     status("SONG WAS EXPORTED");
+
+                    // android
+                    std::string path = app::storage_dir() + "/exports/";
+                    std::string file_name = g_file_name.data();
+                    file_name += g_export_format == ExportFormat::Ogg ? ".ogg" : ".wav";
+                    platform::export_file(path + file_name, file_name, true);
                 }
             }
         }

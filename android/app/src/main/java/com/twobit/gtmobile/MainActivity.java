@@ -5,6 +5,7 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
+import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
 import android.util.Log;
@@ -12,14 +13,25 @@ import android.view.inputmethod.InputMethodManager;
 import android.view.KeyEvent;
 
 import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 import androidx.core.app.ActivityCompat;
+
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
 
 
 public class MainActivity extends Activity {
     private static final String TAG = "Main";
     private static final int NOTIFICATION_PERMISSION_CODE = 1;
     private static MainActivity sInstance;
+    private String mExportPath;
+    private boolean mExportDeleteWhenDone;
     private View mView;
+
 
     // called from C++
     static public void showKeyboard(boolean show) {
@@ -35,6 +47,51 @@ public class MainActivity extends Activity {
             }
         });
     }
+
+    // called from C++
+    static void exportFile(String path, String title, boolean deleteWhenDone) {
+        Intent intent = new Intent(Intent.ACTION_CREATE_DOCUMENT);
+        intent.addCategory(Intent.CATEGORY_OPENABLE);
+        intent.setType("*/*");
+        intent.putExtra(Intent.EXTRA_TITLE, title);
+        sInstance.mExportPath = path;
+        sInstance.mExportDeleteWhenDone = deleteWhenDone;
+        sInstance.startActivityForResult(intent, 1);
+    }
+
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, @Nullable Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+
+        if (requestCode == 1 && resultCode == Activity.RESULT_OK && data != null) {
+            Uri fileUri = data.getData();
+            Log.i(TAG, "onActivityResult " + fileUri);
+            writeExportFile(fileUri);
+        }
+    }
+
+    private void writeExportFile(Uri dst) {
+        try {
+            InputStream inputStream = new FileInputStream(mExportPath);
+            OutputStream outputStream = getContentResolver().openOutputStream(dst);
+            if (outputStream == null) {
+                Log.e(TAG, "writeExportFile: failed to open output stream for URI: " + dst);
+                return;
+            }
+            byte[] buffer = new byte[1024];
+            int bytesRead;
+            while ((bytesRead = inputStream.read(buffer)) != -1) {
+                outputStream.write(buffer, 0, bytesRead);
+            }
+            inputStream.close();
+            outputStream.close();
+            if (mExportDeleteWhenDone) new File(mExportPath).delete();
+        } catch (IOException e) {
+            e.printStackTrace();
+            Log.e(TAG, "writeExportFile: error copying file: " + e.getMessage());
+        }
+    }
+
 
     private void loadSettings() {
         SharedPreferences prefs = getPreferences(MODE_PRIVATE);
@@ -76,7 +133,6 @@ public class MainActivity extends Activity {
             }
         }
     }
-
 
     @Override
     public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
