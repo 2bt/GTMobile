@@ -152,6 +152,7 @@ extern "C" {
         app::key(key, unicode);
     }
     JNIEXPORT void JNICALL Java_com_twobit_gtmobile_Native_setPlaying(JNIEnv* env, jclass, jboolean stream, jboolean player) {
+        LOGD("Native.setPlaying stream:%d player:%d", stream, player);
         g_env = env;
         if (player != app::player().is_playing()) {
             if (player) app::player().play_song();

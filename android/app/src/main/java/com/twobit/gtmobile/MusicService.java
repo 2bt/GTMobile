@@ -75,18 +75,19 @@ public class MusicService extends Service {
                 .build();
     }
 
-    private void updateState(boolean isPlaying) {
-        Native.setPlaying(isPlaying, true);
-
+    private void setMediaSessionPlaybackState(boolean isPlaying) {
         int s = isPlaying ? PlaybackStateCompat.STATE_PLAYING : PlaybackStateCompat.STATE_PAUSED;
         PlaybackStateCompat playbackState = new PlaybackStateCompat.Builder()
             .setActions(PlaybackStateCompat.ACTION_PLAY_PAUSE)
             .setState(s, PlaybackStateCompat.PLAYBACK_POSITION_UNKNOWN, 1.0f)
             .build();
         mMediaSession.setPlaybackState(playbackState);
+    }
 
-        String songName = Native.getSongName();
-        if (songName.isEmpty()) songName = "<unnamed>";
+    private void updateState(boolean isPlaying) {
+        Log.i(TAG, "updateState " + isPlaying);
+        Native.setPlaying(isPlaying, true);
+        setMediaSessionPlaybackState(isPlaying);
         NotificationManager manager = getSystemService(NotificationManager.class);
         manager.notify(1, buildNotification());
     }
@@ -95,14 +96,11 @@ public class MusicService extends Service {
         manager.cancelAll();
     }
 
-
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
         Log.i(TAG, "onStartCommand " + intent + " " + flags + " " + startId);
-
+        setMediaSessionPlaybackState(Native.isPlayerPlaying());
         startForeground(1, buildNotification());
-        updateState(Native.isPlayerPlaying());
-
         return START_STICKY;
     }
 
@@ -115,7 +113,6 @@ public class MusicService extends Service {
 
     @Override
     public IBinder onBind(Intent intent) {
-        // Return null as we are not binding the service
         return null;
     }
 }
