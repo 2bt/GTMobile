@@ -31,6 +31,16 @@ theme: minima
 plugins:
   - jekyll-feed
 
+
+nav_links:
+  - name: Home
+    link: /
+  - name: About
+    link: /about/
+  - name: Privacy Policy
+    link: /privacy-policy/
+
+
 # Exclude from processing.
 # The following items will not be processed, by default.
 # Any item listed under the `exclude:` key here will be automatically added to
