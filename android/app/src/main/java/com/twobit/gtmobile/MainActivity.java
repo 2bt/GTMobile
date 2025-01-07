@@ -17,16 +17,14 @@ import androidx.annotation.Nullable;
 import androidx.core.app.ActivityCompat;
 
 import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileNotFoundException;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
 
 
 public class MainActivity extends Activity {
     private static final String TAG = "Main";
     private static final int NOTIFICATION_PERMISSION_CODE = 1;
+    private static final int REQUEST_CODE_IMPORT_FILE = 1;
+    private static final int REQUEST_CODE_EXPORT_FILE = 2;
+
     private static MainActivity sInstance;
     private String mExportPath;
     private boolean mExportDeleteWhenDone;
@@ -49,46 +47,42 @@ public class MainActivity extends Activity {
     }
 
     // called from C++
-    static void exportFile(String path, String title, boolean deleteWhenDone) {
+    static public void startSongImport() {
+        Intent intent = new Intent(Intent.ACTION_OPEN_DOCUMENT);
+        intent.addCategory(Intent.CATEGORY_OPENABLE);
+        intent.setType("*/*");
+        sInstance.startActivityForResult(intent, REQUEST_CODE_IMPORT_FILE);
+    }
+
+    // called from C++
+    static public void exportFile(String path, String title, boolean deleteWhenDone) {
         Intent intent = new Intent(Intent.ACTION_CREATE_DOCUMENT);
         intent.addCategory(Intent.CATEGORY_OPENABLE);
         intent.setType("*/*");
         intent.putExtra(Intent.EXTRA_TITLE, title);
         sInstance.mExportPath = path;
         sInstance.mExportDeleteWhenDone = deleteWhenDone;
-        sInstance.startActivityForResult(intent, 1);
+        sInstance.startActivityForResult(intent, REQUEST_CODE_EXPORT_FILE);
     }
 
     @Override
     protected void onActivityResult(int requestCode, int resultCode, @Nullable Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
+        Log.i(TAG, "onActivityResult " + requestCode + " " + resultCode);
+        if (resultCode != Activity.RESULT_OK || data == null) return;
+        Uri fileUri = data.getData();
 
-        if (requestCode == 1 && resultCode == Activity.RESULT_OK && data != null) {
-            Uri fileUri = data.getData();
-            Log.i(TAG, "onActivityResult " + fileUri);
-            writeExportFile(fileUri);
+        if (requestCode == REQUEST_CODE_IMPORT_FILE) {
+            String fileName = FileUtils.getFileName(this, fileUri);
+            if (fileName == null) fileName = "song.sng";
+            String path = getCacheDir() + "/" + fileName;
+            FileUtils.copyUriToFile(this, fileUri, path);
+            Native.importSong(path);
+            new File(path).delete();
         }
-    }
-
-    private void writeExportFile(Uri dst) {
-        try {
-            InputStream inputStream = new FileInputStream(mExportPath);
-            OutputStream outputStream = getContentResolver().openOutputStream(dst);
-            if (outputStream == null) {
-                Log.e(TAG, "writeExportFile: failed to open output stream for URI: " + dst);
-                return;
-            }
-            byte[] buffer = new byte[1024];
-            int bytesRead;
-            while ((bytesRead = inputStream.read(buffer)) != -1) {
-                outputStream.write(buffer, 0, bytesRead);
-            }
-            inputStream.close();
-            outputStream.close();
+        if (requestCode == REQUEST_CODE_EXPORT_FILE) {
+            FileUtils.copyFileToUri(this, mExportPath, fileUri);
             if (mExportDeleteWhenDone) new File(mExportPath).delete();
-        } catch (IOException e) {
-            e.printStackTrace();
-            Log.e(TAG, "writeExportFile: error copying file: " + e.getMessage());
         }
     }
 

@@ -2,6 +2,7 @@
 #include "app.hpp"
 #include "gui.hpp"
 #include "settings_view.hpp"
+#include "project_view.hpp"
 
 #include <vector>
 
@@ -122,6 +123,11 @@ void export_file(std::string const& path, std::string const& title, bool delete_
     g_env->DeleteLocalRef(jtitle);
 }
 
+void start_song_import() {
+    jclass clazz = g_env->FindClass("com/twobit/gtmobile/MainActivity");
+    jmethodID method = g_env->GetStaticMethodID(clazz, "startSongImport", "()V");
+    g_env->CallStaticVoidMethod(clazz, method);
+}
 
 } // namespace platform
 
@@ -214,5 +220,12 @@ extern "C" {
         #undef X
         default: break;
         }
+
     }
+    JNIEXPORT void JNICALL Java_com_twobit_gtmobile_Native_importSong(JNIEnv* env, jclass clazz, jstring jpath) {
+        char const* path = env->GetStringUTFChars(jpath, nullptr);
+        project_view::import_song(path);
+        env->ReleaseStringUTFChars(jpath, path);
+    }
+
 }

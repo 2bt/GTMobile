@@ -58,8 +58,6 @@ void save() {
 }
 
 
-
-
 #ifndef __EMSCRIPTEN__
 void start_export_thread() {
     assert(g_export_format != ExportFormat::Sng);
@@ -138,6 +136,21 @@ void start_export_thread() {
 
 } // namespace
 
+
+// called from Java
+void import_song(std::string const& path) {
+    try {
+        g_file_name = {};
+        g_song.load(path.c_str());
+        status("SONG WAS IMPORTED");
+        std::string name = fs::path(path).stem().string();
+        strncpy(g_file_name.data(), name.c_str(), g_file_name.size() - 1);
+    }
+    catch (gt::LoadError const& e) {
+        g_song.clear();
+        status("IMPORT ERROR: " + e.msg);
+    }
+}
 
 void reset() {
     g_song_dir           = {};
@@ -321,6 +334,18 @@ void draw() {
         });
     }
     gui::disabled(false);
+
+
+#ifdef ANDROID
+    if (gui::button("IMPORT")) {
+        app::confirm("LOSE CHANGES TO THE CURRENT SONG?", [](bool ok) {
+            if (!ok) return;
+            app::player().reset();
+            song_view::reset();
+            platform::start_song_import();
+        });
+    }
+#endif
 
 #ifndef __EMSCRIPTEN__
     gui::disabled(g_file_name[0] == '\0');

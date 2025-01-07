@@ -9,4 +9,5 @@ namespace platform {
     std::vector<std::string> list_assets(std::string const& dir);
     void show_keyboard(bool enabled);
     void export_file(std::string const& path, std::string const& title, bool delete_when_done);
+    void start_song_import();
 }

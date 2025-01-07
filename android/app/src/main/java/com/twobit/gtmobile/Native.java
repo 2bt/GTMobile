@@ -12,6 +12,7 @@ class Native {
     public static native void draw();
     public static native void touch(int x, int y, int action);
     public static native void key(int key, int unicode);
+    public static native void importSong(String path);
 
     public static native void setPlaying(boolean stream, boolean player);
     public static native boolean isStreamPlaying();

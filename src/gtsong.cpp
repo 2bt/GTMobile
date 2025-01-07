@@ -119,8 +119,8 @@ void Song::load(std::istream& stream) {
             song_loop = loop;
         }
         else {
-            if (pos != song_len) load_error("song length mismatch");
-            if (loop != song_loop) load_error("song loop mismatch");
+            if (pos != song_len) load_error("order length mismatch");
+            if (loop != song_loop) load_error("order loop mismatch");
         }
     }
 
@@ -308,9 +308,9 @@ void Song::load(std::istream& stream) {
         }
     }
 
-    // Rewrite tables
-    // so that pointers point to the beginning of table parts
-    // and there are only backward jumps.
+    // Rewrite tables so that:
+    // 1) pointers point to the beginning of table parts
+    // 2) there are only backward jumps
     for (int t = WTBL; t <= FTBL; ++t) {
         std::vector<uint8_t> nlt;
         std::vector<uint8_t> nrt;
