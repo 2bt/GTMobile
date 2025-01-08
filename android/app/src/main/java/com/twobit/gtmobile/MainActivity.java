@@ -33,15 +33,12 @@ public class MainActivity extends Activity {
 
     // called from C++
     static public void showKeyboard(boolean show) {
-        sInstance.runOnUiThread(new Runnable() {
-            @Override
-            public void run() {
-                InputMethodManager imm = (InputMethodManager) sInstance.getSystemService(Context.INPUT_METHOD_SERVICE);
-                if (show) {
-                    imm.showSoftInput(sInstance.getWindow().getDecorView(), InputMethodManager.SHOW_IMPLICIT);
-                } else {
-                    imm.hideSoftInputFromWindow(sInstance.getWindow().getDecorView().getWindowToken(), 0);
-                }
+        sInstance.runOnUiThread(() -> {
+            InputMethodManager imm = (InputMethodManager) sInstance.getSystemService(Context.INPUT_METHOD_SERVICE);
+            if (show) {
+                imm.showSoftInput(sInstance.getWindow().getDecorView(), InputMethodManager.SHOW_IMPLICIT);
+            } else {
+                imm.hideSoftInputFromWindow(sInstance.getWindow().getDecorView().getWindowToken(), 0);
             }
         });
     }
@@ -183,9 +180,9 @@ public class MainActivity extends Activity {
 
     @Override
     public boolean onKeyDown(final int code, final KeyEvent e) {
-        mView.queueEvent(new Runnable() { public void run() {
+        mView.queueEvent(() -> {
             Native.key(code, e.getUnicodeChar());
-        }});
+        });
         return false;
     }
 }

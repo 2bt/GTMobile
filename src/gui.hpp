@@ -12,6 +12,23 @@ namespace color {
                uint8_t(uint8_t(c1) * y + uint8_t(c2) * x);
     }
 
+    constexpr uint32_t BLACK       = 0x000000;
+    constexpr uint32_t DARK_BLUE   = 0x1d2b53;
+    constexpr uint32_t DARK_PURPLE = 0x7e2553;
+    constexpr uint32_t DARK_GREEN  = 0x008751;
+    constexpr uint32_t BROWN       = 0xab5236;
+    constexpr uint32_t DARK_GREY   = 0x5f574f;
+    constexpr uint32_t LIGHT_GREY  = 0xc2c3c7;
+    constexpr uint32_t WHITE       = 0xffffff;
+    constexpr uint32_t RED         = 0xff004d;
+    constexpr uint32_t ORANGE      = 0xffa300;
+    constexpr uint32_t YELLOW      = 0xffec27;
+    constexpr uint32_t GREEN       = 0x00e436;
+    constexpr uint32_t BLUE        = 0x29adff;
+    constexpr uint32_t LAVENDER    = 0x83769c;
+    constexpr uint32_t PINK        = 0xff77a8;
+    constexpr uint32_t LIGHT_PEACH = 0xffccaa;
+
     constexpr uint32_t C64[] = {
         0x000000,
         0x626262,
@@ -30,24 +47,6 @@ namespace color {
         0x50459b,
         0xa057a3,
     };
-
-    constexpr uint32_t BLACK       = 0x000000;
-    constexpr uint32_t DARK_BLUE   = 0x1d2b53;
-    constexpr uint32_t DARK_PURPLE = 0x7e2553;
-    constexpr uint32_t DARK_GREEN  = 0x008751;
-    constexpr uint32_t BROWN       = 0xab5236;
-    constexpr uint32_t DARK_GREY   = 0x5f574f;
-    constexpr uint32_t LIGHT_GREY  = 0xc2c3c7;
-    constexpr uint32_t WHITE       = 0xffffff;
-    constexpr uint32_t RED         = 0xff004d;
-    constexpr uint32_t ORANGE      = 0xffa300;
-    constexpr uint32_t YELLOW      = 0xffec27;
-    constexpr uint32_t GREEN       = 0x00e436;
-    constexpr uint32_t BLUE        = 0x29adff;
-    constexpr uint32_t LAVENDER    = 0x83769c;
-    constexpr uint32_t PINK        = 0xff77a8;
-    constexpr uint32_t LIGHT_PEACH = 0xffccaa;
-
 
     constexpr uint32_t DRAG_BG            = 0x222222;
     constexpr uint32_t DRAG_HANDLE_NORMAL = 0x444444;
@@ -99,7 +98,6 @@ namespace color {
     constexpr uint32_t HIGHLIGHT_ROW  = 0x2b2b2b;
     constexpr uint32_t MARKED_ROW     = mix(BACKGROUND_ROW, BUTTON_PRESSED, 0.2f);
 
-
     constexpr uint32_t PALETTE[] = {
         WHITE,
         mix(0xff2030, LIGHT_GREY, 0.5f), // red
@@ -108,7 +106,7 @@ namespace color {
         mix(GREEN,    LIGHT_GREY, 0.5f),
         mix(BLUE,     LIGHT_GREY, 0.5f),
         mix(PINK,     LIGHT_GREY, 0.5f),
-        mix(0xff2030, BACKGROUND_ROW, 0.8f), // dark red
+        mix(mix(0xff2030, LIGHT_GREY, 0.5f), BACKGROUND_ROW, 0.8f), // dark red
     };
 
 } // namespace color
