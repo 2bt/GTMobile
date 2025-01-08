@@ -65,30 +65,31 @@ namespace color {
     constexpr uint32_t BUTTON_ALT_PRESSED = C64[10];
 
 
+    constexpr uint32_t CMD_NOTHING = mix(0x000000, LIGHT_GREY, 0.5f);
+    constexpr uint32_t CMD_PORTA   = mix(PINK,     LIGHT_GREY, 0.5f);
+    constexpr uint32_t CMD_VIBRATO = mix(0xff2030, LIGHT_GREY, 0.5f);
+    constexpr uint32_t CMD_VOLUME  = mix(GREEN,    LIGHT_GREY, 0.5f);
+    constexpr uint32_t CMD_WAVE    = mix(ORANGE,   LIGHT_GREY, 0.5f);
+    constexpr uint32_t CMD_FILTER  = mix(BLUE,     LIGHT_GREY, 0.5f);
+    constexpr uint32_t CMD_TEMPO   = mix(YELLOW,   LIGHT_GREY, 0.5f);
+
     constexpr uint32_t CMDS[16] = {
-        mix(0x000000, WHITE, 0.2f),
-
-        mix(PINK, WHITE, 0.2f), // 1 portamento up
-        mix(PINK, WHITE, 0.2f), // 2 portamento down
-        mix(PINK, WHITE, 0.2f), // 3 tone portamento
-
-        mix(0xff2030, WHITE, 0.2f), // 4 vibrato
-
-        mix(GREEN, WHITE, 0.2f), // 5 attack/decay
-        mix(GREEN, WHITE, 0.2f), // 6 sustain/release
-
-        mix(ORANGE, WHITE, 0.2f), // 7 waveform reg
-        mix(ORANGE, WHITE, 0.2f), // 8 wavetable ptr
-        mix(ORANGE, WHITE, 0.2f), // 9 pulsetable ptr
-
-        mix(BLUE, WHITE, 0.2f), // A filtertable ptr
-        mix(BLUE, WHITE, 0.2f), // B filter control
-        mix(BLUE, WHITE, 0.2f), // C filter cutoff
-
-        mix(GREEN, WHITE, 0.2f), // D master volume
-
-        mix(YELLOW, WHITE, 0.2f), // E funk tempo
-        mix(YELLOW, WHITE, 0.2f), // F tempo
+        CMD_NOTHING,
+        CMD_PORTA,      // 1 portamento up
+        CMD_PORTA,      // 2 portamento down
+        CMD_PORTA,      // 3 tone portamento
+        CMD_VIBRATO,    // 4 vibrato
+        CMD_VOLUME,     // 5 attack/decay
+        CMD_VOLUME,     // 6 sustain/release
+        CMD_WAVE,       // 7 waveform reg
+        CMD_WAVE,       // 8 wavetable ptr
+        CMD_WAVE,       // 9 pulsetable ptr
+        CMD_FILTER,     // A filtertable ptr
+        CMD_FILTER,     // B filter control
+        CMD_FILTER,     // C filter cutoff
+        CMD_VOLUME,     // D master volume
+        CMD_TEMPO,      // E funk tempo
+        CMD_TEMPO,      // F tempo
     };
 
     constexpr uint32_t ROW_NUMBER     = 0xaaaaaa;
@@ -101,13 +102,12 @@ namespace color {
 
     constexpr uint32_t PALETTE[] = {
         WHITE,
-        mix(0xff2030, WHITE, 0.2f), // red
-        mix(ORANGE, WHITE, 0.2f),
-        mix(YELLOW, WHITE, 0.2f),
-        mix(GREEN, WHITE, 0.2f),
-        mix(BLUE, WHITE, 0.2f),
-        mix(PINK, WHITE, 0.2f),
-
+        mix(0xff2030, LIGHT_GREY, 0.5f), // red
+        mix(ORANGE,   LIGHT_GREY, 0.5f),
+        mix(YELLOW,   LIGHT_GREY, 0.5f),
+        mix(GREEN,    LIGHT_GREY, 0.5f),
+        mix(BLUE,     LIGHT_GREY, 0.5f),
+        mix(PINK,     LIGHT_GREY, 0.5f),
         mix(0xff2030, BACKGROUND_ROW, 0.8f), // dark red
     };
 
