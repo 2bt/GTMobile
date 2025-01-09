@@ -25,6 +25,7 @@ void Sid::init(Model model, SamplingMethod sampling_method) {
     reset();
     set_chip_model(model);
     set_sampling_method(sampling_method);
+    impl->sid.clock(10000); // clock some cycles to surpress the initial clicking
 }
 void Sid::reset() {
     impl->sid.reset();
