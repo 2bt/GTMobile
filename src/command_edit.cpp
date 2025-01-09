@@ -255,8 +255,8 @@ void draw() {
                 }
             }
             else if (g_command == gt::CMD_FUNKTEMPO) {
-                gui::slider(WIDTH, "EVEN %02X", lval, 0, 0xff);
-                gui::slider(WIDTH, "ODD  %02X", rval, 0, 0xff);
+                gui::slider(WIDTH, "EVEN ROW %02X", lval, 0, 0xff);
+                gui::slider(WIDTH, "ODD ROW  %02X", rval, 0, 0xff);
             }
         }
     }
@@ -329,10 +329,18 @@ void draw() {
         gui::slider(WIDTH, "%X", data, 0, 15);
     }
     else if (g_command == gt::CMD_SETTEMPO) {
-        gui::item_size({ WIDTH, app::BUTTON_HEIGHT });
-        if (gui::button("ONLY THIS VOICE", data & 0x80)) {
-            data ^= 0x80;
+        gui::item_size({ WIDTH / 2, app::BUTTON_HEIGHT });
+
+        gui::button_style(gui::ButtonStyle::RadioLeft);
+        if (gui::button("THIS VOICE ONLY", data & 0x80)) {
+            data |= 0x80;
         }
+        gui::same_line();
+        gui::button_style(gui::ButtonStyle::RadioRight);
+        if (gui::button("ALL VOICES", !(data & 0x80))) {
+            data &= ~0x80;
+        }
+
         int v = data & 0x7f;
         gui::slider(WIDTH, "%02X", v, 0, 0x7f);
         data = (data & 0x80) | v;
