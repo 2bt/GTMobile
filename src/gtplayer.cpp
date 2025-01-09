@@ -99,7 +99,7 @@ void Player::play_test_note(int note, int ins, int chnnum) {
 }
 
 
-void Player::sequencer(int c) {
+void Player::sequencer(int c, bool reset_current_patt_pos) {
     Channel&    chan  = m_channels[c];
     auto const& order = m_song->song_order[c];
 
@@ -112,7 +112,7 @@ void Player::sequencer(int c) {
 
     // store current song position
     m_current_song_pos[c] = chan.songptr;
-    m_current_patt_pos[c] = 0;
+    if (reset_current_patt_pos) m_current_patt_pos[c] = 0;
 
     chan.trans   = order[chan.songptr].trans;
     chan.pattnum = order[chan.songptr].pattnum;
@@ -192,7 +192,7 @@ void Player::play_routine() {
                 chan.songptr = m_start_song_pos[c];
                 chan.pattptr = m_start_patt_pos[c];
             }
-            sequencer(c);
+            sequencer(c, false);
         }
         m_is_playing = true;
     }

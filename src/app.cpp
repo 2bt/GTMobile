@@ -399,7 +399,7 @@ void draw() {
     // draw canvas
     gfx::reset_canvas();
     gfx::blend(false);
-    gfx::clear(0.1, 0.1, 0.1);
+    gfx::clear(0.0, 0.0, 0.0);
     u8vec4 white(255);
     ivec2 p(g_canvas_offset, 0);
     ivec2 S(CANVAS_WIDTH, g_canvas_height);

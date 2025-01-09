@@ -14,7 +14,7 @@ namespace app {
     enum {
         MIXRATE           = 44100,
         CANVAS_WIDTH      = 360,
-        CANVAS_MIN_HEIGHT = 590,
+        CANVAS_MIN_HEIGHT = 576,
         BUTTON_HEIGHT     = 30,
         TAB_HEIGHT        = 40,
         SCROLL_WIDTH      = 20,

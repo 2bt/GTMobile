@@ -1,6 +1,7 @@
 #include "settings_view.hpp"
 #include "app.hpp"
 #include "piano.hpp"
+#include "platform.hpp"
 
 
 namespace settings_view {
@@ -90,6 +91,23 @@ void draw() {
 
     }
     else if (mode == Mode::Editor) {
+
+        gui::item_size({ 12 + 8 * 15, app::BUTTON_HEIGHT });
+        gui::text("FULLSCREEN     ");
+        gui::same_line();
+        gui::item_size({ (app::CANVAS_WIDTH - gui::cursor().x) / 2, app::BUTTON_HEIGHT });
+        gui::button_style(gui::ButtonStyle::RadioLeft);
+        if (gui::button("OFF", !g_settings.fullscreen_enabled) && g_settings.fullscreen_enabled) {
+            g_settings.fullscreen_enabled = false;
+            platform::set_fullscreen(false);
+        }
+        gui::same_line();
+        gui::button_style(gui::ButtonStyle::RadioRight);
+        if (gui::button("ON", g_settings.fullscreen_enabled) && !g_settings.fullscreen_enabled) {
+            g_settings.fullscreen_enabled = true;
+            platform::set_fullscreen(true);
+        }
+
         gui::slider(app::CANVAS_WIDTH, "ROW HEIGHT   %02X", g_settings.row_height, 8, app::MAX_ROW_HEIGHT);
         gui::slider(app::CANVAS_WIDTH, "HIGHLIGHT    %02X", g_settings.row_highlight, 2, 16);
 

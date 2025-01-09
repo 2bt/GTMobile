@@ -129,6 +129,12 @@ void start_song_import() {
     g_env->CallStaticVoidMethod(clazz, method);
 }
 
+void set_fullscreen(bool enabled) {
+    jclass clazz = g_env->FindClass("com/twobit/gtmobile/MainActivity");
+    jmethodID method = g_env->GetStaticMethodID(clazz, "setFullscreen", "(Z)V");
+    g_env->CallStaticVoidMethod(clazz, method, enabled);
+}
+
 } // namespace platform
 
 
@@ -197,7 +203,7 @@ extern "C" {
         SETTINGS(X)
         #undef X
     };
-    JNIEXPORT jstring JNICALL Java_com_twobit_gtmobile_Native_getValueName(JNIEnv* env, jclass, jint i) {
+    JNIEXPORT jstring JNICALL Java_com_twobit_gtmobile_Native_getSettingsName(JNIEnv* env, jclass, jint i) {
         switch (i) {
         #define X(n, ...) case SETTING_##n: return env->NewStringUTF(#n);
         SETTINGS(X)
@@ -205,7 +211,7 @@ extern "C" {
         default: return nullptr;
         }
     }
-    JNIEXPORT jint JNICALL Java_com_twobit_gtmobile_Native_getValue(JNIEnv* env, jclass, jint i) {
+    JNIEXPORT jint JNICALL Java_com_twobit_gtmobile_Native_getSettingsValue(JNIEnv* env, jclass, jint i) {
         switch (i) {
         #define X(n, ...) case SETTING_##n: return settings_view::settings().n;
         SETTINGS(X)
@@ -213,7 +219,7 @@ extern "C" {
         default: return 0;
         }
     }
-    JNIEXPORT void JNICALL Java_com_twobit_gtmobile_Native_setValue(JNIEnv* env, jclass, jint i, jint v) {
+    JNIEXPORT void JNICALL Java_com_twobit_gtmobile_Native_setSettingsValue(JNIEnv* env, jclass, jint i, jint v) {
         switch (i) {
         #define X(n, ...) case SETTING_##n: settings_view::mutable_settings().n = v; break;
         SETTINGS(X)

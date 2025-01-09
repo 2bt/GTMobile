@@ -9,6 +9,8 @@ import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
 import android.util.Log;
+import android.view.Window;
+import android.view.WindowManager;
 import android.view.inputmethod.InputMethodManager;
 import android.view.KeyEvent;
 
@@ -62,6 +64,12 @@ public class MainActivity extends Activity {
         sInstance.startActivityForResult(intent, REQUEST_CODE_EXPORT_FILE);
     }
 
+    // called from C++
+    static public void setFullscreen(boolean enabled) {
+        sInstance.runOnUiThread(() -> { sInstance.setImmersiveMode(enabled); });
+    }
+
+
     @Override
     protected void onActivityResult(int requestCode, int resultCode, @Nullable Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
@@ -85,20 +93,22 @@ public class MainActivity extends Activity {
 
 
     private void loadSettings() {
+        Log.i(TAG, "loadSettings");
         SharedPreferences prefs = getPreferences(MODE_PRIVATE);
         String name;
-        for (int i = 0; (name = Native.getValueName(i)) != null; ++i) {
-            int v = Native.getValue(i);
+        for (int i = 0; (name = Native.getSettingsName(i)) != null; ++i) {
+            int v = Native.getSettingsValue(i);
             v = prefs.getInt(name, v);
-            Native.setValue(i, v);
+            Native.setSettingsValue(i, v);
+            Log.i(TAG, "loadSettings: " + name + " = " + v);
         }
     }
     private void saveSettings() {
         SharedPreferences prefs = getPreferences(MODE_PRIVATE);
         SharedPreferences.Editor edit = prefs.edit();
         String name;
-        for (int i = 0; (name = Native.getValueName(i)) != null; ++i) {
-            int v = Native.getValue(i);
+        for (int i = 0; (name = Native.getSettingsName(i)) != null; ++i) {
+            int v = Native.getSettingsValue(i);
             edit.putInt(name, v);
         }
         edit.apply();
@@ -108,6 +118,33 @@ public class MainActivity extends Activity {
         sInstance = this;
     }
 
+    private void setImmersiveMode(boolean enabled) {
+        Window window = getWindow();
+        if (enabled) {
+            window.getDecorView().setSystemUiVisibility(
+                    View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN
+                            | View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION
+                            | View.SYSTEM_UI_FLAG_FULLSCREEN
+                            | View.SYSTEM_UI_FLAG_HIDE_NAVIGATION
+                            | View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY
+            );
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+                WindowManager.LayoutParams layoutParams = window.getAttributes();
+                layoutParams.layoutInDisplayCutoutMode = WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_SHORT_EDGES;
+                window.setAttributes(layoutParams);
+            }
+        } else {
+            window.getDecorView().setSystemUiVisibility(
+                    View.SYSTEM_UI_FLAG_LAYOUT_STABLE
+                            | View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN
+            );
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+                WindowManager.LayoutParams layoutParams = window.getAttributes();
+                layoutParams.layoutInDisplayCutoutMode = WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_NEVER;
+                window.setAttributes(layoutParams);
+            }
+        }
+    }
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -123,7 +160,14 @@ public class MainActivity extends Activity {
                 ActivityCompat.requestPermissions(this, new String[]{ android.Manifest.permission.POST_NOTIFICATIONS }, NOTIFICATION_PERMISSION_CODE);
             }
         }
+
+
+        // enabled fullscreen according to settings
+        SharedPreferences prefs = getPreferences(MODE_PRIVATE);
+        int v = prefs.getInt("fullscreen_enabled", 0);
+        if (v > 0) setImmersiveMode(true);
     }
+
 
     @Override
     public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {

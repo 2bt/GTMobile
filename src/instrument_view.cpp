@@ -779,21 +779,37 @@ void draw() {
         instr.sr = (adsr[2] << 4) | adsr[3];
     }
     else if (g_cursor_select == CursorSelect::GateTimer) {
-        gui::item_size({ app::CANVAS_WIDTH, app::BUTTON_HEIGHT });
-        gui::text("GATE TIMER");
+        int v = instr.gatetimer & 0x3f;
+        gui::slider(app::CANVAS_WIDTH, "GATE TIMER %2X", v, 1, 0x3f, &instr.gatetimer);
+        instr.gatetimer = (instr.gatetimer & 0xc0) | v;
 
-        gui::item_size({ app::CANVAS_WIDTH / 2, app::BUTTON_HEIGHT });
-        gui::button_style(gui::ButtonStyle::Normal);
-        if (gui::button("DISABLE HARD RESTART", instr.gatetimer & 0x80)) {
-            instr.gatetimer ^= 0x80;
+        gui::item_size({ 12 + 8 * 13, app::BUTTON_HEIGHT });
+        gui::text("HARD RESTART ");
+        gui::same_line();
+        gui::item_size({ (app::CANVAS_WIDTH - gui::cursor().x) / 2, app::BUTTON_HEIGHT });
+        gui::button_style(gui::ButtonStyle::RadioLeft);
+        if (gui::button("OFF", instr.gatetimer & 0x80)) {
+            instr.gatetimer |= 0x80;
         }
         gui::same_line();
-        if (gui::button("DISABLE GATE OFF", instr.gatetimer & 0x40)) {
-            instr.gatetimer ^= 0x40;
+        gui::button_style(gui::ButtonStyle::RadioRight);
+        if (gui::button("ON", !(instr.gatetimer & 0x80))) {
+            instr.gatetimer &= ~0x80;
         }
-        int v = instr.gatetimer & 0x3f;
-        gui::slider(app::CANVAS_WIDTH, "%X", v, 1, 0xf, &instr.gatetimer);
-        instr.gatetimer = (instr.gatetimer & 0xc0) | v;
+
+        gui::item_size({ 12 + 8 * 13, app::BUTTON_HEIGHT });
+        gui::text("DISABLE GATE ");
+        gui::same_line();
+        gui::item_size({ (app::CANVAS_WIDTH - gui::cursor().x) / 2, app::BUTTON_HEIGHT });
+        gui::button_style(gui::ButtonStyle::RadioLeft);
+        if (gui::button("OFF", instr.gatetimer & 0x40)) {
+            instr.gatetimer |= 0x40;
+        }
+        gui::same_line();
+        gui::button_style(gui::ButtonStyle::RadioRight);
+        if (gui::button("ON", !(instr.gatetimer & 0x40))) {
+            instr.gatetimer &= ~0x40;
+        }
     }
     else if (g_cursor_select == CursorSelect::FirstWave) {
         gui::item_size({ app::CANVAS_WIDTH, app::BUTTON_HEIGHT });
@@ -838,27 +854,26 @@ void draw() {
         assert(instr.ptr[gt::STBL] > 0);
         uint8_t& lval = g_song.ltable[gt::STBL][instr.ptr[gt::STBL] - 1];
         uint8_t& rval = g_song.rtable[gt::STBL][instr.ptr[gt::STBL] - 1];
-        gui::item_size({ app::CANVAS_WIDTH / 2, app::BUTTON_HEIGHT });
-        gui::text("VIBRATO");
-        gui::same_line();
-        if (gui::button("REALTIME SPEED", lval & 0x80)) {
-            if (lval & 0x80) {
-                int note = piano::note();
-                uint16_t speed = gt::get_freq(note + 1) - gt::get_freq(note);
-                rval = std::min(255, speed >> rval);
-            }
-            else {
-                rval = 2;
-            }
-            lval ^= 0x80;
-        }
 
-        gui::slider(app::CANVAS_WIDTH, "DELAY %02X", instr.vibdelay, 0, 255);
-        // gui::item_size({ app::CANVAS_WIDTH, app::BUTTON_HEIGHT });
+        gui::slider(app::CANVAS_WIDTH, "VIBRATO DELAY %02X", instr.vibdelay, 0, 255);
         int v = lval & 0x7f;
         gui::slider(app::CANVAS_WIDTH, "STEPS %02X", v, 0, 0x7f);
         lval = (lval & 0x80) | v;
 
+        gui::item_size({ app::CANVAS_WIDTH / 2, app::BUTTON_HEIGHT });
+        gui::button_style(gui::ButtonStyle::RadioLeft);
+        if (gui::button("PRECALCULATED", !(lval & 0x80)) && (lval & 0x80)) {
+            int note = piano::note();
+            uint16_t speed = gt::get_freq(note + 1) - gt::get_freq(note);
+            rval = std::min(255, speed >> rval);
+            lval &= ~0x80;
+        }
+        gui::same_line();
+        gui::button_style(gui::ButtonStyle::RadioRight);
+        if (gui::button("NOTE-INDEPENDENT", lval & 0x80) && !(lval & 0x80)) {
+            rval = 2;
+            lval |= 0x80;
+        }
         if (lval & 0x80) {
             gui::slider(app::CANVAS_WIDTH, "SHIFT  %X", rval, 0, 8);
         }

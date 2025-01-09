@@ -49,7 +49,7 @@ public:
     }
 
 private:
-    void sequencer(int c);
+    void sequencer(int c, bool reset_current_patt_pos = true);
 
     struct Channel {
         uint8_t  trans;

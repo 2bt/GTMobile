@@ -43,6 +43,8 @@ public class View extends GLSurfaceView {
             }
             @Override
             public void onSurfaceChanged(GL10 gl, int width, int height) {
+                Log.i(TAG, "onSurfaceChanged " + width + " " + height);
+                gl.glViewport(0, 0, width, height);
                 Native.resize(width, height);
             }
             @Override

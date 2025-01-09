@@ -6,7 +6,6 @@
 namespace gfx {
 
 
-
 struct Vertex {
     i16vec2 pos;
     i16vec2 uv;

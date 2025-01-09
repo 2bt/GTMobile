@@ -20,7 +20,7 @@ class Native {
     public static native String getSongName();
 
     // settings
-    public static native String getValueName(int i);
-    public static native int getValue(int i);
-    public static native void setValue(int i, int v);
+    public static native String getSettingsName(int i);
+    public static native int getSettingsValue(int i);
+    public static native void setSettingsValue(int i, int v);
 }

@@ -205,19 +205,21 @@ void draw() {
             uint8_t& rval = rtable[data - 1];
 
             if (g_command <= gt::CMD_TONEPORTA) {
-                gui::item_size({ WIDTH, app::BUTTON_HEIGHT });
-                if (gui::button("REALTIME SPEED", lval & 0x80)) {
-                    if (lval & 0x80) {
-                        int note = piano::note();
-                        uint16_t speed = gt::get_freq(note + 1) - gt::get_freq(note);
-                        speed >>= rval;
-                        lval = speed >> 8;
-                        rval = speed & 0xff;
-                    }
-                    else {
-                        lval = 0x80;
-                        rval = 2;
-                    }
+
+                gui::item_size({ WIDTH / 2, app::BUTTON_HEIGHT });
+                gui::button_style(gui::ButtonStyle::RadioLeft);
+                if (gui::button("PRECALCULATED", !(lval & 0x80)) && (lval & 0x80)) {
+                    int note = piano::note();
+                    uint16_t speed = gt::get_freq(note + 1) - gt::get_freq(note);
+                    speed >>= rval;
+                    lval = (speed >> 8) & 0x7f;
+                    rval = speed & 0xff;
+                }
+                gui::same_line();
+                gui::button_style(gui::ButtonStyle::RadioRight);
+                if (gui::button("NOTE-INDEPENDENT", lval & 0x80) && !(lval & 0x80)) {
+                    rval = 2;
+                    lval = 0x80;
                 }
                 if (lval & 0x80) {
                     gui::slider(WIDTH, "SHIFT %X", rval, 0, 8);
@@ -228,21 +230,23 @@ void draw() {
                 }
             }
             else if (g_command == gt::CMD_VIBRATO) {
-                gui::item_size({ WIDTH, app::BUTTON_HEIGHT });
-                if (gui::button("REALTIME SPEED", lval & 0x80)) {
-                    if (lval & 0x80) {
-                        int note = piano::note();
-                        uint16_t speed = gt::get_freq(note + 1) - gt::get_freq(note);
-                        rval = std::min(255, speed >> rval);
-                    }
-                    else {
-                        rval = 2;
-                    }
-                    lval ^= 0x80;
-                }
                 int v = lval & 0x7f;
-                gui::slider(WIDTH, "STEPS %02X", v, 0, 0x7f);
+                gui::slider(WIDTH, "VIBRATO STEPS %02X", v, 0, 0x7f);
                 lval = (lval & 0x80) | v;
+                gui::item_size({ WIDTH / 2, app::BUTTON_HEIGHT });
+                gui::button_style(gui::ButtonStyle::RadioLeft);
+                if (gui::button("PRECALCULATED", !(lval & 0x80)) && (lval & 0x80)) {
+                    int note = piano::note();
+                    uint16_t speed = gt::get_freq(note + 1) - gt::get_freq(note);
+                    rval = std::min(255, speed >> rval);
+                    lval &= ~0x80;
+                }
+                gui::same_line();
+                gui::button_style(gui::ButtonStyle::RadioRight);
+                if (gui::button("NOTE-INDEPENDENT", lval & 0x80) && !(lval & 0x80)) {
+                    rval = 2;
+                    lval |= 0x80;
+                }
                 if (lval & 0x80) {
                     gui::slider(WIDTH, "SHIFT  %X", rval, 0, 8);
                 }

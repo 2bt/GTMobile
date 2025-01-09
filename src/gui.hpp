@@ -4,7 +4,6 @@
 
 namespace color {
 
-
     constexpr uint32_t mix(uint32_t c1, uint32_t c2, float x) {
         float y = 1.0f - x;
         return uint8_t(uint8_t(c1 >> 16) * y + uint8_t(c2 >> 16) * x) << 16 |
