@@ -620,14 +620,18 @@ bool choose(int width, char const* desc, int& value, std::initializer_list<char 
 /////////////////
 void DrawContext::box(Box const& box, BoxStyle style) {
     if (box.size.x < 4 || box.size.y < 4) return;
+    ivec2 c = {
+        std::min(8, box.size.x / 2),
+        std::min(8, box.size.y / 2),
+    };
     i16vec2 p0 = box.pos;
-    i16vec2 p1 = box.pos + 8;
-    i16vec2 p2 = box.pos + box.size - 8;
+    i16vec2 p1 = box.pos + c;
+    i16vec2 p2 = box.pos + box.size - c;
     i16vec2 p3 = box.pos + box.size;
     i16vec2 t0(int(style) % 16 * 16, int(style) / 16 * 16);
-    i16vec2 t1 = t0 + 8;
+    i16vec2 t1 = t0 + c;
     i16vec2 t2 = t1;
-    i16vec2 t3 = t2 + 8;
+    i16vec2 t3 = t2 + 16 - c;
     auto i0  = add_vertex({ p0.x, p0.y }, { t0.x, t0.y });
     auto i1  = add_vertex({ p1.x, p0.y }, { t1.x, t0.y });
     auto i2  = add_vertex({ p2.x, p0.y }, { t2.x, t0.y });

@@ -198,9 +198,9 @@ void toggle_follow() {
 
 
 void draw_pattern() {
-    int patt_num = g_song.song_order[g_cursor_chan][g_cursor_song_row].pattnum;
-    gt::Pattern& patt = g_song.patterns[patt_num];
-    // TODO
+//     int patt_num = g_song.song_order[g_cursor_chan][g_cursor_song_row].pattnum;
+//     gt::Pattern& patt = g_song.patterns[patt_num];
+//     // TODO
 }
 
 
