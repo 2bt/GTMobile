@@ -27,6 +27,10 @@ public class MainActivity extends Activity {
     private static final int REQUEST_CODE_IMPORT_FILE = 1;
     private static final int REQUEST_CODE_EXPORT_FILE = 2;
 
+    private static final int SETTING_FULLSCREEN_ENABLED = 0;
+    private static final int SETTING_KEEP_SCREEN_ON = 1;
+
+
     private static MainActivity sInstance;
     private String mExportPath;
     private boolean mExportDeleteWhenDone;
@@ -65,10 +69,21 @@ public class MainActivity extends Activity {
     }
 
     // called from C++
-    static public void setFullscreen(boolean enabled) {
-        sInstance.runOnUiThread(() -> { sInstance.setImmersiveMode(enabled); });
+    static public void updateSetting(int i) {
+        int v = Native.getSettingValue(i);
+        sInstance.runOnUiThread(() -> {
+            switch (i) {
+                case SETTING_FULLSCREEN_ENABLED:
+                    sInstance.setImmersiveMode(v != 0);
+                    break;
+                case SETTING_KEEP_SCREEN_ON:
+                    sInstance.mView.setKeepScreenOn(v != 0);
+                    break;
+                default:
+                    break;
+            }
+        });
     }
-
 
     @Override
     protected void onActivityResult(int requestCode, int resultCode, @Nullable Intent data) {
@@ -96,10 +111,10 @@ public class MainActivity extends Activity {
         Log.i(TAG, "loadSettings");
         SharedPreferences prefs = getPreferences(MODE_PRIVATE);
         String name;
-        for (int i = 0; (name = Native.getSettingsName(i)) != null; ++i) {
-            int v = Native.getSettingsValue(i);
+        for (int i = 0; (name = Native.getSettingName(i)) != null; ++i) {
+            int v = Native.getSettingValue(i);
             v = prefs.getInt(name, v);
-            Native.setSettingsValue(i, v);
+            Native.setSettingValue(i, v);
             Log.i(TAG, "loadSettings: " + name + " = " + v);
         }
     }
@@ -107,8 +122,8 @@ public class MainActivity extends Activity {
         SharedPreferences prefs = getPreferences(MODE_PRIVATE);
         SharedPreferences.Editor edit = prefs.edit();
         String name;
-        for (int i = 0; (name = Native.getSettingsName(i)) != null; ++i) {
-            int v = Native.getSettingsValue(i);
+        for (int i = 0; (name = Native.getSettingName(i)) != null; ++i) {
+            int v = Native.getSettingValue(i);
             edit.putInt(name, v);
         }
         edit.apply();
@@ -161,11 +176,9 @@ public class MainActivity extends Activity {
             }
         }
 
-
-        // enabled fullscreen according to settings
-        SharedPreferences prefs = getPreferences(MODE_PRIVATE);
-        int v = prefs.getInt("fullscreen_enabled", 0);
-        if (v > 0) setImmersiveMode(true);
+        // apply settings
+        updateSetting(SETTING_FULLSCREEN_ENABLED);
+        updateSetting(SETTING_KEEP_SCREEN_ON);
     }
 
 

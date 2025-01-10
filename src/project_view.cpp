@@ -359,26 +359,8 @@ void draw() {
         gui::separator();
 
         if (!g_export_thread.joinable()) {
+            gui::choose(box.size.x, nullptr, g_export_format, { "SNG", "WAV", "OGG" });
 
-            gui::item_size({ box.size.x / 4, app::BUTTON_HEIGHT });
-            gui::text("FORMAT");
-            gui::same_line();
-            // gui::item_size({ box.size.x / 4, app::BUTTON_HEIGHT });
-            gui::button_style(gui::ButtonStyle::RadioLeft);
-            if (gui::button("SNG", g_export_format == ExportFormat::Sng)) {
-                g_export_format = ExportFormat::Sng;
-            }
-            gui::same_line();
-            gui::button_style(gui::ButtonStyle::RadioCenter);
-            if (gui::button("WAV", g_export_format == ExportFormat::Wav)) {
-                g_export_format = ExportFormat::Wav;
-            }
-            gui::same_line();
-            gui::button_style(gui::ButtonStyle::RadioRight);
-            if (gui::button("OGG", g_export_format == ExportFormat::Ogg)) {
-                g_export_format = ExportFormat::Ogg;
-            }
-            gui::button_style(gui::ButtonStyle::Normal);
             gui::item_size(box.size.x);
             gui::separator();
 

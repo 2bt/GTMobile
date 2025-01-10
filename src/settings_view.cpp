@@ -3,18 +3,51 @@
 #include "piano.hpp"
 #include "platform.hpp"
 
-
 namespace settings_view {
 namespace {
 
 gt::Song& g_song = app::song();
 Settings  g_settings {};
 
+enum {
+    #define X(n, ...) SETTING_##n,
+    SETTINGS(X)
+    #undef X
+};
 
 } // namespace
 
 Settings const& settings() { return g_settings; }
 Settings&       mutable_settings() { return g_settings; }
+
+
+// functions for loading and storing settings in android
+char const* get_setting_name(int i) {
+    switch (i) {
+    #define X(n, ...) case SETTING_##n: return #n;
+    SETTINGS(X)
+    #undef X
+    default: return nullptr;
+    }
+}
+int get_setting_value(int i) {
+    switch (i) {
+    #define X(n, ...) case SETTING_##n: return g_settings.n;
+    SETTINGS(X)
+    #undef X
+    default: return 0;
+    }
+}
+void set_setting_value(int i, int v) {
+    switch (i) {
+    #define X(n, ...) case SETTING_##n: g_settings.n = v; break;
+    SETTINGS(X)
+    #undef X
+    default: break;
+    }
+}
+
+
 
 void draw() {
 
@@ -47,21 +80,7 @@ void draw() {
 
     if (mode == Mode::Project) {
 
-        // sid model
-        gui::item_size({ 12 + 8 * 12, app::BUTTON_HEIGHT });
-        gui::text("CHIP MODEL  ");
-        gui::same_line();
-        gui::item_size({ (app::CANVAS_WIDTH - gui::cursor().x) / 2, app::BUTTON_HEIGHT });
-        gui::button_style(gui::ButtonStyle::RadioLeft);
-        if (gui::button("6581", g_song.model == gt::Model::MOS6581)) {
-            g_song.model = gt::Model::MOS6581;
-        }
-        gui::same_line();
-        gui::button_style(gui::ButtonStyle::RadioRight);
-        if (gui::button("8580", g_song.model == gt::Model::MOS8580)) {
-            g_song.model = gt::Model::MOS8580;
-        }
-
+        gui::choose(app::CANVAS_WIDTH, "CHIP MODEL  ", g_song.model, { "6581", "8580" });
 
         // speed/multiplier
         char str[32] = "SPEED   25Hz";
@@ -91,21 +110,11 @@ void draw() {
 
     }
     else if (mode == Mode::Editor) {
-
-        gui::item_size({ 12 + 8 * 15, app::BUTTON_HEIGHT });
-        gui::text("FULLSCREEN     ");
-        gui::same_line();
-        gui::item_size({ (app::CANVAS_WIDTH - gui::cursor().x) / 2, app::BUTTON_HEIGHT });
-        gui::button_style(gui::ButtonStyle::RadioLeft);
-        if (gui::button("OFF", !g_settings.fullscreen_enabled) && g_settings.fullscreen_enabled) {
-            g_settings.fullscreen_enabled = false;
-            platform::set_fullscreen(false);
+        if (gui::choose(app::CANVAS_WIDTH, "FULLSCREEN     ", g_settings.fullscreen_enabled)) {
+            platform::update_setting(SETTING_fullscreen_enabled);
         }
-        gui::same_line();
-        gui::button_style(gui::ButtonStyle::RadioRight);
-        if (gui::button("ON", g_settings.fullscreen_enabled) && !g_settings.fullscreen_enabled) {
-            g_settings.fullscreen_enabled = true;
-            platform::set_fullscreen(true);
+        if (gui::choose(app::CANVAS_WIDTH, "KEEP SCREEN ON ", g_settings.keep_screen_on)) {
+            platform::update_setting(SETTING_keep_screen_on);
         }
 
         gui::slider(app::CANVAS_WIDTH, "ROW HEIGHT   %02X", g_settings.row_height, 8, app::MAX_ROW_HEIGHT);

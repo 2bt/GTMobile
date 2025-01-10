@@ -573,6 +573,46 @@ bool slider(int width, char const* fmt, int& value, int min, int max, void const
     value = v;
     return v != old_v;
 }
+bool choose(int width, char const* desc, int& value, std::initializer_list<char const*> labels) {
+    int old_v = value;
+
+    if (desc != nullptr) {
+        int text_width = 12 + strlen(desc) * 8;
+        width -= text_width;
+        item_size({ text_width, app::BUTTON_HEIGHT });
+        text(desc);
+        same_line();
+    }
+
+    const int count      = labels.size();
+    const int item_width = width / count;
+    const int rest_width = width - item_width * count;
+    int a = 0;
+    int i = 0;
+
+    button_style(ButtonStyle::RadioLeft);
+    for (auto label : labels) {
+        int w = item_width;
+        a += rest_width;
+        if (a >= count) {
+            a -= count;
+            ++w;
+        }
+        item_size({ w, app::BUTTON_HEIGHT });
+
+        if (button(label, value == i)) {
+            value = i;
+        }
+        button_style(i + 2 == int(labels.size()) ? ButtonStyle::RadioRight : ButtonStyle::RadioCenter);
+        same_line();
+        ++i;
+    }
+    same_line(false);
+    button_style(ButtonStyle::Normal);
+    return value != old_v;
+}
+
+
 
 
 /////////////////

@@ -783,33 +783,16 @@ void draw() {
         gui::slider(app::CANVAS_WIDTH, "GATE TIMER %2X", v, 1, 0x3f, &instr.gatetimer);
         instr.gatetimer = (instr.gatetimer & 0xc0) | v;
 
-        gui::item_size({ 12 + 8 * 13, app::BUTTON_HEIGHT });
-        gui::text("HARD RESTART ");
-        gui::same_line();
-        gui::item_size({ (app::CANVAS_WIDTH - gui::cursor().x) / 2, app::BUTTON_HEIGHT });
-        gui::button_style(gui::ButtonStyle::RadioLeft);
-        if (gui::button("OFF", instr.gatetimer & 0x80)) {
-            instr.gatetimer |= 0x80;
-        }
-        gui::same_line();
-        gui::button_style(gui::ButtonStyle::RadioRight);
-        if (gui::button("ON", !(instr.gatetimer & 0x80))) {
-            instr.gatetimer &= ~0x80;
-        }
+        v = !(instr.gatetimer & 0x80);
+        gui::choose(app::CANVAS_WIDTH, "HARD RESTART ", v);
+        instr.gatetimer &= ~0x80;
+        if (!v) instr.gatetimer |= 0x80;
 
-        gui::item_size({ 12 + 8 * 13, app::BUTTON_HEIGHT });
-        gui::text("DISABLE GATE ");
-        gui::same_line();
-        gui::item_size({ (app::CANVAS_WIDTH - gui::cursor().x) / 2, app::BUTTON_HEIGHT });
-        gui::button_style(gui::ButtonStyle::RadioLeft);
-        if (gui::button("OFF", instr.gatetimer & 0x40)) {
-            instr.gatetimer |= 0x40;
-        }
-        gui::same_line();
-        gui::button_style(gui::ButtonStyle::RadioRight);
-        if (gui::button("ON", !(instr.gatetimer & 0x40))) {
-            instr.gatetimer &= ~0x40;
-        }
+        v = !(instr.gatetimer & 0x40);
+        gui::choose(app::CANVAS_WIDTH, "DISABLE GATE ", v);
+        instr.gatetimer &= ~0x40;
+        if (!v) instr.gatetimer |= 0x40;
+
     }
     else if (g_cursor_select == CursorSelect::FirstWave) {
         gui::item_size({ app::CANVAS_WIDTH, app::BUTTON_HEIGHT });
@@ -893,28 +876,17 @@ void draw() {
             // + F0-FE pattern command
             // + FF    jump
             int mode = (lval <= 0x0f) ? 1 : (lval <= 0xef) ? 0 : 2;
-            gui::item_size({ app::CANVAS_WIDTH / 3, app::BUTTON_HEIGHT });
-            gui::button_style(gui::ButtonStyle::RadioLeft);
-            if (gui::button("WAVE", mode == 0) && mode != 0) {
-                mode = 0;
-                lval = 0x11;
-            }
-            gui::same_line();
-            gui::button_style(gui::ButtonStyle::RadioCenter);
-            if (gui::button("DELAY", mode == 1) && mode != 1) {
-                mode = 1;
-                lval = 0;
-            }
-            gui::same_line();
-            gui::button_style(gui::ButtonStyle::RadioRight);
-            if (gui::button("COMMAND", mode == 2) && mode != 2) {
-                mode = 2;
-                lval = 0xf1;
-                rval = 0x00;
-                command_edit::init(command_edit::Location::WaveTable, lval & 0xf, rval, [&lval, &rval](uint8_t cmd, uint8_t data) {
-                    lval = cmd | 0xf0;
-                    rval = data;
-                });
+            if (gui::choose(app::CANVAS_WIDTH, nullptr, mode, {"WAVE", "DELAY", "COMMAND"})) {
+                if (mode == 0) lval = 0x11;
+                if (mode == 1) lval = 0;
+                if (mode == 2) {
+                    lval = 0xf1;
+                    rval = 0x00;
+                    command_edit::init(command_edit::Location::WaveTable, lval & 0xf, rval, [&lval, &rval](uint8_t cmd, uint8_t data) {
+                        lval = cmd | 0xf0;
+                        rval = data;
+                    });
+                }
             }
 
             gui::button_style(gui::ButtonStyle::Normal);
@@ -949,25 +921,11 @@ void draw() {
                 // + 80    do nothing
                 // + 81-DD absolute notes C#0 - B-7
                 mode = (rval < 0x80) ? 0 : (rval > 0x80) ? 1 : 2;
-                gui::item_size({ app::CANVAS_WIDTH / 3, app::BUTTON_HEIGHT });
-                gui::button_style(gui::ButtonStyle::RadioLeft);
-                if (gui::button("RELATIVE \x09", mode == 0) && mode != 0) {
-                    mode = 0;
-                    rval = 0;
+                if (gui::choose(app::CANVAS_WIDTH, nullptr, mode, { "RELATIVE \x09", "ABSOLUTE \x09", "NO CHANGE" })) {
+                    if (mode == 0) rval = 0;
+                    if (mode == 1) rval = 0x80 + 48;
+                    if (mode == 2) rval = 0x80;
                 }
-                gui::same_line();
-                gui::button_style(gui::ButtonStyle::RadioCenter);
-                if (gui::button("ABSOLUTE \x09", mode == 1) && mode != 1) {
-                    mode = 1;
-                    rval = 0x80 + 48;
-                }
-                gui::same_line();
-                gui::button_style(gui::ButtonStyle::RadioRight);
-                if (gui::button("NO CHANGE", mode == 2) && mode != 2) {
-                    mode = 2;
-                    rval = 0x80;
-                }
-
                 if (mode == 0) {
                     int v = rval < 0x60 ? rval : rval - 0x80;
                     sprintf(str, "%+03d", v);
@@ -995,19 +953,15 @@ void draw() {
             // 01-7F pulse mod step time/speed
             // 8X-FX set pulsewidth XYY
             int mode = lval >= 0x80 ? 0 : 1;
-            gui::item_size({ app::CANVAS_WIDTH / 2, app::BUTTON_HEIGHT });
-            gui::button_style(gui::ButtonStyle::RadioLeft);
-            if (gui::button("SET PULSE WIDTH", mode == 0) && mode != 0) {
-                mode = 0;
-                lval = 0x88;
-                rval = 0x00;
-            }
-            gui::same_line();
-            gui::button_style(gui::ButtonStyle::RadioRight);
-            if (gui::button("MOD PULSE WIDTH", mode == 1) && mode != 1) {
-                mode = 1;
-                lval = 0x7f;
-                rval = 0x20;
+            if (gui::choose(app::CANVAS_WIDTH, nullptr, mode, { "SET PULSE WIDTH", "MOD PULSE WIDTH" })) {
+                if (mode == 0) {
+                    lval = 0x88;
+                    rval = 0x00;
+                }
+                else {
+                    lval = 0x7f;
+                    rval = 0x20;
+                }
             }
             if (mode == 0) {
                 // set pw
@@ -1032,28 +986,20 @@ void draw() {
             // 80-F0 set params
 
             int mode = (lval >= 0x80) ? 0 : (lval == 0x00) ? 1 : 2;
-            gui::item_size({ app::CANVAS_WIDTH / 3, app::BUTTON_HEIGHT });
-            gui::button_style(gui::ButtonStyle::RadioLeft);
-            if (gui::button("SET PARAMS", mode == 0) && mode != 0) {
-                mode = 0;
-                lval = 0x90;
-                rval = 0xF1;
+            if (gui::choose(app::CANVAS_WIDTH, nullptr, mode, { "SET PARAMS", "SET CUTOFF", "MOD CUTOFF" })) {
+                if (mode == 0) {
+                    lval = 0x90;
+                    rval = 0xF1;
+                }
+                if (mode == 1) {
+                    lval = 0x00;
+                    rval = 0x20;
+                }
+                if (mode == 2) {
+                    lval = 0x01;
+                    rval = 0x00;
+                }
             }
-            gui::same_line();
-            gui::button_style(gui::ButtonStyle::RadioCenter);
-            if (gui::button("SET CUTOFF", mode == 1) && mode != 1) {
-                mode = 1;
-                lval = 0x00;
-                rval = 0x20;
-            }
-            gui::same_line();
-            gui::button_style(gui::ButtonStyle::RadioRight);
-            if (gui::button("MOD CUTOFF", mode == 2) && mode != 2) {
-                mode = 2;
-                lval = 0x01;
-                rval = 0x00;
-            }
-
             if (mode == 0) {
                 // set params
                 gui::button_style(gui::ButtonStyle::Normal);

@@ -135,6 +135,13 @@ void set_fullscreen(bool enabled) {
     g_env->CallStaticVoidMethod(clazz, method, enabled);
 }
 
+void update_setting(int i) {
+    jclass clazz = g_env->FindClass("com/twobit/gtmobile/MainActivity");
+    jmethodID method = g_env->GetStaticMethodID(clazz, "updateSetting", "(I)V");
+    g_env->CallStaticVoidMethod(clazz, method, i);
+}
+
+
 } // namespace platform
 
 
@@ -198,36 +205,18 @@ extern "C" {
         return env->NewStringUTF(app::song().song_name.data());
     }
 
-    enum {
-        #define X(n, ...) SETTING_##n,
-        SETTINGS(X)
-        #undef X
-    };
-    JNIEXPORT jstring JNICALL Java_com_twobit_gtmobile_Native_getSettingsName(JNIEnv* env, jclass, jint i) {
-        switch (i) {
-        #define X(n, ...) case SETTING_##n: return env->NewStringUTF(#n);
-        SETTINGS(X)
-        #undef X
-        default: return nullptr;
-        }
+    JNIEXPORT jstring JNICALL Java_com_twobit_gtmobile_Native_getSettingName(JNIEnv* env, jclass, jint i) {
+        char const* n = settings_view::get_setting_name(i);
+        if (n) return env->NewStringUTF(n);
+        return nullptr;
     }
-    JNIEXPORT jint JNICALL Java_com_twobit_gtmobile_Native_getSettingsValue(JNIEnv* env, jclass, jint i) {
-        switch (i) {
-        #define X(n, ...) case SETTING_##n: return settings_view::settings().n;
-        SETTINGS(X)
-        #undef X
-        default: return 0;
-        }
+    JNIEXPORT jint JNICALL Java_com_twobit_gtmobile_Native_getSettingValue(JNIEnv* env, jclass, jint i) {
+        return settings_view::get_setting_value(i);
     }
-    JNIEXPORT void JNICALL Java_com_twobit_gtmobile_Native_setSettingsValue(JNIEnv* env, jclass, jint i, jint v) {
-        switch (i) {
-        #define X(n, ...) case SETTING_##n: settings_view::mutable_settings().n = v; break;
-        SETTINGS(X)
-        #undef X
-        default: break;
-        }
+    JNIEXPORT void JNICALL Java_com_twobit_gtmobile_Native_setSettingValue(JNIEnv* env, jclass, jint i, jint v) {
+        settings_view::set_setting_value(i, v);
+    }
 
-    }
     JNIEXPORT void JNICALL Java_com_twobit_gtmobile_Native_importSong(JNIEnv* env, jclass clazz, jstring jpath) {
         char const* path = env->GetStringUTFChars(jpath, nullptr);
         project_view::import_song(path);

@@ -1,5 +1,6 @@
 #pragma once
 #include "gfx.hpp"
+#include <initializer_list>
 
 
 namespace color {
@@ -376,12 +377,20 @@ bool horizontal_drag_bar(T& value, int min, int max, int page) {
 }
 
 bool slider(int width, char const* fmt, int& value, int min, int max, void const* addr=nullptr);
-
 template<class T>
 bool slider(int width, char const* fmt, T& value, int min, int max, void const* addr=nullptr) {
     int v = value;
     bool res = slider(width, fmt, v, min, max, &value);
     value = v;
+    return res;
+}
+
+bool choose(int width, char const* desc, int& value, std::initializer_list<char const*> labels);
+template<class T>
+bool choose(int width, char const* desc, T& value, std::initializer_list<char const*> labels = { "OFF", "ON" }) {
+    int v = int(value);
+    bool res = choose(width, desc, v, labels);
+    value = T(v);
     return res;
 }
 
