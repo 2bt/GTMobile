@@ -129,12 +129,6 @@ void start_song_import() {
     g_env->CallStaticVoidMethod(clazz, method);
 }
 
-void set_fullscreen(bool enabled) {
-    jclass clazz = g_env->FindClass("com/twobit/gtmobile/MainActivity");
-    jmethodID method = g_env->GetStaticMethodID(clazz, "setFullscreen", "(Z)V");
-    g_env->CallStaticVoidMethod(clazz, method, enabled);
-}
-
 void update_setting(int i) {
     jclass clazz = g_env->FindClass("com/twobit/gtmobile/MainActivity");
     jmethodID method = g_env->GetStaticMethodID(clazz, "updateSetting", "(I)V");
