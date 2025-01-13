@@ -67,17 +67,6 @@ char const* print_to_text_buffer(const char* fmt, va_list args) {
     return g_text_buffer.data();
 }
 
-ivec2 text_pos(Box const& box, char const* text) {
-    int y = box.size.y / 2 - 4;
-    switch (g_align) {
-    case Align::Left:
-        return box.pos + ivec2(6, y);
-    case Align::Center:
-        return box.pos + ivec2(box.size.x / 2 - g_dc.text_width(text) / 2, y);
-    default: assert(0);
-    }
-}
-
 void const* get_id(void const* addr) {
     if (g_id) {
         addr = g_id;
@@ -92,7 +81,6 @@ void button_color(ButtonState state, bool active) {
              state == ButtonState::Pressed           ? g_color_theme.button_pressed :
            /*state == ButtonState::Released*/          g_color_theme.button_released);
 }
-
 
 } // namespace
 
@@ -114,6 +102,17 @@ Box item_box() {
         g_cursor_max = pos + size;
     }
     return { pos, size };
+}
+
+ivec2 text_pos(Box const& box, char const* text) {
+    int y = (box.size.y - 7) / 2;
+    switch (g_align) {
+    case Align::Left:
+        return box.pos + ivec2(6, y);
+    case Align::Center:
+        return box.pos + ivec2(box.size.x / 2 - g_dc.text_width(text) / 2, y);
+    default: assert(0);
+    }
 }
 
 ButtonState button_state(Box const& box, void const* addr) {
@@ -630,8 +629,9 @@ void DrawContext::box(Box const& box, BoxStyle style) {
     i16vec2 p3 = box.pos + box.size;
     i16vec2 t0(int(style) % 16 * 16, int(style) / 16 * 16);
     i16vec2 t1 = t0 + c;
-    i16vec2 t2 = t1;
-    i16vec2 t3 = t2 + 16 - c;
+    i16vec2 t2 = t0 + 16 - c;
+    i16vec2 t3 = t0 + 16;
+
     auto i0  = add_vertex({ p0.x, p0.y }, { t0.x, t0.y });
     auto i1  = add_vertex({ p1.x, p0.y }, { t1.x, t0.y });
     auto i2  = add_vertex({ p2.x, p0.y }, { t2.x, t0.y });

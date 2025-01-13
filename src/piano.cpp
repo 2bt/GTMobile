@@ -1,19 +1,74 @@
 #include "piano.hpp"
 #include "app.hpp"
 #include "song_view.hpp"
+#include <cassert>
 
 
 namespace piano {
 namespace {
 
-gt::Song& g_song = app::song();
-int  g_instrument = 1;
-int  g_scroll     = 14 * 3; // show octave 3 and 4
-int  g_note       = 48;
-bool g_note_on;
-bool g_gate;
+gt::Song& g_song       = app::song();
+int       g_instrument = 1;
+int       g_drag_instr = 0;
+int       g_scroll     = 14 * 3; // show octave 3 and 4
+int       g_note       = 48;
+bool      g_note_on;
+bool      g_gate;
 
+
+void shuffle_instruments(size_t i, size_t j) {
+    if (i == j) return;
+
+    // init instrument mapping
+    std::array<uint8_t, gt::MAX_INSTR> mapping;
+    for (uint8_t i = 0; i < gt::MAX_INSTR; ++i) mapping[i] = i;
+    if (i < j) {
+        std::rotate(mapping.begin() + i, mapping.begin() + j, mapping.begin() + j + 1);
+    } else if (i > j) {
+        std::rotate(mapping.begin() + j, mapping.begin() + j + 1, mapping.begin() + i + 1);
+    }
+
+    // apply mapping
+    g_instrument = mapping[g_instrument];
+    auto copy = g_song.instruments;
+    for (int i = 0; i < gt::MAX_INSTR; ++i) g_song.instruments[mapping[i]] = copy[i];
+    for (gt::Pattern& patt : g_song.patterns) {
+        for (gt::PatternRow& r : patt.rows) {
+            r.instr = mapping[r.instr];
+            if (r.command >= gt::CMD_SETWAVEPTR && r.command <= gt::CMD_SETFILTERPTR) {
+                r.data = mapping[r.data];
+            }
+        }
+    }
+    for (int i = 0; i < gt::MAX_TABLELEN; ++i) {
+        uint8_t lval = g_song.ltable[gt::WTBL][i];
+        if ((lval & 0xf0) != 0xf0) continue;
+        uint8_t cmd = lval & 0x0f;
+        if (cmd >= gt::CMD_SETWAVEPTR && cmd <= gt::CMD_SETFILTERPTR) {
+            uint8_t& rval = g_song.rtable[gt::WTBL][i];
+            rval = mapping[rval];
+        }
+    }
 }
+
+
+ivec2 drag_button(char const* label) {
+    gui::Box box = gui::item_box();
+    gui::DrawContext& dc = gui::draw_context();
+    dc.rgb(color::BUTTON_DRAGGED);
+    dc.box(box, gui::BoxStyle::Normal);
+    dc.rgb(color::WHITE);
+    dc.text(gui::text_pos(box, label), label);
+
+    ivec2 p = gui::touch::pos() - box.pos;
+    return {
+        div_floor(p.x, box.size.x),
+        div_floor(p.y, box.size.y),
+    };
+}
+
+
+} // namespace
 
 
 int instrument() {
@@ -25,7 +80,6 @@ int note() {
 bool note_on() {
     return g_note_on;
 }
-
 
 
 void draw() {
@@ -60,8 +114,9 @@ void draw() {
         enum {
             COL_W = 12 + 8 * 18,
         };
-        int space = app::canvas_height() - 12 - app::BUTTON_HEIGHT * 2;
+        int space = app::canvas_height() - gui::FRAME_WIDTH * 4 - app::BUTTON_HEIGHT * 2;
         int row_h = std::min<int>(space / 32, app::BUTTON_HEIGHT);
+
         gui::begin_window({ COL_W * 2, row_h * 32 + app::BUTTON_HEIGHT * 2 + gui::FRAME_WIDTH * 2 });
         gui::item_size({ COL_W * 2, app::BUTTON_HEIGHT });
         gui::text("INSTRUMENT SELECT");
@@ -80,10 +135,28 @@ void draw() {
             sprintf(str, "%02X %s", i, instr.name.data());
             bool set = instr.ptr[gt::WTBL] | instr.ptr[gt::PTBL] | instr.ptr[gt::FTBL];
             gui::button_style(set ? gui::ButtonStyle::Normal : gui::ButtonStyle::Shaded);
-            if (gui::button(str, i == g_instrument)) {
-                g_instrument = i;
-                show_instrument_select = false;
+
+            if (i == g_drag_instr) {
+                int prev_instr = g_drag_instr;
+                ivec2 mov = drag_button(str);
+                ivec2 pos = ivec2(n % 2, n / 2) + mov;
+                pos = clamp(pos, { 0, 0 }, { 1, 31 });
+                g_drag_instr = pos.x * 32 + pos.y;
+                if (g_drag_instr == 0) g_drag_instr = prev_instr;
+                shuffle_instruments(prev_instr, g_drag_instr);
+                if (gui::touch::just_released()) g_drag_instr = 0;
             }
+            else {
+                if (gui::button(str, i == g_instrument)) {
+                    g_instrument = i;
+                    show_instrument_select = false;
+                }
+                else if (gui::hold()) {
+                    g_drag_instr = i;
+                    gui::set_active_item(&g_drag_instr);
+                }
+            }
+
         }
         gui::button_style(gui::ButtonStyle::Normal);
         gui::item_size({ COL_W * 2, app::BUTTON_HEIGHT });

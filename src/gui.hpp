@@ -62,6 +62,7 @@ namespace color {
 
     constexpr uint32_t BUTTON_ALT_ACTIVE  = C64[11];
     constexpr uint32_t BUTTON_ALT_PRESSED = C64[10];
+    constexpr uint32_t BUTTON_DRAGGED     = C64[11];
 
 
     constexpr uint32_t CMD_NOTHING = mix(0x000000, LIGHT_GREY, 0.5f);
@@ -400,5 +401,6 @@ enum class ButtonState { Normal, Pressed, Released };
 DrawContext& draw_context();
 Box          item_box();
 ButtonState  button_state(Box const& box, void const* addr = nullptr);
+ivec2        text_pos(Box const& box, char const* text);
 
 } // namespace

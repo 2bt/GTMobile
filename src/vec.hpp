@@ -14,6 +14,7 @@ struct TVec2 {
     bool operator!=(TVec2 v) const { return !(*this == v); }
     TVec2 operator+(TVec2 v) const { return TVec2(x + v.x, y + v.y); }
     TVec2 operator-(TVec2 v) const { return TVec2(x - v.x, y - v.y); }
+    TVec2 operator/(TVec2 v) const { return TVec2(x / v.x, y / v.y); }
     template<class U> TVec2 operator*(U v) const { return TVec2(x * v, y * v); }
     template<class U> TVec2 operator/(U v) const { return TVec2(x / v, y / v); }
 };
@@ -52,6 +53,8 @@ constexpr TVec4<T> mix(TVec4<T> x, TVec4<T> y, U a) {
         x.z * b + y.z * a,
         x.w * b + y.w * a);
 }
+
+inline int div_floor(int n, int d) { return n >= 0 ? n / d : ~(~n / d); }
 
 using ivec2   = TVec2<int32_t>;
 using i16vec2 = TVec2<int16_t>;
