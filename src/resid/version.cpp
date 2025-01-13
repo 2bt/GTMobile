@@ -17,15 +17,5 @@
 //  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 //  ---------------------------------------------------------------------------
 
-#ifndef __POT_H__
-#define __POT_H__
-
+#define __VERSION_CC__
 #include "siddefs.h"
-
-class Potentiometer
-{
-public:
-  reg8 readPOT();
-};
-
-#endif
