@@ -2,6 +2,8 @@
 
 *Create authentic C64 SID music on the go!*
 
+![image](screenshot.png)
+
 GTMobile is an Android app for creating C64 SID music.
 It is based on and (mostly) compatible with the original [GoatTracker 2](https://sourceforge.net/projects/goattracker2/).
 
