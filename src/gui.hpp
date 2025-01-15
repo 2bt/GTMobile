@@ -266,6 +266,7 @@ enum class Icon {
 
     Loop = 192,
     Stop,
+    PlayPause,
     Play,
     FastBackward,
     FastForward,

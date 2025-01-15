@@ -120,7 +120,7 @@ void Player::sequencer(int c, bool reset_current_patt_pos) {
 
     // check for illegal pattern
     if (chan.pattnum >= MAX_PATT) {
-        stop_song();
+        m_action = Action::None;
         chan.pattnum = 0;
     }
 }
@@ -130,7 +130,8 @@ void Player::play_routine() {
     bool loop_pattern = m_loop_pattern;
 
     int    multiplier = std::max<int>(1, m_song->multiplier);
-    Action action     = std::atomic_exchange(&m_action, Action::None);
+    Action action     = m_action;
+    m_action = Action::None;
     if (action == Action::Pause || action == Action::Stop) {
         m_is_playing = false;
         for (int c = 0; c < MAX_CHN; c++) {
@@ -151,13 +152,14 @@ void Player::play_routine() {
             m_start_song_pos = m_current_song_pos;
             m_start_patt_pos = m_current_patt_pos;
         }
-        else {
+        if (action == Action::Stop) {
             m_current_song_pos = m_start_song_pos;
             m_current_patt_pos = m_start_patt_pos;
         }
     }
 
     if (action == Action::Start ||
+        action == Action::RestartPattern ||
         action == Action::FastForward ||
         action == Action::FastBackward)
     {
@@ -183,12 +185,11 @@ void Player::play_routine() {
                 chan.songptr = std::max(0, m_current_song_pos[c] - 1);
                 chan.pattptr = 0;
             }
-            else if (m_is_playing) {
-                // start from the beginning of the current pattern
+            else if (action == Action::RestartPattern) {
                 chan.songptr = m_current_song_pos[c];
                 chan.pattptr = 0;
             }
-            else {
+            else if (action == Action::Start) {
                 chan.songptr = m_start_song_pos[c];
                 chan.pattptr = m_start_patt_pos[c];
             }
@@ -258,7 +259,9 @@ FILTERSTOP:
                 chan.tempo ^= 1;
             }
             // check for illegally high gatetimer and stop the song in this case
-            if (chan.gatetimer > chan.tick) stop_song();
+            if (chan.gatetimer > chan.tick) {
+                m_action = Action::None;
+            }
         }
         goto WAVEEXEC;
 
@@ -291,14 +294,18 @@ TICK0:
 
                 if (chan.ptr[WTBL]) {
                     // stop the song in case of jumping into a jump
-                    if (m_song->ltable[WTBL][chan.ptr[WTBL] - 1] == 0xff) stop_song();
+                    if (m_song->ltable[WTBL][chan.ptr[WTBL] - 1] == 0xff) {
+                        m_action = Action::None;
+                    }
                 }
                 if (instr.ptr[PTBL]) {
                     chan.ptr[PTBL] = instr.ptr[PTBL];
                     chan.pulsetime = 0;
                     if (chan.ptr[PTBL]) {
                         // stop the song in case of jumping into a jump
-                        if (m_song->ltable[PTBL][chan.ptr[PTBL] - 1] == 0xff) stop_song();
+                        if (m_song->ltable[PTBL][chan.ptr[PTBL] - 1] == 0xff) {
+                            m_action = Action::None;
+                        }
                     }
                 }
                 if (instr.ptr[FTBL]) {
@@ -306,7 +313,9 @@ TICK0:
                     m_filtertime = 0;
                     if (m_filterptr) {
                         // stop the song in case of jumping into a jump
-                        if (m_song->ltable[FTBL][m_filterptr - 1] == 0xff) stop_song();
+                        if (m_song->ltable[FTBL][m_filterptr - 1] == 0xff) {
+                            m_action = Action::None;
+                        }
                     }
                 }
                 m_regs[0x5 + 7 * c] = instr.ad;
@@ -346,7 +355,9 @@ TICK0:
             chan.wavetime  = 0;
             if (chan.ptr[WTBL]) {
                 // stop the song in case of jumping into a jump
-                if (m_song->ltable[WTBL][chan.ptr[WTBL] - 1] == 0xff) stop_song();
+                if (m_song->ltable[WTBL][chan.ptr[WTBL] - 1] == 0xff) {
+                    m_action = Action::None;
+                }
             }
             break;
 
@@ -355,7 +366,9 @@ TICK0:
             chan.pulsetime = 0;
             if (chan.ptr[PTBL]) {
                 // stop the song in case of jumping into a jump
-                if (m_song->ltable[PTBL][chan.ptr[PTBL] - 1] == 0xff) stop_song();
+                if (m_song->ltable[PTBL][chan.ptr[PTBL] - 1] == 0xff) {
+                    m_action = Action::None;
+                }
             }
             break;
 
@@ -364,7 +377,9 @@ TICK0:
             m_filtertime = 0;
             if (m_filterptr) {
                 // stop the song in case of jumping into a jump
-                if (m_song->ltable[FTBL][m_filterptr - 1] == 0xff) stop_song();
+                if (m_song->ltable[FTBL][m_filterptr - 1] == 0xff) {
+                    m_action = Action::None;
+                }
             }
             break;
 
@@ -422,7 +437,9 @@ WAVEEXEC:
                     switch (wave & 0xf) {
                     case CMD_DONOTHING:
                     case CMD_SETWAVEPTR:
-                    case CMD_FUNKTEMPO: stop_song(); break;
+                    case CMD_FUNKTEMPO:
+                        m_action = Action::None;
+                        break;
 
                     case CMD_PORTAUP: {
                         uint16_t speed = 0;
@@ -512,7 +529,9 @@ WAVEEXEC:
                         chan.pulsetime = 0;
                         if (chan.ptr[PTBL]) {
                             // stop the song in case of jumping into a jump
-                            if (m_song->ltable[PTBL][chan.ptr[PTBL] - 1] == 0xff) stop_song();
+                            if (m_song->ltable[PTBL][chan.ptr[PTBL] - 1] == 0xff) {
+                                m_action = Action::None;
+                            }
                         }
                         break;
 
@@ -521,7 +540,9 @@ WAVEEXEC:
                         m_filtertime = 0;
                         if (m_filterptr) {
                             // stop the song in case of jumping into a jump
-                            if (m_song->ltable[FTBL][m_filterptr - 1] == 0xff) stop_song();
+                            if (m_song->ltable[FTBL][m_filterptr - 1] == 0xff) {
+                                m_action = Action::None;
+                            }
                         }
                         break;
 

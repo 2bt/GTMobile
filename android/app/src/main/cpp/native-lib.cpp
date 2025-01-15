@@ -179,10 +179,10 @@ extern "C" {
         LOGD("Native.setPlaying stream:%d player:%d", stream, player);
         g_env = env;
         if (player != app::player().is_playing()) {
-            if (player) app::player().play_song();
+            if (player) app::player().set_action(gt::Player::Action::Start);
             else {
                 app::sid().reset(); // reset SID to make it silent
-                app::player().pause_song();
+                app::player().set_action(gt::Player::Action::Pause);
             }
         }
         if (stream) start_audio();

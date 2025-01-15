@@ -1,7 +1,6 @@
 #pragma once
 #include <cstdint>
 #include <array>
-#include <atomic>
 #include "gtsong.hpp"
 
 
@@ -16,13 +15,9 @@ public:
     Player(gt::Song const& song);
     void reset();
 
-    enum class Action { None, Start, FastBackward, FastForward, Pause, Stop };
+    enum class Action { None, Start, RestartPattern, FastBackward, FastForward, Pause, Stop };
 
     void set_action(Action action) { m_action = action; }
-
-    void play_song() { m_action = Action::Start; }
-    void stop_song() { m_action = Action::Stop; }
-    void pause_song() { m_action = Action::Pause; }
     bool is_playing() const { return m_is_playing; }
 
     bool get_pattern_looping() const { return m_loop_pattern; }
@@ -85,11 +80,11 @@ private:
     static constexpr bool m_optimizepulse    = false;
     static constexpr bool m_optimizerealtime = false;
 
-    gt::Song const*     m_song;
-    Registers           m_regs;
-    std::atomic<Action> m_action;
-    bool                m_is_playing;
-    bool                m_loop_pattern;
+    gt::Song const* m_song;
+    Registers       m_regs;
+    Action          m_action;
+    bool            m_is_playing;
+    bool            m_loop_pattern;
 
 public:
     std::array<int, MAX_CHN> m_start_song_pos;

@@ -39,6 +39,7 @@ namespace app {
     gt::Player&        player();
     Sid&               sid();
     int                canvas_height();
+    bool               is_in_song_view();
     void               set_storage_dir(std::string const& storage_dir);
     std::string const& storage_dir();
 

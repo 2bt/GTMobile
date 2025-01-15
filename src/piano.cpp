@@ -102,6 +102,14 @@ void draw() {
     if (gui::button(str)) show_instrument_select = true;
     gui::align(gui::Align::Center);
 
+    // long press in song view picks up the selected instrument
+    if (app::is_in_song_view() && gui::hold()) {
+        if (song_view::cursor_instrument() > 0) {
+            g_instrument = song_view::cursor_instrument();
+            gui::set_active_item((void*)1);
+        }
+    }
+
     // piano scroll bar
     gui::same_line();
     gui::item_size({ app::CANVAS_WIDTH - gui::cursor().x, app::BUTTON_HEIGHT });

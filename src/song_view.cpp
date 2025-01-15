@@ -39,6 +39,7 @@ int                            g_pattern_scroll     = 0;
 int                            g_cursor_pattern_row = 0;
 int                            g_cursor_song_row    = 0;
 int                            g_cursor_chan        = 0;
+int                            g_cursor_instr       = 0;
 int                            g_transpose          = 0;
 bool                           g_mark_edit          = false;
 int                            g_mark_chan;
@@ -167,10 +168,11 @@ void update_mark(int& row, int page, int len, int& scroll) {
 int channel() { return g_cursor_chan; }
 
 int song_position() {
-    if (g_cursor_song_row >= g_song.song_len) {
-        g_cursor_song_row = g_song.song_len - 1;
-    }
-    return g_cursor_song_row;
+    return std::min(g_cursor_song_row, g_song.song_len - 1);
+}
+
+int cursor_instrument() {
+    return g_cursor_instr;
 }
 
 void reset() {
@@ -205,6 +207,7 @@ void draw_pattern() {
 
 
 void draw() {
+    g_cursor_instr = 0;
 
     gt::Player& player = app::player();
     settings_view::Settings const& settings = settings_view::settings();
@@ -300,6 +303,7 @@ void draw() {
                 g_mark_chan       = c;
                 g_mark_row        = r;
             }
+
             int mark_row_min  = std::min(g_mark_row, g_cursor_song_row);
             int mark_row_max  = std::max(g_mark_row, g_cursor_song_row);
             int mark_chan_min = std::min(g_mark_chan, g_cursor_chan);
@@ -422,6 +426,11 @@ void draw() {
                 g_mark_chan          = c;
                 g_mark_row           = r;
             }
+
+            if (g_edit_mode == EditMode::Pattern && c == g_cursor_chan && r == g_cursor_pattern_row) {
+                g_cursor_instr = row.instr;
+            }
+
             int mark_row_min  = std::min(g_mark_row, g_cursor_pattern_row);
             int mark_row_max  = std::max(g_mark_row, g_cursor_pattern_row);
             int mark_chan_min = std::min(g_mark_chan, g_cursor_chan);
@@ -542,6 +551,7 @@ void draw() {
 
     // order edit
     static SongCopyBuffer song_copy_buffer;
+
     gui::item_size({ 55, app::BUTTON_HEIGHT });
     if (g_edit_mode == EditMode::Song) {
         int& pos = g_cursor_song_row;
@@ -640,8 +650,8 @@ void draw() {
 
 
     // pattern edit
-    static std::array<gt::Pattern, 3> pattern_copy_buffer;
-    static uint8_t                    pattern_copy_flags = 0;
+    static std::array<gt::Pattern, 3> pattern_copy_buffer = {};
+    static uint8_t                    pattern_copy_flags  = 0;
 
     gt::Pattern& patt = g_song.patterns[patt_nums[g_cursor_chan]];
     if (g_edit_mode == EditMode::Pattern && g_cursor_pattern_row < patt.len) {
@@ -693,9 +703,9 @@ void draw() {
                 }
             }
             gui::end_window();
-            gui::item_size({ 55, app::BUTTON_HEIGHT });
         }
 
+        gui::item_size({ 55, app::BUTTON_HEIGHT });
         if (gui::button(gui::Icon::Paste)) {
             for (int c = 0; c < 3; ++c) {
                 if (g_cursor_chan + c >= 3) break;
@@ -749,21 +759,18 @@ void draw() {
         gui::disabled(false);
         gui::separator();
 
-        // // navigation
-        // {
-        //     gui::disabled(g_cursor_pattern_row == 0);
-        //     if (gui::button(gui::Icon::MoveUp)) {
-        //         --g_cursor_pattern_row;
-        //         g_pattern_scroll = clamp(g_pattern_scroll, g_cursor_pattern_row - pattern_page + 1, g_cursor_pattern_row);
-        //     }
-        //     gui::disabled(g_cursor_pattern_row >= patt.len - 1);
-        //     if (gui::button(gui::Icon::MoveDown)) {
-        //         ++g_cursor_pattern_row;
-        //         g_pattern_scroll = clamp(g_pattern_scroll, g_cursor_pattern_row - pattern_page + 1, g_cursor_pattern_row);
-        //     }
-        //     gui::disabled(false);
-        //     gui::separator();
-        // }
+
+        // play from cursor
+        gui::item_size({ 55, total_table_height - 260 });
+        gui::item_box();
+        gui::separator();
+        gui::item_size({ 55, app::BUTTON_HEIGHT });
+        if (gui::button(gui::Icon::Play)) {
+            app::player().m_start_song_pos.fill(g_cursor_song_row);
+            app::player().m_start_patt_pos.fill(g_cursor_pattern_row);
+            app::player().set_action(gt::Player::Action::Start);
+        }
+
     }
 
     if (g_edit_mode == EditMode::PatternMark) {

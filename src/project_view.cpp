@@ -98,7 +98,7 @@ void start_export_thread() {
         {
             // calculate song length in samples
             gt::Player player{ g_song };
-            player.play_song();
+            player.set_action(gt::Player::Action::Start);
             int tick_count = 1;
             while (player.channel_loop_counter(0) == 0) {
                 player.play_routine();
@@ -115,7 +115,7 @@ void start_export_thread() {
         for (int i = 0; i < 3; ++i) {
             player.set_channel_active(i, app::player().is_channel_active(i));
         }
-        player.play_song();
+        player.set_action(gt::Player::Action::Start);
         Sid sid;
         sid.init(Sid::Model(g_song.model), Sid::SamplingMethod::ResampleInterpolate);
         app::Mixer mixer{ player, sid };

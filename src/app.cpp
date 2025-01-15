@@ -55,16 +55,12 @@ void draw_play_buttons() {
     backward_time += gui::frame_time();
     if (gui::button(gui::Icon::FastBackward)) {
         if (g_player.is_playing()) {
-            if (backward_time < 0.5f) {
-                g_player.set_action(gt::Player::Action::FastBackward);
-            }
-            else {
-                g_player.set_action(gt::Player::Action::Start);
-            }
+            g_player.set_action(backward_time > 0.5f ? gt::Player::Action::RestartPattern
+                                                     : gt::Player::Action::FastBackward);
         }
         else {
             g_player.m_start_patt_pos = {};
-            if (g_player.m_current_patt_pos == std::array<int, 3>()) {
+            if (g_player.m_current_patt_pos == std::array<int, 3>{}) {
                 for (int& x : g_player.m_current_song_pos) {
                     if (x > 0) --x;
                 }
@@ -81,7 +77,7 @@ void draw_play_buttons() {
     if (gui::button(gui::Icon::Stop)) {
         g_player.m_start_song_pos.fill(song_view::song_position());
         g_player.m_start_patt_pos = {};
-        g_player.stop_song();
+        g_player.set_action(gt::Player::Action::Stop);
     }
 
 
@@ -90,13 +86,8 @@ void draw_play_buttons() {
     gui::item_size({ w, TAB_HEIGHT });
     bool is_playing = g_player.is_playing();
     gui::same_line();
-    if (gui::button(gui::Icon::Play, is_playing)) {
-        if (is_playing) {
-            g_player.pause_song();
-        }
-        else {
-            g_player.play_song();
-        }
+    if (gui::button(gui::Icon::PlayPause, is_playing)) {
+        g_player.set_action(is_playing ? gt::Player::Action::Pause : gt::Player::Action::Start);
     }
 
     gui::item_size(TAB_HEIGHT);
@@ -158,6 +149,7 @@ gt::Song&          song() { return g_song; }
 gt::Player&        player() { return g_player; }
 Sid&               sid() { return g_sid; }
 int                canvas_height() { return g_canvas_height; }
+bool               is_in_song_view() { return g_view == View::Song; }
 std::string const& storage_dir() { return g_storage_dir; }
 void set_storage_dir(std::string const& storage_dir) { g_storage_dir = storage_dir; }
 
