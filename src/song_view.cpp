@@ -601,11 +601,11 @@ void draw() {
     }
 
     else if (g_edit_mode == EditMode::SongMark) {
+        int mark_row_min  = std::min(g_mark_row, g_cursor_song_row);
+        int mark_row_max  = std::max(g_mark_row, g_cursor_song_row);
+        int mark_chan_min = std::min(g_mark_chan, g_cursor_chan);
+        int mark_chan_max = std::max(g_mark_chan, g_cursor_chan);
         if (gui::button(gui::Icon::Copy)) {
-            int mark_row_min  = std::min(g_mark_row, g_cursor_song_row);
-            int mark_row_max  = std::max(g_mark_row, g_cursor_song_row);
-            int mark_chan_min = std::min(g_mark_chan, g_cursor_chan);
-            int mark_chan_max = std::max(g_mark_chan, g_cursor_chan);
             auto& b = song_copy_buffer;
             b.num_chans = mark_chan_max - mark_chan_min + 1;
             b.len       = mark_row_max - mark_row_min + 1;
@@ -615,6 +615,26 @@ void draw() {
                 }
             }
         }
+
+        // transpose up
+        if (gui::button("\x09\x10")) {
+            for (int c = mark_chan_min; c <= mark_chan_max; ++c) {
+                for (int i = mark_row_min; i <= mark_row_max ; ++i) {
+                    gt::OrderRow& row = g_song.song_order[c][i];
+                    row.trans = std::min(row.trans + 1, 0xe);
+                }
+            }
+        }
+        // transpose down
+        if (gui::button("\x09\x11")) {
+            for (int c = mark_chan_min; c <= mark_chan_max; ++c) {
+                for (int i = mark_row_min; i <= mark_row_max ; ++i) {
+                    gt::OrderRow& row = g_song.song_order[c][i];
+                    row.trans = std::max(row.trans - 1, -0xf);
+                }
+            }
+        }
+
         gui::separator();
     }
 
@@ -785,7 +805,7 @@ void draw() {
         }
         gui::separator();
 
-        // transpose
+        // transpose up
         if (gui::button("\x09\x10")) {
             for (int c = mark_chan_min; c <= mark_chan_max; ++c) {
                 gt::Pattern& patt = g_song.patterns[patt_nums[c]];
@@ -796,6 +816,7 @@ void draw() {
                 }
             }
         }
+        // transpose down
         if (gui::button("\x09\x11")) {
             for (int c = mark_chan_min; c <= mark_chan_max; ++c) {
                 gt::Pattern& patt = g_song.patterns[patt_nums[c]];
