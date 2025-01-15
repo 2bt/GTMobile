@@ -621,6 +621,8 @@ void draw() {
 
     // pattern edit
     static std::array<gt::Pattern, 3> pattern_copy_buffer;
+    static uint8_t                    pattern_copy_flags = 0;
+
     gt::Pattern& patt = g_song.patterns[patt_nums[g_cursor_chan]];
     if (g_edit_mode == EditMode::Pattern && g_cursor_pattern_row < patt.len) {
         if (gui::button(gui::Icon::DotDotDot)) {
@@ -682,7 +684,14 @@ void draw() {
 
                 for (int i = 0; i < src.len; ++i) {
                     if (g_cursor_pattern_row + i >= dst.len) break;
-                    dst.rows[g_cursor_pattern_row + i] = src.rows[i];
+                    if (pattern_copy_flags & 1) {
+                        dst.rows[g_cursor_pattern_row + i].note  = src.rows[i].note;
+                        dst.rows[g_cursor_pattern_row + i].instr = src.rows[i].instr;
+                    }
+                    if (pattern_copy_flags & 2) {
+                        dst.rows[g_cursor_pattern_row + i].command = src.rows[i].command;
+                        dst.rows[g_cursor_pattern_row + i].data    = src.rows[i].data;
+                    }
                 }
             }
         }
@@ -738,13 +747,11 @@ void draw() {
     }
 
     if (g_edit_mode == EditMode::PatternMark) {
-        // copy data
         int mark_row_min  = std::min(g_mark_row, g_cursor_pattern_row);
         int mark_row_max  = std::max(g_mark_row, g_cursor_pattern_row);
         int mark_chan_min = std::min(g_mark_chan, g_cursor_chan);
         int mark_chan_max = std::max(g_mark_chan, g_cursor_chan);
-
-        if (gui::button(gui::Icon::Copy)) {
+        auto copy_to_pattern_buffer = [&] {
             int num_chans = mark_chan_max - mark_chan_min + 1;
             for (int c = 0; c < 3; ++c) {
                 gt::Pattern& dst = pattern_copy_buffer[c];
@@ -759,6 +766,12 @@ void draw() {
                     dst.rows[i] = src.rows[i + mark_row_min];
                 }
             }
+        };
+
+        // copy all
+        if (gui::button(gui::Icon::Copy)) {
+            copy_to_pattern_buffer();
+            pattern_copy_flags = 3;
         }
         // delete
         if (gui::button(gui::Icon::X)) {
@@ -807,6 +820,11 @@ void draw() {
             }
         }
 
+        // copy notes
+        if (gui::button(gui::Icon::Copy)) {
+            copy_to_pattern_buffer();
+            pattern_copy_flags = 1;
+        }
         // delete notes
         if (gui::button(gui::Icon::X)) {
             for (int c = mark_chan_min; c <= mark_chan_max; ++c) {
@@ -834,6 +852,11 @@ void draw() {
                     }
                 }
             });
+        }
+        // copy command
+        if (gui::button(gui::Icon::Copy)) {
+            copy_to_pattern_buffer();
+            pattern_copy_flags = 2;
         }
         // delete command
         if (gui::button(gui::Icon::X)) {
