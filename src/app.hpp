@@ -39,9 +39,11 @@ namespace app {
     gt::Player&        player();
     Sid&               sid();
     int                canvas_height();
-    bool               is_in_song_view();
     void               set_storage_dir(std::string const& storage_dir);
     std::string const& storage_dir();
+
+    bool               is_in_song_view();
+    void               go_to_instrument_view();
 
     using ConfirmCallback = std::function<void(bool)>;
     void draw_confirm();

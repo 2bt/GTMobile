@@ -3,6 +3,7 @@
 
 namespace instrument_view {
 
+    void select_table(int t);
     void reset();
     void draw();
 

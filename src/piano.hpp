@@ -14,6 +14,7 @@ namespace piano {
 
     void draw();
     int  instrument();
+    void set_instrument(int i);
     int  note();
     bool note_on();
 

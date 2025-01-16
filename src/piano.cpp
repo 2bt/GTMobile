@@ -74,6 +74,9 @@ ivec2 drag_button(char const* label) {
 int instrument() {
     return g_instrument;
 }
+void set_instrument(int i) {
+    g_instrument = i;
+}
 int note() {
     return g_note;
 }

@@ -149,9 +149,10 @@ gt::Song&          song() { return g_song; }
 gt::Player&        player() { return g_player; }
 Sid&               sid() { return g_sid; }
 int                canvas_height() { return g_canvas_height; }
-bool               is_in_song_view() { return g_view == View::Song; }
 std::string const& storage_dir() { return g_storage_dir; }
-void set_storage_dir(std::string const& storage_dir) { g_storage_dir = storage_dir; }
+void               set_storage_dir(std::string const& storage_dir) { g_storage_dir = storage_dir; }
+bool               is_in_song_view() { return g_view == View::Song; }
+void               go_to_instrument_view() { g_view = View::Instrument; }
 
 void draw_confirm() {
     if (g_confirm_msg.empty()) return;
@@ -298,6 +299,8 @@ void resize(int width, int height) {
         g_canvas_offset = 0;
         g_canvas_scale  = scale_x;
     }
+
+    // g_canvas_scale = 1;
 
     // reinit canvas with POT dimensions
     int w = 2;

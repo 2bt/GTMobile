@@ -1,6 +1,7 @@
 #include "song_view.hpp"
 #include "gui.hpp"
 #include "settings_view.hpp"
+#include "instrument_view.hpp"
 #include "command_edit.hpp"
 #include "gtplayer.hpp"
 #include "log.hpp"
@@ -751,6 +752,14 @@ void draw() {
                 row.data    = data;
             });
         }
+        // long press goes to table if table pointer command is selected
+        if (row.command >= gt::CMD_SETWAVEPTR && row.command <= gt::CMD_SETFILTERPTR && gui::hold()) {
+            gui::set_active_item((void*)1);
+            app::go_to_instrument_view();
+            piano::set_instrument(row.data);
+            instrument_view::select_table(row.command - gt::CMD_SETWAVEPTR);
+        }
+
         gui::disabled(row.command == 0);
         if (gui::button(gui::Icon::X)) {
             row.command = 0;

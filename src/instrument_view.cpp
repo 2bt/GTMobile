@@ -299,6 +299,11 @@ void draw_table_debug() {
 
 } // namespace
 
+void select_table(int t) {
+    g_cursor_select = CursorSelect::Table;
+    g_table         = t;
+}
+
 void reset() {
     g_cursor_select     = {};
     g_table             = 0;
