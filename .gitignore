@@ -2,3 +2,5 @@
 /songs
 .cmake
 CMakeLists.txt.user
+
+/docs/_site
