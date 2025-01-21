@@ -125,8 +125,6 @@ void draw_splash() {
     gui::begin_window({ CANVAS_WIDTH, canvas_height() });
     int cy = canvas_height() / 2;
     gui::DrawContext& dc = gui::draw_context();
-    // dc.rgb(color::BLUE);
-    // dc.fill({ {0, cy - 120}, {CANVAS_WIDTH, 240}});
     dc.rgb(color::WHITE);
     cy -= 114;
     dc.rect({ 52, cy}, { 256, 176 }, { 0, 336 });
@@ -183,28 +181,76 @@ void confirm(std::string msg, ConfirmCallback cb) {
     g_confirm_callback = std::move(cb);
 }
 
+
 void Mixer::mix(int16_t* buffer, int length) {
     enum {
-        REGISTER_COUNT        = 25,
-        REGISTER_WRITE_CYCLES = 14,
+        REG_COUNT        = 25,
+        REG_WRITE_CYCLES = 14,
     };
+
+    // NOTE: this is an extract from the GoatTracker changelog
+    // 15 January 2009
+    // v2.68
+    //           - SID register write order tweaked to resemble JCH NewPlayer 21.
+    //           - Unbuffered playroutine optimized & modified to resemble buffered
+    //             mode timing more.
+    // ...
+    // 23 July 2014
+    // v2.73     - Reverted to old playroutine timing.
+    //           - Added full buffering option (similar to ZP ghostregs) which will
+    //             buffer everything to ghost regs and dump the previous frame to the
+    //             SID at the beginning of the play call
+    constexpr uint8_t REG_ORDERS[2][2][REG_COUNT] = {
+        // v2.68
+        {
+            {
+                0x15, 0x16, 0x18, 0x17,                   //
+                0x05, 0x06, 0x02, 0x03, 0x00, 0x01, 0x04, //
+                0x0c, 0x0d, 0x09, 0x0a, 0x07, 0x08, 0x0b, //
+                0x13, 0x14, 0x10, 0x11, 0x0e, 0x0f, 0x12, //
+            },
+            {
+                0x15, 0x16, 0x18, 0x17,                   //
+                0x04, 0x00, 0x01, 0x02, 0x03, 0x05, 0x06, //
+                0x0b, 0x07, 0x08, 0x09, 0x0a, 0x0c, 0x0d, //
+                0x12, 0x0e, 0x0f, 0x10, 0x11, 0x13, 0x14, //
+            },
+        },
+        // v2.73
+        {
+            {
+                0x18, 0x17, 0x16, 0x15,                   //
+                0x14, 0x13, 0x12, 0x11, 0x10, 0x0f, 0x0e, //
+                0x0d, 0x0c, 0x0b, 0x0a, 0x09, 0x08, 0x07, //
+                0x06, 0x05, 0x04, 0x03, 0x02, 0x01, 0x00, //
+            },
+            {
+                0x00, 0x01, 0x02, 0x03,                   //
+                0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0a, //
+                0x0b, 0x0c, 0x0d, 0x0e, 0x0f, 0x10, 0x11, //
+                0x12, 0x13, 0x14, 0x15, 0x16, 0x17, 0x18, //
+            },
+        },
+    };
+    uint8_t const* reg_order =
+        REG_ORDERS[settings_view::settings().register_write_order][m_player.song().adparam >= 0xf000];
+
     int const  ticks_per_second  = m_player.song().multiplier * 50 ?: 25;
     int const  cycles_per_tick   = Sid::CLOCKRATE_PAL / ticks_per_second;
-    bool const reverse_reg_order = m_player.song().adparam < 0xf000;
     int        cycles_left       = length * uint64_t(Sid::CLOCKRATE_PAL) / MIXRATE;
     while (cycles_left > 0) {
         if (m_cycles_to_next_write == 0) {
             if (m_reg == 0) m_player.play_routine();
             // write register
-            int r = reverse_reg_order ? REGISTER_COUNT - 1 - m_reg : m_reg;
+            int r = reg_order[m_reg];
             m_sid.set_reg(r, m_player.registers()[r]);
             // next register
-            if (++m_reg >= REGISTER_COUNT) {
+            if (++m_reg >= REG_COUNT) {
                 m_reg = 0;
-                m_cycles_to_next_write = cycles_per_tick - REGISTER_WRITE_CYCLES * (REGISTER_COUNT - 1);
+                m_cycles_to_next_write = cycles_per_tick - REG_WRITE_CYCLES * (REG_COUNT - 1);
             }
             else {
-                m_cycles_to_next_write = REGISTER_WRITE_CYCLES;
+                m_cycles_to_next_write = REG_WRITE_CYCLES;
             }
         }
         int c = std::min(cycles_left, m_cycles_to_next_write);
@@ -220,6 +266,7 @@ void Mixer::mix(int16_t* buffer, int length) {
         m_sid.clock(9999, buffer, length);
     }
 }
+
 
 void audio_callback(int16_t* buffer, int length) {
     if (!g_initialized) {

@@ -120,6 +120,8 @@ void draw() {
         gui::slider(app::CANVAS_WIDTH, "ROW HEIGHT   %02X", g_settings.row_height, 8, app::MAX_ROW_HEIGHT);
         gui::slider(app::CANVAS_WIDTH, "HIGHLIGHT    %02X", g_settings.row_highlight, 2, 16);
 
+        gui::choose(app::CANVAS_WIDTH, "REG WRITE ORDER", g_settings.register_write_order, { "v2.68", "v2.73" });
+
         // sampling method
         gui::item_size({ 12 + 8 * 15, app::BUTTON_HEIGHT });
         gui::text("SAMPLING METHOD");
@@ -128,7 +130,6 @@ void draw() {
         if (gui::button(SAMPLING_LABELS[g_settings.sampling_method])) {
             window = Window::SamplingMethod;
         }
-
     }
 
 

@@ -26,7 +26,6 @@ float                    g_status_age      = 0.0f;
 
 #define FILE_SUFFIX ".ins"
 
-
 void status(std::string const& msg) {
     g_status_msg = msg;
     g_status_age = 0.0f;
