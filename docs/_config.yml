@@ -31,11 +31,11 @@ theme: minima
 plugins:
   - jekyll-feed
 
-nav_links:
-  - name: About
-    link: /about/
-  - name: Privacy Policy
-    link: /privacy-policy/
+header_pages:
+  - name: Manual
+    link: /manual/
+  - name: History
+    link: /history/
 
 
 # Exclude from processing.
