@@ -12,6 +12,7 @@
 #include "command_edit.hpp"
 #include "settings_view.hpp"
 #include <cstring>
+#include <fstream>
 
 
 
@@ -42,6 +43,7 @@ View            g_view        = View::Splash;
 bool            g_initialized = false;
 std::string     g_storage_dir = ".";
 Mixer           g_mixer(g_player, g_sid);
+bool            g_take_screenshot = false;
 
 
 void draw_play_buttons() {
@@ -367,6 +369,9 @@ void touch(int x, int y, bool pressed) {
 
 void key(int key, int unicode) {
     gui::key_event(key, unicode);
+    if (key == gui::KEYCODE_PRINTSCREEN) {
+        g_take_screenshot = true;
+    }
 }
 
 
@@ -455,6 +460,27 @@ void draw() {
     };
     mesh.indices = { 0, 1, 2, 0, 2, 3 };
     gfx::draw(mesh, g_canvas);
+
+
+    if (g_take_screenshot) {
+        g_take_screenshot = false;
+        static int count = 0;
+        LOGI("screenshot %d", count);
+        char str[32];
+        sprintf(str, "shot-%04d.ppm", count);
+        ++count;
+
+        std::vector<uint8_t> data;
+        g_canvas.get_pixel_data(data);
+        std::ofstream file(str, std::ios::binary);
+        file << "P6 " << CANVAS_WIDTH << " " << g_canvas_height << " 255\n";
+        for (int y = 0; y < g_canvas_height; ++y) {
+            for (int x = 0; x < CANVAS_WIDTH; ++x) {
+                file.write((char const*) data.data() + 3 * (y * g_canvas.size().x + x), 3);
+            }
+        }
+        file.close();
+    }
 }
 
 

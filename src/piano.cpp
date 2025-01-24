@@ -2,6 +2,7 @@
 #include "app.hpp"
 #include "song_view.hpp"
 #include <cassert>
+#include <functional>
 
 
 namespace piano {
@@ -52,23 +53,83 @@ void shuffle_instruments(size_t i, size_t j) {
 }
 
 
-ivec2 drag_button(char const* label) {
-    gui::Box box = gui::item_box();
-    gui::DrawContext& dc = gui::draw_context();
-    dc.rgb(color::BUTTON_DRAGGED);
-    dc.box(box, gui::BoxStyle::Normal);
-    dc.rgb(color::WHITE);
-    dc.text(gui::text_pos(box, label), label);
+} // namespace
 
-    ivec2 p = gui::touch::pos() - box.pos;
-    return {
-        div_floor(p.x, box.size.x),
-        div_floor(p.y, box.size.y),
+
+void draw_instrument_window(char const* title,
+                            std::function<InstrButtonProps(int)> const& get_props,
+                            std::function<void(int)> const& pressed_cb,
+                            std::function<void(int)> const& draw_bottom)
+{
+    gui::DrawContext& dc = gui::draw_context();
+    char str[32];
+    int space = app::canvas_height() - gui::FRAME_WIDTH * 4 - app::BUTTON_HEIGHT * 2;
+    int row_h = std::min<int>(space / 32, app::BUTTON_HEIGHT);
+    enum {
+        COL_W = 12 + 8 * 18,
     };
+    gui::begin_window({ COL_W * 2, row_h * 32 + app::BUTTON_HEIGHT * 2 + gui::FRAME_WIDTH * 2 });
+    gui::item_size({ COL_W * 2, app::BUTTON_HEIGHT });
+    gui::text(title);
+    gui::separator();
+
+    gui::align(gui::Align::Left);
+    gui::item_size({ COL_W, row_h });
+    for (int n = 0; n < gt::MAX_INSTR; ++n) {
+        gui::same_line(n % 2 == 1);
+        if (n == 0) {
+            gui::item_box();
+            continue;
+        }
+        int i = n % 2 * 32 + n / 2;
+        gt::Instrument const& instr = g_song.instruments[i];
+        sprintf(str, "%02X %s", i, instr.name.data());
+
+        InstrButtonProps props = get_props(i);
+        gui::button_style(props.style);
+
+        if (i == g_drag_instr) {
+            // drag instrument
+            int prev_instr = g_drag_instr;
+
+            gui::Box box = gui::item_box();
+            dc.rgb(color::BUTTON_DRAGGED);
+            dc.box(box, gui::BoxStyle::Normal);
+            dc.rgb(color::WHITE);
+            dc.text(gui::text_pos(box, str), str);
+            ivec2 p = gui::touch::pos() - box.pos;
+            ivec2 mov = {
+                div_floor(p.x, box.size.x),
+                div_floor(p.y, box.size.y),
+            };
+            ivec2 pos = ivec2(n % 2, n / 2) + mov;
+            pos = clamp(pos, { 0, 0 }, { 1, 31 });
+            g_drag_instr = pos.x * 32 + pos.y;
+            if (g_drag_instr == 0) g_drag_instr = prev_instr;
+            shuffle_instruments(prev_instr, g_drag_instr);
+            if (gui::touch::just_released()) g_drag_instr = 0;
+        }
+        else {
+            gui::disabled(props.disabled);
+            if (gui::button(str, props.is_active)) {
+                pressed_cb(i);
+            }
+            else if (gui::hold()) {
+                g_drag_instr = i;
+                gui::set_active_item(&g_drag_instr);
+            }
+            gui::disabled(false);
+        }
+
+    }
+    gui::button_style(gui::ButtonStyle::Normal);
+    gui::item_size({ COL_W * 2, app::BUTTON_HEIGHT });
+    gui::separator();
+    gui::align(gui::Align::Center);
+    draw_bottom(COL_W * 2);
+    gui::end_window();
 }
 
-
-} // namespace
 
 
 int instrument() {
@@ -122,59 +183,24 @@ void draw() {
 
     // instrument window
     if (show_instrument_select) {
-        enum {
-            COL_W = 12 + 8 * 18,
-        };
-        int space = app::canvas_height() - gui::FRAME_WIDTH * 4 - app::BUTTON_HEIGHT * 2;
-        int row_h = std::min<int>(space / 32, app::BUTTON_HEIGHT);
-
-        gui::begin_window({ COL_W * 2, row_h * 32 + app::BUTTON_HEIGHT * 2 + gui::FRAME_WIDTH * 2 });
-        gui::item_size({ COL_W * 2, app::BUTTON_HEIGHT });
-        gui::text("INSTRUMENT SELECT");
-        gui::separator();
-
-        gui::align(gui::Align::Left);
-        gui::item_size({ COL_W, row_h });
-        for (int n = 0; n < gt::MAX_INSTR; ++n) {
-            gui::same_line(n % 2 == 1);
-            if (n == 0) {
-                gui::item_box();
-                continue;
-            }
-            int i = n % 2 * 32 + n / 2;
-            gt::Instrument const& instr = g_song.instruments[i];
-            sprintf(str, "%02X %s", i, instr.name.data());
-            bool set = instr.ptr[gt::WTBL] | instr.ptr[gt::PTBL] | instr.ptr[gt::FTBL];
-            gui::button_style(set ? gui::ButtonStyle::Normal : gui::ButtonStyle::Shaded);
-
-            if (i == g_drag_instr) {
-                int prev_instr = g_drag_instr;
-                ivec2 mov = drag_button(str);
-                ivec2 pos = ivec2(n % 2, n / 2) + mov;
-                pos = clamp(pos, { 0, 0 }, { 1, 31 });
-                g_drag_instr = pos.x * 32 + pos.y;
-                if (g_drag_instr == 0) g_drag_instr = prev_instr;
-                shuffle_instruments(prev_instr, g_drag_instr);
-                if (gui::touch::just_released()) g_drag_instr = 0;
-            }
-            else {
-                if (gui::button(str, i == g_instrument)) {
-                    g_instrument = i;
-                    show_instrument_select = false;
-                }
-                else if (gui::hold()) {
-                    g_drag_instr = i;
-                    gui::set_active_item(&g_drag_instr);
-                }
-            }
-
-        }
-        gui::button_style(gui::ButtonStyle::Normal);
-        gui::item_size({ COL_W * 2, app::BUTTON_HEIGHT });
-        gui::separator();
-        gui::align(gui::Align::Center);
-        if (gui::button("CLOSE")) show_instrument_select = false;
-        gui::end_window();
+        draw_instrument_window(
+            "INSTRUMENT SELECT",
+            [](int i) {
+                gt::Instrument const& instr = g_song.instruments[i];
+                bool set = instr.ptr[gt::WTBL] | instr.ptr[gt::PTBL] | instr.ptr[gt::FTBL];
+                return InstrButtonProps{
+                    false,
+                    set ? gui::ButtonStyle::Normal : gui::ButtonStyle::Shaded,
+                    i == g_instrument,
+                };
+            },
+            [](int i) {
+                g_instrument = i;
+                show_instrument_select = false;
+            },
+            [](int width) {
+                if (gui::button("CLOSE")) show_instrument_select = false;
+            });
     }
 
     auto loop_keys = [&](auto f) {

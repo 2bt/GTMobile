@@ -105,6 +105,9 @@ void main_loop() {
             case SDL_SCANCODE_BACKSPACE:
                 app::key(gui::KEYCODE_DEL, 0);
                 break;
+            case SDL_SCANCODE_PRINTSCREEN:
+                app::key(gui::KEYCODE_PRINTSCREEN, 0);
+                break;
             default: break;
             }
             break;

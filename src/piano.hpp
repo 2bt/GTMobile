@@ -12,6 +12,17 @@ namespace piano {
     };
 
 
+    struct InstrButtonProps {
+        bool             disabled;
+        gui::ButtonStyle style;
+        bool             is_active;
+    };
+
+    void draw_instrument_window(char const* title,
+                                std::function<InstrButtonProps(int)> const& get_props,
+                                std::function<void(int)> const& pressed_cb,
+                                std::function<void(int)> const& draw_bottom);
+
     void draw();
     int  instrument();
     void set_instrument(int i);

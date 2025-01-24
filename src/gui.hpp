@@ -309,8 +309,9 @@ enum class DragBarStyle {
 };
 
 enum {
-    KEYCODE_ENTER = 66,
-    KEYCODE_DEL   = 67,
+    KEYCODE_ENTER       = 66,
+    KEYCODE_DEL         = 67,
+    KEYCODE_PRINTSCREEN = -1000,
 };
 enum {
     FRAME_WIDTH = 5,

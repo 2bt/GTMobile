@@ -26,6 +26,7 @@ public:
     ivec2 size() const { return m_size; }
     void free();
     void filter(FilterMode filter);
+    void get_pixel_data(std::vector<uint8_t>& data); // for screenshots
 protected:
     Texture() {}
     void init(ivec2 size, uint8_t const* pixels);

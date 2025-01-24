@@ -116,8 +116,8 @@ ivec2 text_pos(Box const& box, char const* text) {
 }
 
 ButtonState button_state(Box const& box, void const* addr) {
-    if (g_disabled) return ButtonState::Normal;
     g_hold = false;
+    if (g_disabled) return ButtonState::Normal;
     void const* id = get_id(addr);
     if (id) {
         if (g_active_item == nullptr && touch::just_touched(box)) {

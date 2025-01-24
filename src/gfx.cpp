@@ -21,7 +21,6 @@
 #include <cassert>
 
 
-
 namespace gfx {
 
 
@@ -47,6 +46,11 @@ void Texture::filter(FilterMode filter) {
     glBindTexture(GL_TEXTURE_2D, m_gl_texture);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, f);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, f);
+}
+void Texture::get_pixel_data(std::vector<uint8_t>& data) {
+    data.resize(m_size.x * m_size.y * 3);
+    glBindTexture(GL_TEXTURE_2D, m_gl_texture);
+    glGetTexImage(GL_TEXTURE_2D, 0, GL_RGB, GL_UNSIGNED_BYTE, data.data());
 }
 
 void Canvas::init(ivec2 size) {

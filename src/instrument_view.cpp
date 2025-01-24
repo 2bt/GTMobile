@@ -443,12 +443,28 @@ void draw() {
         gui::same_line();
     }
 
-    gt::Instrument& instr = g_song.instruments[piano::instrument()];
     gui::DrawContext& dc = gui::draw_context();
     char str[32];
+    int instr_nr = piano::instrument();
+    gt::Instrument& instr = g_song.instruments[instr_nr];
 
-    gui::item_size({ app::CANVAS_WIDTH - app::BUTTON_HEIGHT * 2 - gui::cursor().x, app::BUTTON_HEIGHT });
+    gui::item_size({ 12 + 8*2, app::BUTTON_HEIGHT });
+    gui::text("%02X", instr_nr);
+    gui::same_line();
+
+    gui::item_size({ app::CANVAS_WIDTH - app::BUTTON_HEIGHT * 4 - gui::cursor().x, app::BUTTON_HEIGHT });
     gui::input_text(instr.name);
+
+    // inc/dec
+    gui::same_line();
+    gui::item_size(app::BUTTON_HEIGHT);
+    gui::disabled(instr_nr == 1);
+    if (gui::button(gui::Icon::Decrease)) piano::set_instrument(instr_nr - 1);
+    gui::same_line();
+    gui::disabled(instr_nr == gt::MAX_INSTR - 1);
+    if (gui::button(gui::Icon::Increase)) piano::set_instrument(instr_nr + 1);;
+    gui::disabled(false);
+
 
     {
         int adsr_w = 5 * 8;
@@ -1045,76 +1061,58 @@ void draw() {
 
     // table sharing window
     if (g_draw_share_window) {
-        int space = app::canvas_height() - gui::FRAME_WIDTH * 4 - app::BUTTON_HEIGHT * 2;
-        int row_h = std::min<int>(space / 32, app::BUTTON_HEIGHT);
-        enum {
-            COL_W = 12 + 8 * 18,
-        };
-        gui::begin_window({ COL_W * 2, row_h * 32 + app::BUTTON_HEIGHT * 2 + gui::FRAME_WIDTH * 2 });
-        gui::item_size({ COL_W * 2, app::BUTTON_HEIGHT });
-        gui::text("%s TABLE SHARING", TABLE_LABELS[g_table]);
-        gui::separator();
-
-        gui::align(gui::Align::Left);
-        gui::item_size({ COL_W, row_h });
-        for (int n = 0; n < gt::MAX_INSTR; ++n) {
-            gui::same_line(n % 2 == 1);
-            if (n == 0) {
-                gui::item_box();
-                continue;
-            }
-            int i = n % 2 * 32 + n / 2;
-            gt::Instrument const& in = g_song.instruments[i];
-            sprintf(str, "%02X %s", i, in.name.data());
-            gui::disabled(in.ptr[g_table] == 0);
-            if (gui::button(str, in.ptr[g_table] > 0 && in.ptr[g_table] == instr.ptr[g_table])) {
+        sprintf(str, "%s TABLE SHARING", TABLE_LABELS[g_table]);
+        piano::draw_instrument_window(str,
+            [&instr](int i) {
+                gt::Instrument const& in = g_song.instruments[i];
+                return piano::InstrButtonProps{
+                    in.ptr[g_table] == 0,
+                    gui::ButtonStyle::Normal,
+                    in.ptr[g_table] > 0 && in.ptr[g_table] == instr.ptr[g_table],
+                };
+            },
+            [&](int i) {
                 g_draw_share_window = false;
+                gt::Instrument const& in = g_song.instruments[i];
                 if (instr.ptr[g_table] != in.ptr[g_table] && share_count == 1) {
                     // TODO: confirmation dialog
                     // delete table
                     for (int i = 0; i <= len; ++i) delete_table_row(g_table, start_row);
                 }
                 instr.ptr[g_table] = in.ptr[g_table];
-            }
-        }
-        gui::align(gui::Align::Center);
-        gui::button_style(gui::ButtonStyle::Normal);
-        gui::item_size(COL_W * 2);
-        gui::disabled(false);
-        gui::separator();
-
-        gui::item_size({ COL_W * 2 / 3, app::BUTTON_HEIGHT });
-        gui::disabled(share_count < 2 || num_free_rows < (len + 1));
-        if (gui::button("CLONE")) {
-            g_draw_share_window = false;
-            // copy
-            int new_start_row = ltable.size() - num_free_rows;
-            for (int i = 0; i <= len; ++i) {
-                ltable[new_start_row + i] = ltable[start_row + i];
-                rtable[new_start_row + i] = rtable[start_row + i];
-            }
-            assert(ltable[end_row] == 0xff);
-
-            // fix jump address
-            if (rtable[end_row] > 0) {
-                rtable[new_start_row + len] += new_start_row - start_row;
-            }
-            instr.ptr[g_table] = new_start_row + 1;
-        }
-        gui::same_line();
-        gui::disabled(instr.ptr[g_table] == 0);
-        if (gui::button("DELETE")) {
-            g_draw_share_window = false;
-            if (share_count == 1) {
-                // delete table
-                for (int i = 0; i <= len; ++i) delete_table_row(g_table, start_row);
-            }
-            instr.ptr[g_table] = 0;
-        }
-        gui::disabled(false);
-        gui::same_line();
-        if (gui::button("CLOSE")) g_draw_share_window = false;
-        gui::end_window();
+            },
+            [&](int width) {
+                gui::item_size({ width / 3, app::BUTTON_HEIGHT });
+                gui::disabled(share_count < 2 || num_free_rows < (len + 1));
+                if (gui::button("CLONE")) {
+                    g_draw_share_window = false;
+                    // copy
+                    int new_start_row = ltable.size() - num_free_rows;
+                    for (int i = 0; i <= len; ++i) {
+                        ltable[new_start_row + i] = ltable[start_row + i];
+                        rtable[new_start_row + i] = rtable[start_row + i];
+                    }
+                    assert(ltable[end_row] == 0xff);
+                    // fix jump address
+                    if (rtable[end_row] > 0) {
+                        rtable[new_start_row + len] += new_start_row - start_row;
+                    }
+                    instr.ptr[g_table] = new_start_row + 1;
+                }
+                gui::same_line();
+                gui::disabled(instr.ptr[g_table] == 0);
+                if (gui::button("DELETE")) {
+                    g_draw_share_window = false;
+                    if (share_count == 1) {
+                        // delete table
+                        for (int i = 0; i <= len; ++i) delete_table_row(g_table, start_row);
+                    }
+                    instr.ptr[g_table] = 0;
+                }
+                gui::disabled(false);
+                gui::same_line();
+                if (gui::button("CLOSE")) g_draw_share_window = false;
+            });
     }
 
 
