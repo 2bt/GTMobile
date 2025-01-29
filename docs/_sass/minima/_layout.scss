@@ -10,10 +10,9 @@
 }
 
 .site-title {
-  @include relative-font-size(3.5);
+  @include relative-font-size(4);
   font-family: "Roboto", sans-serif;
-  font-weight: 200;
-  line-height: $base-line-height * $base-font-size * 3.5;
+  line-height: $base-line-height * $base-font-size * 4;
   letter-spacing: 3px;
   text-align: center;
   margin-bottom: 0;
@@ -22,9 +21,11 @@
   a {
     color: #fff;
     text-decoration: none;
+    font-weight: 200;
   }
   b { font-weight: 500; }
   img {
+    vertical-align: middle;
     transform: translateY(-10px);
   }
 }
@@ -171,6 +172,11 @@
 .page-content {
   padding: $spacing-unit 0;
   flex: 1;
+
+  img {
+    display: block;
+    margin: 0 auto;
+  }
 }
 
 .page-heading {
@@ -248,5 +254,17 @@
     @include media-query($on-laptop) {
       @include relative-font-size(1.125);
     }
+  }
+}
+
+
+.note {
+  background-color: darken(#6abfc6, 45%);
+  border-radius: $spacing-unit * 0.2;
+  padding: $spacing-unit * 0.4;
+  margin-bottom: $spacing-unit * 0.5;
+
+  p:last-child {
+    margin-bottom: 0;
   }
 }

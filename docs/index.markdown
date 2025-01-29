@@ -3,13 +3,15 @@ layout: home
 permalink: /
 ---
 
-<h2 class="center"><em>Create authentic C64 SID music on the go!</em></h2>
+<h1 style="text-align:center;font-style:italic">Create authentic C64 SID music on the go!</h1>
 
-GTMobile is an Android application designed for musicians and enthusiasts to create authentic Commodore 64 SID music on the go.
-It is based on and (mostly) compatible with the original [GoatTracker 2](https://sourceforge.net/projects/goattracker2/),
-providing a familiar experience for users accustomed to that platform.
+GTMobile is a **C64 SID tracker for Android**, designed for composing chiptune music anytime, anywhere.
+It is based on and largely compatible with [GoatTracker 2](https://sourceforge.net/projects/goattracker2/),
+offering a familiar workflow for experienced users while making SID music creation accessible on mobile.
 
-GTMobile is licensed under the GNU General Public License v2.0 (GPLv2).
+## Get Started
+- [Get it on Google Play](https://play.google.com/store/apps/details?id=com.twobit.gtmobile) – Download the app.
+- [Read the Manual](manual/) – Learn how to use GTMobile.
 
-Get the app from the [Google Play Store](https://play.google.com/store/apps/details?id=com.twobit.gtmobile).
-If you enjoy using GTMobile and would like to support its development, consider [buying me a pizza](https://buymeacoffee.com/twobit)!
+GTMobile is released under the **GNU General Public License v2.0 (GPLv2)**.
+If you enjoy using it, consider [buying me a pizza](https://buymeacoffee.com/twobit) to support development! 🍕
