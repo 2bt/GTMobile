@@ -150,6 +150,8 @@ void import_song(std::string const& path) {
         g_song.clear();
         status("IMPORT ERROR: " + e.msg);
     }
+    app::player().set_action(gt::Player::Action::Reset);
+    song_view::reset();
 }
 
 void reset() {
@@ -284,8 +286,8 @@ void draw() {
     if (gui::button("RESET")) {
         app::confirm("LOSE CHANGES TO THE CURRENT SONG?", [](bool ok) {
             if (!ok) return;
-            app::player().reset();
             g_song.clear();
+            app::player().set_action(gt::Player::Action::Reset);
             song_view::reset();
             status("SONG WAS RESET");
         });
@@ -301,8 +303,6 @@ void draw() {
     if (gui::button("LOAD")) {
         app::confirm("LOSE CHANGES TO THE CURRENT SONG?", [](bool ok) {
             if (!ok) return;
-            app::player().reset();
-            song_view::reset();
             try {
                 g_song.load((g_song_dir + g_file_name.data() + FILE_SUFFIX).c_str());
                 status("SONG WAS LOADED");
@@ -311,6 +311,8 @@ void draw() {
                 g_song.clear();
                 status("LOAD ERROR: " + e.msg);
             }
+            app::player().set_action(gt::Player::Action::Reset);
+            song_view::reset();
         });
     }
     gui::disabled(g_file_name[0] == '\0');
@@ -340,8 +342,6 @@ void draw() {
     if (gui::button("IMPORT")) {
         app::confirm("LOSE CHANGES TO THE CURRENT SONG?", [](bool ok) {
             if (!ok) return;
-            app::player().reset();
-            song_view::reset();
             platform::start_song_import();
         });
     }

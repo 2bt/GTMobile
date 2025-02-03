@@ -42,10 +42,10 @@ Player::Player(Song const& song) : m_song(&song) {
 }
 
 void Player::reset() {
-    m_regs              = {};
-    m_action            = Action::None;
-    m_is_playing        = false;
-    m_loop_pattern      = false;
+    m_regs             = {};
+    m_action           = Action::None;
+    m_is_playing       = false;
+    m_loop_pattern     = false;
 
     m_start_song_pos   = {};
     m_start_patt_pos   = {};
@@ -61,10 +61,10 @@ void Player::reset() {
     m_masterfader      = 0x0f;
 
     int multiplier = std::max<int>(1, m_song->multiplier);
-    for (int c = 0; c < MAX_CHN; c++) {
-        m_channels[c].trans = 0;
-        m_channels[c].instr = 1;
-        m_channels[c].tempo = 6 * multiplier - 1;
+    for (Channel& chan : m_channels) {
+        chan.trans = 0;
+        chan.instr = 1;
+        chan.tempo = 6 * multiplier - 1;
     }
     m_funktable[0] = 9 * multiplier - 1;
     m_funktable[1] = 6 * multiplier - 1;
@@ -127,10 +127,11 @@ void Player::sequencer(int c, bool reset_current_patt_pos) {
 
 
 void Player::play_routine() {
-    bool loop_pattern = m_loop_pattern;
+    if (m_action == Action::Reset) reset();
 
-    int    multiplier = std::max<int>(1, m_song->multiplier);
-    Action action     = m_action;
+    int    multiplier   = std::max<int>(1, m_song->multiplier);
+    bool   loop_pattern = m_loop_pattern;
+    Action action       = m_action;
     m_action = Action::None;
     if (action == Action::Pause || action == Action::Stop) {
         m_is_playing = false;
@@ -757,8 +758,6 @@ NEXTCHN:
             m_regs[0x4 + 7 * c] = chan.wave & chan.gate;
         }
     }
-
-    // printf("%4d %4d %4d\n", m_channels[0].songptr, m_channels[0].pattptr, m_channels[0].tick);
 }
 
 } // namespace gt

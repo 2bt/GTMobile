@@ -13,9 +13,17 @@ uint16_t get_freq(int note);
 class Player {
 public:
     Player(gt::Song const& song);
-    void reset();
 
-    enum class Action { None, Start, RestartPattern, FastBackward, FastForward, Pause, Stop };
+    enum class Action {
+        None,
+        Start,
+        RestartPattern,
+        FastBackward,
+        FastForward,
+        Pause,
+        Stop,
+        Reset,
+    };
 
     void set_action(Action action) { m_action = action; }
     bool is_playing() const { return m_is_playing; }
@@ -44,6 +52,7 @@ public:
     }
 
 private:
+    void reset();
     void sequencer(int c, bool reset_current_patt_pos = true);
 
     struct Channel {

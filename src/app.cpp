@@ -300,9 +300,9 @@ void reset() {
     instrument_view::reset();
     instrument_manager_view::reset();
     command_edit::reset();
-    g_player.reset();
     g_song.clear();
     g_sid.init(Sid::Model::MOS8580, Sid::SamplingMethod::Fast);
+    g_player.set_action(gt::Player::Action::Reset);
 }
 
 void init() {
