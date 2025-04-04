@@ -254,7 +254,7 @@ void draw() {
                 }
             }
         }
-        if (!g_gate && midi_note) {
+        if (!g_gate) {
             g_gate = midi_gate;
             g_note = midi_note;
         }

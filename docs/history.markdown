@@ -4,7 +4,10 @@ title: History
 permalink: /history/
 ---
 
-## master
+<!-- ## master -->
+
+
+## 1.0.6 (2025-04-04)
 + instrument rearranging in table sharing window
 + inc/dec instrument in instrument view
 + fix player tempo reset on song load/reset/import

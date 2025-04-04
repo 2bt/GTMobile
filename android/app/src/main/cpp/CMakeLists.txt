@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.22.1)
 
 set(CMAKE_SYSTEM_NAME Android)
-set(CMAKE_ANDROID_API 24)
+set(CMAKE_ANDROID_API 29)
 
 set(LIB_DIR "../../../../native-libs")
 
