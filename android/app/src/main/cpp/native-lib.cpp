@@ -9,8 +9,8 @@
 #include <android/asset_manager.h>
 #include <android/asset_manager_jni.h>
 #include <jni.h>
+#include <amidi/AMidi.h>
 #include <oboe/Oboe.h>
-
 
 
 namespace {
@@ -25,6 +25,10 @@ struct Callback : oboe::AudioStreamCallback {
 oboe::AudioStream* g_stream;
 AAssetManager*     g_asset_manager;
 JNIEnv*            g_env;
+
+// midi
+AMidiDevice*       g_midi_device = nullptr;
+AMidiOutputPort*   g_midi_port   = nullptr;
 
 
 void stop_audio() {
@@ -135,6 +139,18 @@ void update_setting(int i) {
     g_env->CallStaticVoidMethod(clazz, method, i);
 }
 
+bool poll_midi_event(uint8_t& status, uint8_t& data1, uint8_t& data2) {
+    if (!g_midi_port) return false;
+    int     opcode;
+    uint8_t buffer[3] = {};
+    size_t  length    = 0;
+    AMidiOutputPort_receive(g_midi_port, &opcode, buffer, sizeof(buffer), &length, nullptr);
+    if (length == 0) return false;
+    status = buffer[0];
+    data1  = buffer[1];
+    data2  = buffer[2];
+    return true;
+}
 
 } // namespace platform
 
@@ -217,4 +233,14 @@ extern "C" {
         env->ReleaseStringUTFChars(jpath, path);
     }
 
+    JNIEXPORT void JNICALL Java_com_twobit_gtmobile_Native_setMidiDevice(JNIEnv* env, jclass, jobject device) {
+        if (AMidiDevice_fromJava(env, device, &g_midi_device) != AMEDIA_OK) {
+            LOGE("setMidiDevice: failed to get AMidiDevice from Java");
+            return;
+        }
+        if (AMidiOutputPort_open(g_midi_device, 0, &g_midi_port) != AMEDIA_OK) {
+            LOGE("setMidiDevice: failed to open port");
+            return;
+        }
+    }
 }

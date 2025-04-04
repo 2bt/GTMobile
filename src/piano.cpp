@@ -1,6 +1,7 @@
 #include "piano.hpp"
 #include "app.hpp"
 #include "song_view.hpp"
+#include "platform.hpp"
 #include <cassert>
 #include <functional>
 
@@ -213,14 +214,12 @@ void draw() {
         }
     };
 
-    // check touch
+    // handle touch
     bool prev_gate = g_gate;
     int  prev_note = g_note;
-
     g_gate = false;
 
     int y_pos = gui::cursor().y;
-
     if (!gui::has_active_item() && gui::touch::pressed()) {
         loop_keys([&](int i, int n, int note) {
             gui::Box b = {
@@ -234,6 +233,33 @@ void draw() {
             }
         });
     }
+
+    // check for midi input
+    static bool midi_gate = false;
+    static int  midi_note;
+    {
+        uint8_t status, data1, data2;
+        while (platform::poll_midi_event(status, data1, data2)) {
+            if (status == 0xf8) continue; // ignore timing clock
+            uint8_t cmd = status >> 4;
+            if (cmd == 0x9 && data2 > 0) {
+                if (data1 >= 12 && data1 <= 104) {
+                    midi_note = data1 - 12;
+                    midi_gate = true;
+                }
+            }
+            else if ((cmd == 0x9 && data2 == 0) || cmd == 0x8) {
+                if (g_note == data1 - 12) {
+                    midi_gate = false;
+                }
+            }
+        }
+        if (!g_gate && midi_note) {
+            g_gate = midi_gate;
+            g_note = midi_note;
+        }
+    }
+
     int chan = song_view::channel();
     if (g_gate && (!prev_gate || g_note != prev_note)) {
         app::player().play_test_note(g_note + gt::FIRSTNOTE, g_instrument, chan);

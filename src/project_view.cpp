@@ -159,10 +159,10 @@ void reset() {
     g_file_name          = {};
     g_file_names         = {};
     g_file_scroll        = {};
-    g_status_msg         = {};
-    g_status_age         = {};
     g_show_export_window = {};
     g_export_format      = {};
+    g_status_msg         = {};
+    g_status_age         = {};
 }
 
 void init() {
@@ -248,9 +248,7 @@ void draw() {
     gui::align(gui::Align::Left);
     gui::text("%s", g_status_msg.c_str());
     g_status_age += gui::frame_time();
-    if (g_status_age > 2.0f) {
-        g_status_msg = "";
-    }
+    if (g_status_age > 2.0f) g_status_msg.clear();
 
 
     // file table

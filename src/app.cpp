@@ -306,7 +306,7 @@ void reset() {
 }
 
 void init() {
-    LOGD("init");
+    LOGD("app::init");
     reset();
     // simple beep instrument
     strcpy(g_song.instruments[1].name.data(), "Beep");
@@ -323,7 +323,7 @@ void init() {
 }
 
 void free() {
-    LOGD("free");
+    LOGD("app::free");
     gfx::free();
     gui::free();
     g_canvas.free();
@@ -461,7 +461,7 @@ void draw() {
     mesh.indices = { 0, 1, 2, 0, 2, 3 };
     gfx::draw(mesh, g_canvas);
 
-
+#ifndef ANDROID
     if (g_take_screenshot) {
         g_take_screenshot = false;
         static int count = 0;
@@ -481,6 +481,7 @@ void draw() {
         }
         file.close();
     }
+#endif
 }
 
 

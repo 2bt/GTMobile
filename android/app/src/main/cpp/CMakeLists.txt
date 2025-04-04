@@ -1,10 +1,19 @@
 cmake_minimum_required(VERSION 3.22.1)
 
+set(CMAKE_SYSTEM_NAME Android)
+set(CMAKE_ANDROID_API 24)
+
 set(LIB_DIR "../../../../native-libs")
 
 project(native)
 
 add_subdirectory(${LIB_DIR}/libsndfile ${CMAKE_BINARY_DIR}/libsndfile_build)
+
+find_package (
+    oboe
+    REQUIRED
+    CONFIG
+)
 
 add_library(
     native
@@ -47,12 +56,6 @@ set_source_files_properties(
     "-Wno-parentheses -Ofast"
 )
 
-find_package (
-    oboe
-    REQUIRED
-    CONFIG
-)
-
 target_link_libraries(
     native
     PRIVATE
@@ -62,4 +65,5 @@ target_link_libraries(
     oboe::oboe
     android
     sndfile
+    amidi
 )

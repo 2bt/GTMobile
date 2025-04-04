@@ -35,7 +35,7 @@ void Texture::init(ivec2 size, uint8_t const* pixels) {
     free();
     m_size = size;
     glGenTextures(1, &m_gl_texture);
-    //glBindTexture(GL_TEXTURE_2D, m_gl_texture);
+    //glBindTexture(GL_TEXTURE_2D, m_gl_texture); // filter() already calls glBindTexture
     filter(NEAREST);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
@@ -47,11 +47,13 @@ void Texture::filter(FilterMode filter) {
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, f);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, f);
 }
+#ifndef ANDROID
 void Texture::get_pixel_data(std::vector<uint8_t>& data) {
     data.resize(m_size.x * m_size.y * 3);
     glBindTexture(GL_TEXTURE_2D, m_gl_texture);
     glGetTexImage(GL_TEXTURE_2D, 0, GL_RGB, GL_UNSIGNED_BYTE, data.data());
 }
+#endif
 
 void Canvas::init(ivec2 size) {
     free();

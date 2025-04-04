@@ -13,6 +13,8 @@ import android.view.Window;
 import android.view.WindowManager;
 import android.view.inputmethod.InputMethodManager;
 import android.view.KeyEvent;
+import android.media.midi.MidiManager;
+import android.media.midi.MidiDeviceInfo;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
@@ -161,6 +163,16 @@ public class MainActivity extends Activity {
         }
     }
 
+    private void openFirstMidiDevice() {
+        MidiManager midiManager = (MidiManager) getApplicationContext().getSystemService(Context.MIDI_SERVICE);
+        MidiDeviceInfo[] devices = midiManager.getDevices();
+        Log.i(TAG, "found " + devices.length + " MIDI devices");
+        if (devices.length == 0) return;
+        midiManager.openDevice(devices[0], device -> {
+            if (device != null) Native.setMidiDevice(device);
+        }, null);
+    }
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         Log.i(TAG, "onCreate");
@@ -179,6 +191,8 @@ public class MainActivity extends Activity {
         // apply settings
         updateSetting(SETTING_FULLSCREEN_ENABLED);
         updateSetting(SETTING_KEEP_SCREEN_ON);
+
+        openFirstMidiDevice();
     }
 
 

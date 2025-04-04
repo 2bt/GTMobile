@@ -8,6 +8,7 @@ permalink: /history/
 + instrument rearranging in table sharing window
 + inc/dec instrument in instrument view
 + fix player tempo reset on song load/reset/import
++ basic MIDI support
 
 ## 1.0.5 (2025-01-21)
 + long press of edit button jumps to corresponding instrument table if table pointer command is selected

@@ -62,10 +62,10 @@ pkg_search_module(GLEW REQUIRED glew)
 pkg_search_module(SDL2 REQUIRED sdl2)
 pkg_search_module(SNDFILE REQUIRED sndfile)
 
+
 target_include_directories(
     gtmobile
-    SYSTEM
-    PUBLIC
+    PRIVATE
     ${GLEW_INCLUDE_DIRS}
     ${SDL2_INCLUDE_DIRS}
     ${SNDFILE_INCLUDE_DIRS}
@@ -73,9 +73,11 @@ target_include_directories(
 
 target_link_libraries(
     gtmobile
+    PRIVATE
     ${GLEW_LIBRARIES}
     ${SDL2_LIBRARIES}
     ${SNDFILE_LIBRARIES}
     pthread
+    -lportmidi
 )
 

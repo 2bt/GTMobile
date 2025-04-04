@@ -11,4 +11,5 @@ namespace platform {
     void export_file(std::string const& path, std::string const& title, bool delete_when_done);
     void start_song_import();
     void update_setting(int i);
+    bool poll_midi_event(uint8_t& status, uint8_t& data1, uint8_t& data2);
 }

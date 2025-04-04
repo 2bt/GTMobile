@@ -41,7 +41,6 @@ enum {
     MAX_PATTROWS     = 128,
     MAX_SONGLEN      = 254,
     MAX_SONG_ROWS    = MAX_SONGLEN / 2,
-    MAX_NOTES        = 96,
 
     REPEAT    = 0xd0,
     TRANSDOWN = 0xe0,
