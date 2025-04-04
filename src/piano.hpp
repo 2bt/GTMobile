@@ -18,6 +18,7 @@ namespace piano {
         bool             is_active;
     };
 
+    void reset();
     void draw_instrument_window(char const* title,
                                 std::function<InstrButtonProps(int)> const& get_props,
                                 std::function<void(int)> const& pressed_cb,

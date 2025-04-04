@@ -11,6 +11,7 @@
 #include "instrument_manager_view.hpp"
 #include "command_edit.hpp"
 #include "settings_view.hpp"
+#include "piano.hpp"
 #include <cstring>
 #include <fstream>
 
@@ -295,6 +296,7 @@ void audio_callback(int16_t* buffer, int length) {
 void reset() {
     g_initialized = false;
     g_view        = View::Splash;
+    piano::reset();
     project_view::reset();
     song_view::reset();
     instrument_view::reset();

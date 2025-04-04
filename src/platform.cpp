@@ -51,8 +51,8 @@ enum {
 
 bool init_midi() {
     Pm_Initialize();
-    PmDeviceInfo const* my_info = nullptr;
     int my_id;
+    PmDeviceInfo const* my_info = nullptr;
     PmDeviceInfo const* info;
     for (int i = 0; (info = Pm_GetDeviceInfo(i)); ++i) {
         if (!info->input) continue;
@@ -188,10 +188,10 @@ bool poll_midi_event(uint8_t& status, uint8_t& data1, uint8_t& data2) {
     static PmEvent events[MAX_MIDI_EVENTS];
     static int     pos = 0;
     static int     len = 0;
-    if (pos == len) {
+    if (pos >= len) {
         pos = 0;
         len = Pm_Read(g_midi_stream, events, MAX_MIDI_EVENTS);
-        if (len == 0) return false;
+        if (len <= 0) return false;
     }
     PmMessage msg = events[pos++].message;
     status = Pm_MessageStatus(msg);

@@ -14,8 +14,11 @@ int       g_instrument = 1;
 int       g_drag_instr = 0;
 int       g_scroll     = 14 * 3; // show octave 3 and 4
 int       g_note       = 48;
-bool      g_note_on;
+bool      g_note_on    = false;
 bool      g_gate;
+bool      g_midi_gate  = false;
+int       g_midi_note;
+bool      g_show_instrument_select = false;
 
 
 void shuffle_instruments(size_t i, size_t j) {
@@ -56,6 +59,10 @@ void shuffle_instruments(size_t i, size_t j) {
 
 } // namespace
 
+void reset() {
+    g_midi_gate              = false;
+    g_show_instrument_select = false;
+}
 
 void draw_instrument_window(char const* title,
                             std::function<InstrButtonProps(int)> const& get_props,
@@ -148,8 +155,6 @@ bool note_on() {
 
 
 void draw() {
-
-    static bool show_instrument_select = false;
     g_note_on = false;
 
     gui::DrawContext& dc = gui::draw_context();
@@ -164,7 +169,7 @@ void draw() {
     gui::align(gui::Align::Left);
     sprintf(str, "%02X %s", g_instrument, g_song.instruments[g_instrument].name.data());
     gui::button_style(gui::ButtonStyle::Normal);
-    if (gui::button(str)) show_instrument_select = true;
+    if (gui::button(str)) g_show_instrument_select = true;
     gui::align(gui::Align::Center);
 
     // long press in song view picks up the selected instrument
@@ -183,7 +188,7 @@ void draw() {
 
 
     // instrument window
-    if (show_instrument_select) {
+    if (g_show_instrument_select) {
         draw_instrument_window(
             "INSTRUMENT SELECT",
             [](int i) {
@@ -197,10 +202,10 @@ void draw() {
             },
             [](int i) {
                 g_instrument = i;
-                show_instrument_select = false;
+                g_show_instrument_select = false;
             },
             [](int width) {
-                if (gui::button("CLOSE")) show_instrument_select = false;
+                if (gui::button("CLOSE")) g_show_instrument_select = false;
             });
     }
 
@@ -235,28 +240,27 @@ void draw() {
     }
 
     // check for midi input
-    static bool midi_gate = false;
-    static int  midi_note;
     {
         uint8_t status, data1, data2;
         while (platform::poll_midi_event(status, data1, data2)) {
             if (status == 0xf8) continue; // ignore timing clock
             uint8_t cmd = status >> 4;
+            // printf("%2x %2x %2x\n", cmd, data1, data2);
             if (cmd == 0x9 && data2 > 0) {
                 if (data1 >= 12 && data1 <= 104) {
-                    midi_note = data1 - 12;
-                    midi_gate = true;
+                    g_midi_note = data1 - 12;
+                    g_midi_gate = true;
                 }
             }
             else if ((cmd == 0x9 && data2 == 0) || cmd == 0x8) {
                 if (g_note == data1 - 12) {
-                    midi_gate = false;
+                    g_midi_gate = false;
                 }
             }
         }
         if (!g_gate) {
-            g_gate = midi_gate;
-            g_note = midi_note;
+            g_gate = g_midi_gate;
+            g_note = g_midi_note;
         }
     }
 
