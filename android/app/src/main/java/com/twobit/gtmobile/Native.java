@@ -1,7 +1,6 @@
 package com.twobit.gtmobile;
 
 import android.content.res.AssetManager;
-import android.media.midi.MidiDevice;
 
 class Native {
     static {
@@ -14,7 +13,7 @@ class Native {
     public static native void touch(int x, int y, int action);
     public static native void key(int key, int unicode);
     public static native void importSong(String path);
-    public static native void setMidiDevice(MidiDevice device);
+    public static native void onMidiEvent(byte[] data, int offset, int count);
 
     public static native void setPlaying(boolean stream, boolean player);
     public static native boolean isStreamPlaying();

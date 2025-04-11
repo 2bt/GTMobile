@@ -5,6 +5,8 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
+import android.media.midi.MidiOutputPort;
+import android.media.midi.MidiReceiver;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
@@ -21,6 +23,7 @@ import androidx.annotation.Nullable;
 import androidx.core.app.ActivityCompat;
 
 import java.io.File;
+import java.io.IOException;
 
 
 public class MainActivity extends Activity {
@@ -169,9 +172,18 @@ public class MainActivity extends Activity {
         Log.i(TAG, "found " + devices.length + " MIDI devices");
         if (devices.length == 0) return;
         midiManager.openDevice(devices[0], device -> {
-            if (device != null) Native.setMidiDevice(device);
+            if (device == null) return;
+            MidiOutputPort outputPort = device.openOutputPort(0);
+            if (outputPort == null) return;
+            outputPort.connect(new MidiReceiver() {
+                @Override
+                public void onSend(byte[] data, int offset, int count, long timestamp) throws IOException {
+                    Native.onMidiEvent(data, offset, count);
+                }
+            });
         }, null);
     }
+
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {

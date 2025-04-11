@@ -65,5 +65,4 @@ target_link_libraries(
     oboe::oboe
     android
     sndfile
-    amidi
 )

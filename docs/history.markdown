@@ -7,6 +7,9 @@ permalink: /history/
 <!-- ## master -->
 
 
+## 1.0.7 (2025-04-11)
++ replaced AMidi with Android’s MIDI API for broader compatibility
+
 ## 1.0.6 (2025-04-04)
 + instrument rearranging in table sharing window
 + inc/dec instrument in instrument view
