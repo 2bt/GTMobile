@@ -104,7 +104,7 @@ void draw_order_edit() {
 
     gui::begin_window({ WIDTH, height });
     gui::item_size({ WIDTH, app::BUTTON_HEIGHT });
-    gui::text("ORDER LIST EDIT");
+    gui::text("SET PATTERN");
     gui::separator();
 
     auto&         order = g_song.song_order[g_cursor_chan];

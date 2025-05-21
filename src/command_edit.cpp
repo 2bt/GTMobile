@@ -53,7 +53,7 @@ void draw() {
 
     gui::begin_window({ WIDTH, HEIGHT });
     gui::item_size({ WIDTH, app::BUTTON_HEIGHT });
-    gui::text("COMMAND EDIT");
+    gui::text("COMMAND");
     gui::separator();
     ivec2 cmd_cursor = gui::cursor();
     gui::item_size({ C1, TABLE_HEIGHT });

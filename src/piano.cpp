@@ -190,7 +190,7 @@ void draw() {
     // instrument window
     if (g_show_instrument_select) {
         draw_instrument_window(
-            "INSTRUMENT SELECT",
+            "SELECT INSTRUMENT",
             [](int i) {
                 gt::Instrument const& instr = g_song.instruments[i];
                 bool set = instr.ptr[gt::WTBL] | instr.ptr[gt::PTBL] | instr.ptr[gt::FTBL];
