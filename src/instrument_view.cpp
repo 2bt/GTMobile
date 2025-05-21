@@ -605,7 +605,13 @@ void draw() {
             dc.box(box, gui::BoxStyle::Cursor);
         }
 
-        if (r >= len) continue;
+        if (r >= len) {
+            // select table when touching emtpy rows
+            if (gui::button_state(box) == gui::ButtonState::Released) {
+                g_cursor_select = CursorSelect::Table;
+            }
+            continue;
+        }
 
         dc.rgb(color::BACKGROUND_ROW);
         dc.fill(box);
