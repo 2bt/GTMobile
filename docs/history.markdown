@@ -4,7 +4,9 @@ title: History
 permalink: /history/
 ---
 
-<!-- ## master -->
+## master
++ change headings of some dialog windows
++ instrument view: select table when touching empty rows
 
 
 ## 1.0.7 (2025-04-11)

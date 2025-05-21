@@ -51,11 +51,11 @@ Let's go through each.
 Change the file name before saving to create a new file.
 + **DELETE** deletes the selected song from the song list.
 + **IMPORT** lets you import a song file.
-+ **EXPORT** opens an export dialog window where you can export the song file directly, or render to **WAV** or **OGG**.
++ **EXPORT** opens the export dialog window where you can export the song file directly or render to **WAV** or **OGG**.
 
 <p>
     <img src="{{ '/assets/export.png' | relative_url }}">
-    <em>The export dialog window.</em>
+    <em>The export dialog window</em>
 </p>
 
 Currently, GTMobile lacks direct **SID** export.
@@ -82,6 +82,36 @@ The **SONG** view allows you to edit and arrange patterns. It shows the **song t
 The **song table** manages the song structure and contains patterns references.
 It specifies the order in which patterns are played on each of the SID chip's three voices.
 Within the table, patterns can be **transposed**, allowing them to be reused at different pitches.
+
+### Song Table
+
+**Tap** a cell to select it. The row "activates" and updates the pattern table.
+**Long-press and drag** to select a region of cells.
+
+The following buttons are available when a single cell is selected:
+
+<img src="{{ '/assets/song-cell-buttons.png' | relative_url }}">
+
++ **PASTE** – Paste a previously copied region.
++ **ADD ROW ABOVE** – Add a new row above the selected row.
++ **ADD ROW BELOW** – Add a new row below the selected row.
++ **DELETE ROW** – Delete the selected row.
++ **LOOP** – Set the selected row as the song loop point.
++ **EDIT** – Opens a dialog window which lets you change the pattern reference and transpose of the selected cell.
+<p>
+    <img src="{{ '/assets/set-pattern.png' | relative_url }}">
+    <em>The pattern reference dialog window. Note that empty patterns are shown with a darker shade.</em>
+</p>
+
+The following buttons are available when a region is selected:
+
+<img src="{{ '/assets/song-region-buttons.png' | relative_url }}">
+
++ **COPY** – Copy the selected region.
++ **TRANSPOSE UP** – Transpose selected region up by one semitone.
++ **TRANSPOSE DOWN** – Transpose selected region down by one semitone.
+
+### Pattern Table
 
 The **pattern table** ...
 

@@ -173,11 +173,11 @@
   padding: $spacing-unit 0;
   flex: 1;
 
-  img {
+  p > img {
     display: block;
     margin: 0 auto;
   }
-  img + em {
+  p > img + em {
     display: block;
     text-align: center;
   }
