@@ -177,6 +177,11 @@
     display: block;
     margin: 0 auto;
   }
+  img + em {
+    display: block;
+    text-align: center;
+  }
+
 }
 
 .page-heading {
