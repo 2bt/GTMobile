@@ -7,7 +7,7 @@ permalink: /manual/
 
 ## Introduction
 
-GTMobile is designed to make **creating C64 music more accessible**.
+GTMobile is designed to make **composing C64 music more accessible**.
 While it provides a mobile-friendly tracker experience,
 it may take some time to get familiar with,
 especially if you are new to the **SID chip** or **trackers** in general.
@@ -19,11 +19,11 @@ GTMobile’s interface consists of two fixed sections and a main workspace.
 At the bottom, a piano keyboard allows you to play notes,
 with additional buttons for instrument selection and playback control.
 At the top, a row of four tab buttons lets you switch between views,
-each focusing on a different aspect of song creation.
+each focusing on a different aspect of song creation:
 
 + **PROJECT** – Manage song files, edit song metadata.
 + **SONG** – Edit and arrange patterns.
-+ **INSTRUMENT** – Edit, and manage instruments. Adjust wave, pulse, and filter tables.
++ **INSTRUMENT** – Edit and manage instruments.
 + **SETTINGS** – Configure editor preferences and project settings.
 
 In the following chapters, we will explore each view in more detail.
@@ -32,26 +32,30 @@ In the following chapters, we will explore each view in more detail.
 ## Project View
 
 The **PROJECT** view is the default view when you start the app.
-Here, you can view and edit the song's metadata, reset the song data, manage song files, and import and export songs.
+Here, you can view and edit song metadata and manage song files.
 Note that in GTMobile, you edit exactly one song at a time.
 
 <img src="{{ '/assets/project.png' | relative_url }}">
 
-The view shows you some text input fields with the song list below, and a number of buttons to the right
-Let's go through each.
+At the top, there are the following text input fields:
 
-+ **TITLE**, **AUTHOR**, and **RELEASED** are song metadata which you can set as you please.
-+ **FILE** specifies the name for the current song file. The buttons **LOAD**, **DELETE**, and **SAVE** operate on this file.
-+ The song list shows all available song files.
-  Note that GTMobile comes with two demo songs.
-  Selecting a song from the song list puts the name in the **FILE** input field.
-+ **RESET** resets the current song data.
-+ **LOAD** loads the selected song from the song list.
-+ **SAVE** saves the current song under the name in the input field.
-Change the file name before saving to create a new file.
-+ **DELETE** deletes the selected song from the song list.
-+ **IMPORT** lets you import a song file.
-+ **EXPORT** opens the export dialog window where you can export the song file directly or render to **WAV** or **OGG**.
++ **TITLE** – The song title.
++ **AUTHOR** – The song author.
++ **RELEASED** A copyright note.
++ **FILE** – The name for the current song file. The buttons **LOAD**, **DELETE**, and **SAVE** operate on this file.
+
+The song list below these text input fields shows all available song files.
+Note that GTMobile comes with two demo songs.
+Selecting a song from the song list also sets the name in the **FILE** input field accordingly.
+
+To the right of the table, there is a column of buttons:
+
++ **RESET** – Reset the current song data.
++ **LOAD** – Load the selected song from the song list.
++ **SAVE** – Save the current song under the name in the input field. Change the file name before saving to create a new file.
++ **DELETE** – Delete the selected song from the song list.
++ **IMPORT** – Import a song file.
++ **EXPORT** – Open the export dialog window. There, you can export the song file directly or render to **WAV** or **OGG**.
 
 <p>
     <img src="{{ '/assets/export.png' | relative_url }}">
@@ -79,31 +83,31 @@ The **SONG** view allows you to edit and arrange patterns. It shows the **song t
 
 <img src="{{ '/assets/song2.png' | relative_url }}">
 
+### Song Table
+
 The **song table** manages the song structure and contains patterns references.
 It specifies the order in which patterns are played on each of the SID chip's three voices.
 Within the table, patterns can be **transposed**, allowing them to be reused at different pitches.
 
-### Song Table
-
-**Tap** a cell to select it. The row "activates" and updates the pattern table.
-**Long-press and drag** to select a region of cells.
+**Tap** a cell to select it. The entire row becomes activate, updating updating the pattern table to show that rows three patterns.
+**Long-press + drag** to select a multiple cells (rows and/or columns).
 
 The following buttons are available when a single cell is selected:
 
 <img src="{{ '/assets/song-cell-buttons.png' | relative_url }}">
 
-+ **PASTE** – Paste a previously copied region.
-+ **ADD ROW ABOVE** – Add a new row above the selected row.
-+ **ADD ROW BELOW** – Add a new row below the selected row.
++ **PASTE** – Paste the previously copied region starting at the selected cell.
++ **ADD ROW ABOVE** – Insert a new row above the current one.
++ **ADD ROW BELOW** – Insert a new row below the current one.
 + **DELETE ROW** – Delete the selected row.
-+ **LOOP** – Set the selected row as the song loop point.
-+ **EDIT** – Opens a dialog window which lets you change the pattern reference and transpose of the selected cell.
++ **LOOP** – Marks the selected row as the loop start point when playback restarts.
++ **EDIT** – Open a dialog window which lets you change the pattern reference and transpose of the selected cell.
 <p>
     <img src="{{ '/assets/set-pattern.png' | relative_url }}">
     <em>The pattern reference dialog window. Note that empty patterns are shown with a darker shade.</em>
 </p>
 
-The following buttons are available when a region is selected:
+The following buttons are available when a multiple cells are selected:
 
 <img src="{{ '/assets/song-region-buttons.png' | relative_url }}">
 
@@ -113,7 +117,38 @@ The following buttons are available when a region is selected:
 
 ### Pattern Table
 
-The **pattern table** ...
+The **pattern table** displays the three patterns referenced by the active row int the song table row.
+The three buttons above the table show each pattern's reference number and let you mute/unmute that SID voice.
+Patterns may contain notes, instrument references, and effect commands, which are shown in each cell in that order.
+
+**Tap** a cell to select it.
+**Long-press + drag** to select a multiple cells (rows and/or columns).
+
+The following buttons are available when a single cell is selected:
+
+<img src="{{ '/assets/pattern-cell-buttons.png' | relative_url }}">
+
+TODO
+
+The following buttons are available when multiple cells are selected:
+
+<img src="{{ '/assets/pattern-region-buttons.png' | relative_url }}">
+
+TODO
+
+### Piano Keyboard
+
+Although available in all views, the piano keyboard is most important while in **SONG** view.
+
+<img src="{{ '/assets/piano.png' | relative_url }}">
+
+TODO
+
+<img src="{{ '/assets/select-instrument.png' | relative_url }}">
+
+TODO
+
+### Commands
 
 TODO
 
