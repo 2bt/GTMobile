@@ -687,7 +687,7 @@ void draw() {
             gui::slider(box.size.x, "LENGTH %02X", patt.len, 1, gt::MAX_PATTROWS);
             g_cursor_pattern_row = std::min(g_cursor_pattern_row, patt.len - 1);
             gui::item_size({ box.size.x, app::BUTTON_HEIGHT });
-            if (gui::button("APPLY LENGTH TO EMPTY PATTERNS")) {
+            if (gui::button("RESIZE EMPTY PATTERNS")) {
                 check_empty_patterns();
                 for (int i = 0; i < gt::MAX_PATT; ++i) {
                     if (!g_pattern_empty[i]) continue;
