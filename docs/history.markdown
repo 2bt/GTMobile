@@ -6,6 +6,7 @@ permalink: /history/
 
 ## master
 + change headings of some dialog windows
++ song view: improve pattern length button icon
 + instrument view: select table when touching empty rows
 
 
