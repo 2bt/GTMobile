@@ -260,7 +260,7 @@ enum class Icon {
     JumpBack,
     Settings,
     X = 176,
-    DotDotDot,
+    ChangeLength,
     Edit,
     Piano,
 

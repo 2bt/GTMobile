@@ -136,6 +136,12 @@ The following buttons are available when multiple cells are selected:
 
 TODO
 
+#### Pattern Length
+
+<img src="{{ '/assets/pattern-dialog.png' | relative_url }}">
+
+
+
 ### Piano Keyboard
 
 Although available in all views, the piano keyboard is most important while in **SONG** view.

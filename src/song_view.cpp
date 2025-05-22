@@ -656,7 +656,27 @@ void draw() {
 
     gt::Pattern& patt = g_song.patterns[patt_nums[g_cursor_chan]];
     if (g_edit_mode == EditMode::Pattern && g_cursor_pattern_row < patt.len) {
-        if (gui::button(gui::Icon::DotDotDot)) {
+
+        if (gui::button(gui::Icon::Paste)) {
+            for (int c = 0; c < 3; ++c) {
+                if (g_cursor_chan + c >= 3) break;
+                gt::Pattern const& src = pattern_copy_buffer[c];
+                gt::Pattern&       dst = g_song.patterns[patt_nums[g_cursor_chan + c]];
+
+                for (int i = 0; i < src.len; ++i) {
+                    if (g_cursor_pattern_row + i >= dst.len) break;
+                    if (pattern_copy_flags & 1) {
+                        dst.rows[g_cursor_pattern_row + i].note  = src.rows[i].note;
+                        dst.rows[g_cursor_pattern_row + i].instr = src.rows[i].instr;
+                    }
+                    if (pattern_copy_flags & 2) {
+                        dst.rows[g_cursor_pattern_row + i].command = src.rows[i].command;
+                        dst.rows[g_cursor_pattern_row + i].data    = src.rows[i].data;
+                    }
+                }
+            }
+        }
+        if (gui::button(gui::Icon::ChangeLength)) {
             g_show_pattern_edit_window ^= 1;
         }
         if (g_show_pattern_edit_window) {
@@ -704,28 +724,9 @@ void draw() {
                 }
             }
             gui::end_window();
+            gui::item_size({ 55, app::BUTTON_HEIGHT });
         }
 
-        gui::item_size({ 55, app::BUTTON_HEIGHT });
-        if (gui::button(gui::Icon::Paste)) {
-            for (int c = 0; c < 3; ++c) {
-                if (g_cursor_chan + c >= 3) break;
-                gt::Pattern const& src = pattern_copy_buffer[c];
-                gt::Pattern&       dst = g_song.patterns[patt_nums[g_cursor_chan + c]];
-
-                for (int i = 0; i < src.len; ++i) {
-                    if (g_cursor_pattern_row + i >= dst.len) break;
-                    if (pattern_copy_flags & 1) {
-                        dst.rows[g_cursor_pattern_row + i].note  = src.rows[i].note;
-                        dst.rows[g_cursor_pattern_row + i].instr = src.rows[i].instr;
-                    }
-                    if (pattern_copy_flags & 2) {
-                        dst.rows[g_cursor_pattern_row + i].command = src.rows[i].command;
-                        dst.rows[g_cursor_pattern_row + i].data    = src.rows[i].data;
-                    }
-                }
-            }
-        }
         gui::separator();
 
 
