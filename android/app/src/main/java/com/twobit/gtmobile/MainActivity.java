@@ -21,6 +21,8 @@ import android.media.midi.MidiDeviceInfo;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.core.app.ActivityCompat;
+import androidx.core.view.ViewCompat;
+import androidx.core.view.WindowInsetsCompat;
 
 import java.io.File;
 import java.io.IOException;
@@ -193,6 +195,14 @@ public class MainActivity extends Activity {
         loadSettings();
         mView = new View(getApplication());
         setContentView(mView);
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.KITKAT_WATCH) {
+            ViewCompat.setOnApplyWindowInsetsListener(mView, (view, insets) -> {
+                int topInset = insets.getInsets(WindowInsetsCompat.Type.systemBars()).top;
+                int bottomInset = insets.getInsets(WindowInsetsCompat.Type.systemBars()).bottom;
+                Native.setInsets(topInset, bottomInset);
+                return insets;
+            });
+        }
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             if (ActivityCompat.checkSelfPermission(this, android.Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) {

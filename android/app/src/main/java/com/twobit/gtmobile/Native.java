@@ -9,6 +9,7 @@ class Native {
     public static native void init(AssetManager assetManager, String storageDir, float refreshRate);
     public static native void free();
     public static native void resize(int width, int height);
+    public static native void setInsets(int topInset, int bottomInset);
     public static native void draw();
     public static native void touch(int x, int y, int action);
     public static native void key(int key, int unicode);

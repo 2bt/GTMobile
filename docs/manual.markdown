@@ -14,7 +14,7 @@ especially if you are new to the **SID chip** or **trackers** in general.
 ## App Layout and Navigation
 
 GTMobile’s interface consists of two fixed sections and a main workspace.
-At the bottom, a piano keyboard allows you to play notes,
+At the bottom, a **piano keyboard** allows you to play notes,
 with additional buttons for instrument selection and playback control.
 At the top, a row of four tab buttons lets you switch between views,
 each focusing on a different aspect of song creation:
@@ -166,7 +166,12 @@ When multiple pattern rows are selected, a number of buttons are available, grou
 
 <img src="{{ '/assets/pattern-dialog.png' | relative_url }}">
 
-
+Use the slider to adjust the pattern’s row count (displayed in hexadecimal).
+Here is the list of buttons and their function:
++ **RESIZE EMPTY PATTERNS** – Resize all empty patterns (those with no notes or commands) to match the current length.
++ **SHRINK** – Delete every other row, halving the pattern's length.
++ **EXPAND** – Insert a new blank row after each existing row, doubling the pattern's length.
++ **CLOSE** – Close this window.
 
 ### Piano Keyboard
 

@@ -4,7 +4,8 @@ title: History
 permalink: /history/
 ---
 
-## master
+## 1.0.8 (2025-07-02)
++ target API level 35
 + tweak button labels and headings of some dialog windows
 + song view: improve pattern length button icon
 + instrument view: select table when touching empty rows

@@ -34,10 +34,14 @@ enum class View {
 gt::Song        g_song;
 gt::Player      g_player(g_song);
 Sid             g_sid;
+int             g_inset_top;
+int             g_inset_bottom;
 int             g_canvas_height;
 gfx::Canvas     g_canvas;
 float           g_canvas_scale;
-int16_t         g_canvas_offset;
+int             g_canvas_offset;
+bool            g_canvas_setup_requested;
+
 ConfirmCallback g_confirm_callback;
 std::string     g_confirm_msg;
 View            g_view        = View::Splash;
@@ -45,6 +49,40 @@ bool            g_initialized = false;
 std::string     g_storage_dir = ".";
 Mixer           g_mixer(g_player, g_sid);
 bool            g_take_screenshot = false;
+
+
+void setup_canvas() {
+    int width  = gfx::screen_size().x;
+    int height = gfx::screen_size().y;
+
+    height -= g_inset_top + g_inset_bottom;
+
+    g_canvas_height = std::max<int16_t>(CANVAS_WIDTH * height / width, CANVAS_MIN_HEIGHT);
+
+    // set canvas offset and scale
+    float scale_x = width  / float(CANVAS_WIDTH);
+    float scale_y = height / float(g_canvas_height);
+    if (scale_y < scale_x) {
+        g_canvas_offset = (width - CANVAS_WIDTH * scale_y) * 0.5f;
+        g_canvas_scale  = scale_y;
+    }
+    else {
+        g_canvas_offset = 0;
+        g_canvas_scale  = scale_x;
+    }
+
+    // g_canvas_scale = 1;
+
+    // reinit canvas with POT dimensions
+    int w = 2;
+    int h = 2;
+    while (w < CANVAS_WIDTH) w *= 2;
+    while (h < g_canvas_height) h *= 2;
+    g_canvas.init({ w, h });
+    if (g_canvas_scale != (int) g_canvas_scale) {
+        g_canvas.filter(gfx::Texture::LINEAR);
+    }
+}
 
 
 void draw_play_buttons() {
@@ -332,41 +370,24 @@ void free() {
     reset();
 }
 
+void set_insets(int top_inset, int bottom_inset) {
+    LOGD("app::set_insets %d %d", top_inset, bottom_inset);
+    g_inset_top    = top_inset;
+    g_inset_bottom = bottom_inset;
+    g_canvas_setup_requested = true;
+}
+
 void resize(int width, int height) {
+    LOGD("app::resize %d %d", width, height);
     width  = std::max(1, width);
     height = std::max(1, height);
     gfx::screen_size({ width, height });
-
-    g_canvas_height = std::max<int16_t>(CANVAS_WIDTH * height / width, CANVAS_MIN_HEIGHT);
-
-    // set canvas offset and scale
-    float scale_x = width  / float(CANVAS_WIDTH);
-    float scale_y = height / float(g_canvas_height);
-    if (scale_y < scale_x) {
-        g_canvas_offset = (width - CANVAS_WIDTH * scale_y) * 0.5f;
-        g_canvas_scale  = scale_y;
-    }
-    else {
-        g_canvas_offset = 0;
-        g_canvas_scale  = scale_x;
-    }
-
-    // g_canvas_scale = 1;
-
-    // reinit canvas with POT dimensions
-    int w = 2;
-    int h = 2;
-    while (w < CANVAS_WIDTH) w *= 2;
-    while (h < g_canvas_height) h *= 2;
-    g_canvas.init({ w, h });
-    if (g_canvas_scale != (int) g_canvas_scale) {
-        g_canvas.filter(gfx::Texture::LINEAR);
-    }
+    g_canvas_setup_requested = true;
 }
 
-
 void touch(int x, int y, bool pressed) {
-    gui::touch_event((x - g_canvas_offset) / g_canvas_scale, y / g_canvas_scale, pressed);
+    gui::touch_event((x - g_canvas_offset) / g_canvas_scale,
+                     (y - g_inset_top) / g_canvas_scale, pressed);
 }
 
 void key(int key, int unicode) {
@@ -376,9 +397,12 @@ void key(int key, int unicode) {
     }
 }
 
-
-
 void draw() {
+    if (g_canvas_setup_requested) {
+        g_canvas_setup_requested = false;
+        setup_canvas();
+    }
+
     gfx::canvas(g_canvas);
     gfx::blend(true);
     gfx::clear(0.0, 0.0, 0.0);
@@ -450,15 +474,15 @@ void draw() {
     gfx::blend(false);
     gfx::clear(0.0, 0.0, 0.0);
     u8vec4 white(255);
-    ivec2 p(g_canvas_offset, 0);
+    ivec2 p(g_canvas_offset, g_inset_bottom);
     ivec2 S(CANVAS_WIDTH, g_canvas_height);
     ivec2 s = S * g_canvas_scale;
     static gfx::Mesh mesh;
     mesh.vertices = {
         { p, S.oy(), white },
-        { ivec2(p.x + s.x, 0), S, white },
+        { p + s.xo(), S, white },
         { p + s, S.xo(), white },
-        { ivec2{ p.x, s.y }, {}, white },
+        { p + s.oy(), {}, white },
     };
     mesh.indices = { 0, 1, 2, 0, 2, 3 };
     gfx::draw(mesh, g_canvas);

@@ -177,6 +177,10 @@ extern "C" {
         g_env = env;
         app::resize(width, height);
     }
+    JNIEXPORT void JNICALL Java_com_twobit_gtmobile_Native_setInsets(JNIEnv* env, jclass, jint topInset, jint bottomInset) {
+        g_env = env;
+        app::set_insets(topInset, bottomInset);
+    }
     JNIEXPORT void JNICALL Java_com_twobit_gtmobile_Native_draw(JNIEnv* env, jclass) {
         g_env = env;
         app::draw();

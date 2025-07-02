@@ -52,7 +52,8 @@ namespace app {
 
     void init();
     void free();
-    void resize(int w, int h);
+    void resize(int width, int height);
+    void set_insets(int top_inset, int bottom_inset);
     void touch(int x, int y, bool pressed);
     void key(int key, int unicode);
     void draw();
