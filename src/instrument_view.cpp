@@ -20,14 +20,14 @@ enum class CursorSelect {
     Table,
 };
 
-gt::Song&          g_song              = app::song();
-CursorSelect       g_cursor_select     = {};
-int                g_table             = 0;
-int                g_scroll            = 0;
-int                g_cursor_row        = 0;
-std::array<int, 4> g_table_scroll      = {};
-bool               g_table_debug       = false;
-bool               g_draw_share_window = false;
+gt::Song&          g_song = app::song();
+CursorSelect       g_cursor_select;
+int                g_table;
+int                g_scroll;
+int                g_cursor_row;
+std::array<int, 4> g_table_scroll;
+bool               g_table_debug;
+bool               g_draw_share_window;
 
 
 void add_table_row(int table, int pos) {

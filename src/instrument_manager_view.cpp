@@ -16,12 +16,12 @@ namespace instrument_manager_view {
 namespace {
 
 gt::Song&                g_song = app::song();
-std::string              g_instruments_dir = {};
-std::array<char, 32>     g_file_name       = {};
-std::vector<std::string> g_file_names      = {};
-int                      g_file_scroll     = 0;
-std::string              g_status_msg      = {};
-float                    g_status_age      = 0.0f;
+std::string              g_instruments_dir;
+std::array<char, 32>     g_file_name;
+std::vector<std::string> g_file_names;
+int                      g_file_scroll;
+std::string              g_status_msg;
+float                    g_status_age;
 
 
 #define FILE_SUFFIX ".ins"

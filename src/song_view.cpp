@@ -31,22 +31,22 @@ enum class EditMode {
 };
 
 
-gt::Song&                      g_song               = app::song();
-int                            g_song_page          = 8;
-bool                           g_recording          = false;
-EditMode                       g_edit_mode          = EditMode::Pattern;
-int                            g_song_scroll        = 0;
-int                            g_pattern_scroll     = 0;
-int                            g_cursor_pattern_row = 0;
-int                            g_cursor_song_row    = 0;
-int                            g_cursor_chan        = 0;
-int                            g_cursor_instr       = 0;
-int                            g_transpose          = 0;
-bool                           g_mark_edit          = false;
+gt::Song&                      g_song = app::song();
+int                            g_song_page;
+bool                           g_recording;
+EditMode                       g_edit_mode;
+int                            g_song_scroll;
+int                            g_pattern_scroll;
+int                            g_cursor_pattern_row;
+int                            g_cursor_song_row;
+int                            g_cursor_chan;
+int                            g_cursor_instr;
+int                            g_transpose;
+bool                           g_mark_edit;
 int                            g_mark_chan;
 int                            g_mark_row;
-bool                           g_show_order_edit_window   = false;
-bool                           g_show_pattern_edit_window = false;
+bool                           g_show_order_edit_window;
+bool                           g_show_pattern_edit_window;
 std::array<bool, gt::MAX_PATT> g_pattern_empty;
 
 

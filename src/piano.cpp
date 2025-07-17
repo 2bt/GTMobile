@@ -9,16 +9,16 @@
 namespace piano {
 namespace {
 
-gt::Song& g_song       = app::song();
-int       g_instrument = 1;
-int       g_drag_instr = 0;
-int       g_scroll     = 14 * 3; // show octave 3 and 4
-int       g_note       = 48;
-bool      g_note_on    = false;
+gt::Song& g_song = app::song();
+int       g_instrument;
+int       g_drag_instr;
+int       g_scroll;
+int       g_note;
+bool      g_note_on;
 bool      g_gate;
-bool      g_midi_gate  = false;
+bool      g_midi_gate;
 int       g_midi_note;
-bool      g_show_instrument_select = false;
+bool      g_show_instrument_select;
 
 
 void shuffle_instruments(size_t i, size_t j) {
@@ -59,7 +59,13 @@ void shuffle_instruments(size_t i, size_t j) {
 
 } // namespace
 
+
 void reset() {
+    g_instrument             = 1;
+    g_drag_instr             = 0;
+    g_scroll                 = 14 * 3; // show octave 3 and 4
+    g_note                   = 48;
+    g_note_on                = false;
     g_midi_gate              = false;
     g_show_instrument_select = false;
 }
