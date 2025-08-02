@@ -352,7 +352,7 @@ void init() {
     strcpy(g_song.instruments[1].name.data(), "Beep");
     g_song.instruments[1].sr = 0xf3;
     g_song.instruments[1].ptr[0] = 1;
-    g_song.ltable[0][0] = 0x11;
+    g_song.ltable[0][0] = 0x21;
     g_song.ltable[0][1] = 0xff;
 
     gfx::init();

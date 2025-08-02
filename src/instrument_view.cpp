@@ -618,7 +618,7 @@ void draw() {
 
         // loop marker
         if (start_row + r + 1 == rtable[end_row]) {
-            dc.rgb(color::BUTTON_PRESSED);
+            dc.rgb(color::WHITE);
             dc.text(box.pos + ivec2(box.size.x - 8, 6), "\x05");
         }
 
@@ -655,7 +655,9 @@ void draw() {
             // + 81-DD absolute notes C#0 - B-7
             if (lval >= 0xf0 && lval <= 0xfe) {
                 int cmd = lval & 0xf;
-                sprintf(s, "COMMAND \x81%c%X%02X", cmd, cmd, rval);
+                uint8_t data = rval;
+                if (data > 0 && cmd == gt::CMD_VIBRATO) data -= gt::STBL_VIB_START;
+                sprintf(s, "COMMAND \x81%c%X%02X", cmd, cmd, data);
             }
             else {
                 if (lval < 0x10) {
@@ -740,6 +742,8 @@ void draw() {
         gui::item_size({ 55, app::BUTTON_HEIGHT });
         gui::disabled(num_free_rows <= 0 + (len == 0));
         if (gui::button(gui::Icon::AddRowAbove)) {
+            uint8_t cursor_lval = 0;
+            uint8_t cursor_rval = 0;
             // add jump
             if (len == 0) {
                 assert(num_free_rows >= 2);
@@ -748,17 +752,31 @@ void draw() {
                 add_table_row(g_table, start_row);
                 ltable[start_row] = 0xff;
                 ++len;
+                if (g_table == gt::WTBL) cursor_lval = 0x21;
+                if (g_table == gt::PTBL) cursor_lval = 0x88; // set pw
+                if (g_table == gt::FTBL) {
+                    cursor_lval = 0x81;
+                    cursor_rval = 0xf1;
+                }
             }
-            add_table_row(g_table, start_row + g_cursor_row);
-            if (g_table == gt::PTBL) ltable[start_row + g_cursor_row] = 0x88; // set pw
+            else {
+                cursor_lval = ltable[start_row + g_cursor_row];
+                cursor_rval = rtable[start_row + g_cursor_row];
+            }
             ++len;
+            add_table_row(g_table, start_row + g_cursor_row);
+            ltable[start_row + g_cursor_row] = cursor_lval;
+            rtable[start_row + g_cursor_row] = cursor_rval;
         }
         gui::disabled(len == 0 || num_free_rows == 0);
         if (gui::button(gui::Icon::AddRowBelow)) {
+            uint8_t cursor_lval = ltable[start_row + g_cursor_row];
+            uint8_t cursor_rval = rtable[start_row + g_cursor_row];
             ++g_cursor_row;
             ++len;
             add_table_row(g_table, start_row + g_cursor_row);
-            if (g_table == gt::PTBL) ltable[start_row + g_cursor_row] = 0x88; // set pw
+            ltable[start_row + g_cursor_row] = cursor_lval;
+            rtable[start_row + g_cursor_row] = cursor_rval;
         }
 
         gui::disabled(g_cursor_row >= len);

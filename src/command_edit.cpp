@@ -10,6 +10,9 @@ Location                g_location;
 uint8_t                 g_command;
 std::array<uint8_t, 16> g_command_data;
 CommandCallback         g_callback;
+std::array<int, 3>      g_table_scrolls;
+int                     g_ptr_scroll;
+
 
 } // namespace
 
@@ -25,6 +28,8 @@ void reset() {
         0,
         0x06, // tempo
     };
+    g_table_scrolls = {};
+    g_ptr_scroll = 0;
 }
 
 void init(Location location, uint8_t cmd, uint8_t data, std::function<void(uint8_t, uint8_t)> cb) {
@@ -115,7 +120,10 @@ void draw() {
         gui::Box b = { c + ivec2(1, 1), ivec2(36 - 1, app::MAX_ROW_HEIGHT - 2) };
         dc.rgb(color::BACKGROUND_ROW);
         dc.fill(b);
-        sprintf(str, "%X%02X", i, g_command_data[i]);
+        uint8_t data = g_command_data[i];
+        if (data > 0 && i == gt::CMD_VIBRATO)   data -= gt::STBL_VIB_START;
+        if (data > 0 && i == gt::CMD_FUNKTEMPO) data -= gt::STBL_FUNK_START;
+        sprintf(str, "%X%02X", i, data);
         gui::disabled(g_command != i);
         dc.rgb(color::CMDS[i]);
         dc.text(b.pos + 5, str);
@@ -127,15 +135,16 @@ void draw() {
     auto& data = g_command_data[g_command];
 
     // handle all command that reference the speed table
-    if ((g_command >= gt::CMD_PORTAUP && g_command <= gt::CMD_TONEPORTA) ||
+    if (g_command == gt::CMD_PORTAUP ||
+        g_command == gt::CMD_PORTADOWN ||
+        g_command == gt::CMD_TONEPORTA ||
         g_command == gt::CMD_VIBRATO ||
         g_command == gt::CMD_FUNKTEMPO)
     {
-        int cmd_type = 0;
-        if (g_command == gt::CMD_VIBRATO) cmd_type = 1;
-        if (g_command == gt::CMD_FUNKTEMPO) cmd_type = 2;
-        static int scrolls[3] = {};
-        int& scroll = scrolls[cmd_type];
+        enum CmdType { CMD_PORTA, CMD_VIB, CMD_FUNK };
+        CmdType cmd_type = CMD_PORTA;
+        if (g_command == gt::CMD_VIBRATO) cmd_type = CMD_VIB;
+        if (g_command == gt::CMD_FUNKTEMPO) cmd_type = CMD_FUNK;
 
         gui::cursor(table_cursor);
 
@@ -144,21 +153,24 @@ void draw() {
 
         gui::align(gui::Align::Left);
         for (int i = 0; i < PAGE; ++i) {
-            int r = i + scroll;
-            if (r > 0) {
-                if (g_command == gt::CMD_VIBRATO)   r += 0x20;
-                if (g_command == gt::CMD_FUNKTEMPO) r += 0x40;
-            }
-            gui::item_size({ CC, app::MAX_ROW_HEIGHT });
-            ivec2 p = gui::cursor() + ivec2(6);
-
-            uint8_t lval = r > 0 ? ltable[r - 1] : 0;
-            uint8_t rval = r > 0 ? rtable[r - 1] : 0;
-
-            bool is_set = lval | rval;
-            gui::button_style(is_set || r == 0 ? gui::ButtonStyle::Normal : gui::ButtonStyle::Shaded);
+            int r = i + g_table_scrolls[cmd_type];
             char* s = str;
             s += sprintf(s, "%02X ", r);
+
+            uint8_t lval = 0;
+            uint8_t rval = 0;
+            if (r > 0) {
+                if (cmd_type == CMD_PORTA) r += gt::STBL_PORTA_START;
+                if (cmd_type == CMD_VIB)   r += gt::STBL_VIB_START;
+                if (cmd_type == CMD_FUNK)  r += gt::STBL_FUNK_START;
+                lval = ltable[r - 1];
+                rval = rtable[r - 1];
+            }
+            bool is_set = lval | rval;
+
+            ivec2 p = gui::cursor() + ivec2(6);
+            gui::item_size({ CC, app::MAX_ROW_HEIGHT });
+            gui::button_style(is_set || r == 0 ? gui::ButtonStyle::Normal : gui::ButtonStyle::Shaded);
             if (r == 0) {
                 if (g_command == gt::CMD_TONEPORTA) sprintf(s, "TIE NOTE");
                 else if (g_command == gt::CMD_FUNKTEMPO) sprintf(s, "NO CHANGE");
@@ -195,9 +207,8 @@ void draw() {
         gui::item_size({ app::SCROLL_WIDTH, TABLE_HEIGHT });
 
         gui::drag_bar_style(gui::DragBarStyle::Scrollbar);
-        int table_len = 32;
-        int max_scroll = std::max(0, table_len - PAGE);
-        gui::vertical_drag_bar(scroll, 0, max_scroll, PAGE);
+        int max_scroll = std::max(0, gt::STBL_SUBTABLE_LEN - PAGE);
+        gui::vertical_drag_bar(g_table_scrolls[cmd_type], 0, max_scroll, PAGE);
 
         gui::cursor(button_cursor);
         if (data > 0) {
@@ -288,14 +299,15 @@ void draw() {
         gui::same_line(false);
         data = v;
     }
-    else if (g_command >= gt::CMD_SETWAVEPTR && g_command <= gt::CMD_SETFILTERPTR) {
+    else if (g_command == gt::CMD_SETWAVEPTR ||
+             g_command == gt::CMD_SETPULSEPTR ||
+             g_command == gt::CMD_SETFILTERPTR)
+    {
         gui::cursor(table_cursor);
-        static int scroll = 0;
-
         gui::align(gui::Align::Left);
         gui::item_size({ CC, app::MAX_ROW_HEIGHT });
         for (int i = 0; i < PAGE; ++i) {
-            int r = i + scroll;
+            int r = i + g_ptr_scroll;
             gt::Instrument const& instr = g_song.instruments[r];
             sprintf(str, "%02X %s", r, r == 0 ? "OFF" : instr.name.data());
             bool is_set = r == 0 || instr.ptr[g_command - gt::CMD_SETWAVEPTR] != 0;
@@ -309,7 +321,7 @@ void draw() {
         gui::cursor(table_cursor + ivec2(CC, 0));
         gui::item_size({ app::SCROLL_WIDTH, TABLE_HEIGHT });
         gui::drag_bar_style(gui::DragBarStyle::Scrollbar);
-        gui::vertical_drag_bar(scroll, 0, gt::MAX_INSTR - PAGE, PAGE);
+        gui::vertical_drag_bar(g_ptr_scroll, 0, gt::MAX_INSTR - PAGE, PAGE);
     }
     else if (g_command == gt::CMD_SETFILTERCTRL) {
         gui::item_size({ WIDTH / 3, app::BUTTON_HEIGHT });

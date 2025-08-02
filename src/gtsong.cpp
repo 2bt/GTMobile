@@ -215,9 +215,10 @@ void Song::load(std::istream& stream) {
         }
         instr.ptr[STBL] = 0x80 + i;
     }
-    size_t porta_pos = 0x00;
-    size_t vib_pos   = 0x20;
-    size_t funk_pos  = 0x40;
+
+    size_t porta_pos = STBL_PORTA_START;
+    size_t vib_pos   = STBL_VIB_START;
+    size_t funk_pos  = STBL_FUNK_START;
     for (size_t i = 0; i < lspeed.size(); ++i) {
         if (vib[i]) {
             ltable[STBL][vib_pos] = lspeed[i];
@@ -235,9 +236,9 @@ void Song::load(std::istream& stream) {
             funk[i] = funk_pos++;
         }
     }
-    if (porta_pos >= 0x1f) load_error("too many portamenti");
-    if (vib_pos >= 0x3f) load_error("too many vibratos");
-    if (funk_pos >= 0x5f) load_error("too many funk tempi");
+    if (porta_pos >= STBL_PORTA_START + STBL_SUBTABLE_LEN - 1) load_error("too many portamenti");
+    if (vib_pos   >= STBL_VIB_START   + STBL_SUBTABLE_LEN - 1) load_error("too many vibratos");
+    if (funk_pos  >= STBL_FUNK_START  + STBL_SUBTABLE_LEN - 1) load_error("too many funk tempi");
     for (Pattern& patt : patterns) {
         for (PatternRow& row : patt.rows) {
             if (row.data == 0) continue;

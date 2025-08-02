@@ -357,7 +357,7 @@ void draw() {
 
         // loop marker
         if (r == g_song.song_loop) {
-            dc.rgb(color::BUTTON_PRESSED);
+            dc.rgb(color::WHITE);
             dc.text(box.pos + ivec2(CN + CC * 3 - 9, text_offset), "\x05");
         }
     }
@@ -506,7 +506,10 @@ void draw() {
 
             if (row.command > 0) {
                 dc.rgb(color::CMDS[row.command]);
-                sprintf(str, "%X%02X", row.command, row.data);
+                uint8_t data = row.data;
+                if (data > 0 && row.command == gt::CMD_VIBRATO)   data -= gt::STBL_VIB_START;
+                if (data > 0 && row.command == gt::CMD_FUNKTEMPO) data -= gt::STBL_FUNK_START;
+                sprintf(str, "%X%02X", row.command, data);
                 dc.text(t, str);
             }
         }
