@@ -4,20 +4,20 @@ plugins {
 
 android {
     namespace 'com.twobit.gtmobile'
-    compileSdk 34
+    compileSdk 35
 
     defaultConfig {
         applicationId "com.twobit.gtmobile"
         minSdk 24
         targetSdk 35
-        versionCode 9
-        versionName "1.0.9"
+        versionCode 12
+        versionName "1.0.12-test"
 
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
 
         externalNativeBuild {
             cmake {
-                arguments "-DANDROID_STL=c++_shared"
+                arguments "-DANDROID_STL=c++_shared", "-DANDROID_SUPPORT_FLEXIBLE_PAGE_SIZES=ON"
             }
         }
     }
@@ -49,7 +49,7 @@ android {
 }
 
 dependencies {
-    implementation 'androidx.core:core:1.12.0'
-    implementation 'androidx.media:media:1.6.0'
-    implementation 'com.google.oboe:oboe:1.9.0'
+    implementation 'androidx.core:core:1.16.0'
+    implementation 'androidx.media:media:1.7.0'
+    implementation 'com.google.oboe:oboe:1.9.3'
 }
