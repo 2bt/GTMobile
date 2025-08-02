@@ -91,7 +91,7 @@ void draw_table_debug() {
         FilterTable,
         SpeedTable,
     };
-    static CursorSelect g_cursor_select = {};
+    static CursorSelect cursor_select = {};
 
     gt::Instrument& instr = g_song.instruments[piano::instrument()];
     char str[32];
@@ -109,7 +109,7 @@ void draw_table_debug() {
         if (instr.ptr[t] > 0) sprintf(str, "%02X", instr.ptr[t]);
         else sprintf(str, "\x01\x01");
         if (gui::button(str)) {
-            if (g_cursor_select == CursorSelect(t) && instr.ptr[t] != g_cursor_row + 1) {
+            if (cursor_select == CursorSelect(t) && instr.ptr[t] != g_cursor_row + 1) {
                 instr.ptr[t] = g_cursor_row + 1;
             }
             else {
@@ -153,14 +153,14 @@ void draw_table_debug() {
 
 
             if (state == gui::ButtonState::Released) {
-                g_cursor_select = CursorSelect(t);
+                cursor_select = CursorSelect(t);
                 g_cursor_row    = row;
             }
             if (state != gui::ButtonState::Normal) {
                 dc.rgb(color::BUTTON_PRESSED);
                 dc.box(box, gui::BoxStyle::Cursor);
             }
-            if (CursorSelect(t) == g_cursor_select && row == g_cursor_row) {
+            if (CursorSelect(t) == cursor_select && row == g_cursor_row) {
                 dc.rgb(color::BUTTON_ACTIVE);
                 dc.box(box, gui::BoxStyle::Cursor);
             }
@@ -268,12 +268,12 @@ void draw_table_debug() {
 
     gui::cursor({ 0, cursor.y + RH * table_page + app::BUTTON_HEIGHT });
 
-    switch (g_cursor_select) {
+    switch (cursor_select) {
     case CursorSelect::WaveTable:
     case CursorSelect::PulseTable:
     case CursorSelect::FilterTable:
     case CursorSelect::SpeedTable: {
-        int t = int(g_cursor_select);
+        int t = int(cursor_select);
         uint8_t* data[] = {
             &g_song.ltable[t][g_cursor_row],
             &g_song.rtable[t][g_cursor_row],

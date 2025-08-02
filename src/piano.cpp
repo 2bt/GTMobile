@@ -26,7 +26,7 @@ void shuffle_instruments(size_t i, size_t j) {
 
     // init instrument mapping
     std::array<uint8_t, gt::MAX_INSTR> mapping;
-    for (uint8_t i = 0; i < gt::MAX_INSTR; ++i) mapping[i] = i;
+    for (int n = 0; n < gt::MAX_INSTR; ++n) mapping[n] = n;
     if (i < j) {
         std::rotate(mapping.begin() + i, mapping.begin() + j, mapping.begin() + j + 1);
     } else if (i > j) {
@@ -36,7 +36,7 @@ void shuffle_instruments(size_t i, size_t j) {
     // apply mapping
     g_instrument = mapping[g_instrument];
     auto copy = g_song.instruments;
-    for (int i = 0; i < gt::MAX_INSTR; ++i) g_song.instruments[mapping[i]] = copy[i];
+    for (int n = 0; n < gt::MAX_INSTR; ++n) g_song.instruments[mapping[n]] = copy[n];
     for (gt::Pattern& patt : g_song.patterns) {
         for (gt::PatternRow& r : patt.rows) {
             r.instr = mapping[r.instr];
@@ -45,12 +45,12 @@ void shuffle_instruments(size_t i, size_t j) {
             }
         }
     }
-    for (int i = 0; i < gt::MAX_TABLELEN; ++i) {
-        uint8_t lval = g_song.ltable[gt::WTBL][i];
+    for (int n = 0; n < gt::MAX_TABLELEN; ++n) {
+        uint8_t lval = g_song.ltable[gt::WTBL][n];
         if ((lval & 0xf0) != 0xf0) continue;
         uint8_t cmd = lval & 0x0f;
         if (cmd >= gt::CMD_SETWAVEPTR && cmd <= gt::CMD_SETFILTERPTR) {
-            uint8_t& rval = g_song.rtable[gt::WTBL][i];
+            uint8_t& rval = g_song.rtable[gt::WTBL][n];
             rval = mapping[rval];
         }
     }

@@ -12,13 +12,13 @@
 #define STB_IMAGE_IMPLEMENTATION
 #define STBI_NO_FAILURE_STRINGS
 #define STBI_ONLY_PNG
-#include "stb_image.h"
-
+#include "gfx.hpp"
 #include "log.hpp"
 #include "platform.hpp"
-#include "gfx.hpp"
+#include "stb_image.h"
 
 #include <cassert>
+#include <cstddef>
 
 
 namespace gfx {
@@ -79,7 +79,7 @@ bool Image::init(char const* name) {
     free();
     std::vector<uint8_t> buf;
     if (!platform::load_asset(name, buf)) return false;
-    int w, h, c;
+    int w = 0, h = 0, c = 0;
     uint8_t* p = stbi_load_from_memory(buf.data(), buf.size(), &w, &h, &c, 0);
     assert(c == 4);
     Texture::init({w, h}, p);

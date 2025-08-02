@@ -1,11 +1,14 @@
+#include "gtsong.hpp"
+
+#include "log.hpp"
+
+#include <algorithm>
+#include <cassert>
+#include <cstddef>
 #include <cstdio>
 #include <cstring>
 #include <fstream>
 #include <vector>
-#include <cassert>
-#include <algorithm>
-#include "gtsong.hpp"
-#include "log.hpp"
 
 namespace gt {
 namespace {
@@ -184,8 +187,8 @@ void Song::load(std::istream& stream) {
     std::array<uint8_t, MAX_TABLELEN> porta = {};
     std::array<uint8_t, MAX_TABLELEN> vib   = {};
     std::array<uint8_t, MAX_TABLELEN> funk  = {};
-    for (Pattern& patt : patterns) {
-        for (PatternRow& row : patt.rows) {
+    for (Pattern const& patt : patterns) {
+        for (PatternRow const& row : patt.rows) {
             if (row.data == 0) continue;
             if (row.command >= CMD_PORTAUP && row.command <= CMD_TONEPORTA) porta[row.data - 1] = 1;
             if (row.command == CMD_VIBRATO)                                 vib[row.data - 1] = 1;
@@ -266,7 +269,7 @@ void Song::load(std::istream& stream) {
 
         // create initial mapping from table row to instrument
         for (int i = instr_count; i > 0; i--) {
-            Instrument& instr = instruments[i];
+            Instrument const& instr = instruments[i];
             if (instr.ptr[t] == 0) continue;
             int addr = instr.ptr[t] - 1;
             addr_to_instr[addr] = i;
@@ -372,19 +375,19 @@ int Song::get_table_length(int table) const {
 }
 
 
-int Song::get_table_part_length(int table, int start) const {
-    if (start < 0) return 0;
+int Song::get_table_part_length(int table, int start_row) const {
+    if (start_row < 0) return 0;
     if (table == STBL) return 1;
     int i;
-    for (i = start; i < gt::MAX_TABLELEN; ++i) {
+    for (i = start_row; i < gt::MAX_TABLELEN; ++i) {
         if (ltable[table][i] == 0xff) {
             int a = rtable[table][i];
-            assert(a == 0 || (a - 1 >= start && a - 1 < i));
+            assert(a == 0 || (a - 1 >= start_row && a - 1 < i));
             ++i;
             break;
         }
     }
-    return i - start;
+    return i - start_row;
 }
 
 

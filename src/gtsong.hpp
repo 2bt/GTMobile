@@ -103,7 +103,7 @@ struct Pattern {
 
 
 struct LoadError : public std::exception {
-    LoadError(std::string msg) : msg(std::move(msg)) {}
+    explicit LoadError(std::string msg) : msg(std::move(msg)) {}
     const char* what() const noexcept override {
         return msg.c_str();
     }
@@ -131,7 +131,7 @@ struct Song {
     Model                                     model      = Model::MOS8580;
 
     int get_table_length(int table) const;
-    int get_table_part_length(int table, int row) const;
+    int get_table_part_length(int table, int start_row) const;
 
     void load(char const* filename);
     void load(uint8_t const* data, size_t size);

@@ -1,16 +1,19 @@
 #include "song_view.hpp"
-#include "gui.hpp"
-#include "settings_view.hpp"
-#include "instrument_view.hpp"
+
+#include "app.hpp"
 #include "command_edit.hpp"
 #include "gtplayer.hpp"
+#include "gui.hpp"
+#include "instrument_view.hpp"
 #include "log.hpp"
-#include "app.hpp"
 #include "piano.hpp"
+#include "settings_view.hpp"
 #include "sid.hpp"
+
 #include <array>
-#include <cstring>
 #include <cassert>
+#include <cstddef>
+#include <cstring>
 
 
 

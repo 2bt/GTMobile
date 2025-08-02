@@ -12,7 +12,7 @@ uint16_t get_freq(int note);
 
 class Player {
 public:
-    Player(gt::Song const& song);
+    explicit Player(gt::Song const& song);
 
     enum class Action {
         None,

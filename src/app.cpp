@@ -1,17 +1,20 @@
 #include "app.hpp"
+
+#include "command_edit.hpp"
+#include "gtplayer.hpp"
 #include "gtsong.hpp"
 #include "gui.hpp"
-#include "platform.hpp"
-#include "gtplayer.hpp"
-#include "sid.hpp"
-#include "log.hpp"
-#include "project_view.hpp"
-#include "song_view.hpp"
-#include "instrument_view.hpp"
 #include "instrument_manager_view.hpp"
-#include "command_edit.hpp"
-#include "settings_view.hpp"
+#include "instrument_view.hpp"
+#include "log.hpp"
 #include "piano.hpp"
+#include "platform.hpp"
+#include "project_view.hpp"
+#include "settings_view.hpp"
+#include "sid.hpp"
+#include "song_view.hpp"
+
+#include <cstddef>
 #include <cstring>
 #include <fstream>
 

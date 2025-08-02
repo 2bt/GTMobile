@@ -76,10 +76,10 @@ void const* get_id(void const* addr) {
 }
 
 void button_color(ButtonState state, bool active) {
-    g_dc.rgb(state == ButtonState::Normal && !active ? g_color_theme.button_normal :
-             state == ButtonState::Normal && active  ? g_color_theme.button_active :
-             state == ButtonState::Pressed           ? g_color_theme.button_pressed :
-           /*state == ButtonState::Released*/          g_color_theme.button_released);
+    g_dc.rgb((state == ButtonState::Normal && !active) ? g_color_theme.button_normal :
+             (state == ButtonState::Normal && active)  ? g_color_theme.button_active :
+             state == ButtonState::Pressed             ? g_color_theme.button_pressed :
+           /*state == ButtonState::Released*/            g_color_theme.button_released);
 }
 
 } // namespace
@@ -198,7 +198,7 @@ namespace touch {
     }
     bool touched(Box const& box) {
         if (g_window_index != g_last_max_window_count) return false;
-        return (g_touch_pressed | g_touch_prev_pressed) && box.contains(g_touch_pos);
+        return (g_touch_pressed || g_touch_prev_pressed) && box.contains(g_touch_pos);
     }
     bool just_touched(Box const& box) {
         if (g_window_index != g_last_max_window_count) return false;

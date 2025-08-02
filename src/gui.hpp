@@ -241,7 +241,7 @@ private:
     u8vec4     m_color       = { 255 };
     int        m_font_offset = 0;
     ivec2      m_char_size   = { 8, 8 };
-    gfx::Mesh* m_mesh;
+    gfx::Mesh* m_mesh{};
 
 };
 

@@ -99,14 +99,14 @@ void start_export_thread() {
             // calculate song length in samples
             gt::Player player{ g_song };
             player.set_action(gt::Player::Action::Start);
-            int tick_count = 1;
+            uint32_t tick_count = 1;
             while (player.channel_loop_counter(0) == 0) {
                 player.play_routine();
                 ++tick_count;
             }
             tick_count += player.channel_tempo(0);
-            int const ticks_per_second = g_song.multiplier * 50 ?: 25;
-            int const cycles_per_tick  = Sid::CLOCKRATE_PAL / ticks_per_second;
+            uint32_t const ticks_per_second = g_song.multiplier * 50 ?: 25;
+            uint64_t const cycles_per_tick  = Sid::CLOCKRATE_PAL / ticks_per_second;
             uint64_t cycles = cycles_per_tick * tick_count;
             samples = cycles * app::MIXRATE / Sid::CLOCKRATE_PAL;
         }
