@@ -51,6 +51,7 @@ int                            g_mark_row;
 bool                           g_show_order_edit_window;
 bool                           g_show_pattern_edit_window;
 std::array<bool, gt::MAX_PATT> g_pattern_empty;
+std::array<bool, gt::MAX_PATT> g_pattern_marked;
 
 
 struct SongCopyBuffer {
@@ -79,17 +80,21 @@ void init_order_edit() {
     g_show_order_edit_window = true;
     g_transpose = g_song.song_order[g_cursor_chan][g_cursor_song_row].trans;
     check_empty_patterns();
-}
 
-
-void exit_order_edit() {
-    g_show_order_edit_window = false;
-    // change transpose on all rows below
-    auto& order = g_song.song_order[g_cursor_chan];
-    int trans = order[g_cursor_song_row].trans;
-    for (int i = g_cursor_song_row; i < g_song.song_len; ++i) {
-        if (order[i].trans != trans) break;
-        order[i].trans = g_transpose;
+    g_pattern_marked = {};
+    if (g_edit_mode != EditMode::SongMark) {
+        g_mark_row  = g_cursor_song_row;
+        g_mark_chan = g_cursor_chan;
+    }
+    int mark_row_min  = std::min(g_mark_row, g_cursor_song_row);
+    int mark_row_max  = std::max(g_mark_row, g_cursor_song_row);
+    int mark_chan_min = std::min(g_mark_chan, g_cursor_chan);
+    int mark_chan_max = std::max(g_mark_chan, g_cursor_chan);
+    for (int c = mark_chan_min; c <= mark_chan_max; ++c) {
+        for (int r = mark_row_min; r <= mark_row_max ; ++r) {
+            auto row = g_song.song_order[c][r];
+            g_pattern_marked[row.pattnum] = true;
+        }
     }
 }
 
@@ -110,29 +115,44 @@ void draw_order_edit() {
     gui::text("SET PATTERN");
     gui::separator();
 
-    auto&         order = g_song.song_order[g_cursor_chan];
-    gt::OrderRow& row   = order[g_cursor_song_row];
-
     char str[32];
     gui::item_size({ CW, row_h });
     for (int i = 0; i < gt::MAX_PATT; ++i) {
         gui::same_line(i % 8 != 0);
         sprintf(str, "%02X", i);
         gui::button_style(g_pattern_empty[i] ? gui::ButtonStyle::Shaded : gui::ButtonStyle::Normal);
-        if (gui::button(str, row.pattnum == i)) {
-            row.pattnum = i;
-            exit_order_edit();
+        if (gui::button(str, g_pattern_marked[i])) {
+            int mark_row_min  = std::min(g_mark_row, g_cursor_song_row);
+            int mark_row_max  = std::max(g_mark_row, g_cursor_song_row);
+            int mark_chan_min = std::min(g_mark_chan, g_cursor_chan);
+            int mark_chan_max = std::max(g_mark_chan, g_cursor_chan);
+            for (int c = mark_chan_min; c <= mark_chan_max; ++c) {
+                for (int r = mark_row_min; r <= mark_row_max ; ++r) {
+                    g_song.song_order[c][r].pattnum = i;
+                }
+            }
+            g_show_order_edit_window = false;
         }
     }
     gui::button_style(gui::ButtonStyle::Normal);
     gui::item_size({ WIDTH, app::BUTTON_HEIGHT });
 
     sprintf(str, "TRANSPOSE %c%X", "+-"[g_transpose < 0], abs(g_transpose));
-    gui::slider(WIDTH, str, g_transpose, -0xf, 0xe);
+    if (gui::slider(WIDTH, str, g_transpose, -0xf, 0xe)) {
+        int mark_row_min  = std::min(g_mark_row, g_cursor_song_row);
+        int mark_row_max  = std::max(g_mark_row, g_cursor_song_row);
+        int mark_chan_min = std::min(g_mark_chan, g_cursor_chan);
+        int mark_chan_max = std::max(g_mark_chan, g_cursor_chan);
+        for (int c = mark_chan_min; c <= mark_chan_max; ++c) {
+            for (int r = mark_row_min; r <= mark_row_max ; ++r) {
+                g_song.song_order[c][r].trans = g_transpose;;
+            }
+        }
+    }
 
     gui::item_size({ WIDTH, app::BUTTON_HEIGHT });
     gui::separator();
-    if (gui::button("CLOSE")) exit_order_edit();
+    if (gui::button("CLOSE")) g_show_order_edit_window = false;
     gui::end_window();
 }
 
@@ -632,24 +652,8 @@ void draw() {
                 }
             }
         }
-
-        // transpose up
-        if (gui::button("\x09\x10")) {
-            for (int c = mark_chan_min; c <= mark_chan_max; ++c) {
-                for (int i = mark_row_min; i <= mark_row_max ; ++i) {
-                    gt::OrderRow& row = g_song.song_order[c][i];
-                    row.trans = std::min(row.trans + 1, 0xe);
-                }
-            }
-        }
-        // transpose down
-        if (gui::button("\x09\x11")) {
-            for (int c = mark_chan_min; c <= mark_chan_max; ++c) {
-                for (int i = mark_row_min; i <= mark_row_max ; ++i) {
-                    gt::OrderRow& row = g_song.song_order[c][i];
-                    row.trans = std::max(row.trans - 1, -0xf);
-                }
-            }
+        if (gui::button(gui::Icon::Edit)) {
+            init_order_edit();
         }
 
         gui::separator();
