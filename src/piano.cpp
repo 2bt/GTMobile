@@ -34,6 +34,9 @@ void shuffle_instruments(size_t i, size_t j) {
     }
 
     // apply mapping
+    // 1. pattern: instrument
+    // 2. pattern: table ptr commands
+    // 3. wave table: table ptr commands
     g_instrument = mapping[g_instrument];
     auto copy = g_song.instruments;
     for (int n = 0; n < gt::MAX_INSTR; ++n) g_song.instruments[mapping[n]] = copy[n];

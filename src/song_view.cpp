@@ -50,6 +50,7 @@ int                            g_mark_chan;
 int                            g_mark_row;
 bool                           g_show_order_edit_window;
 bool                           g_show_pattern_edit_window;
+int                            g_drag_pattern;
 std::array<bool, gt::MAX_PATT> g_pattern_empty;
 std::array<bool, gt::MAX_PATT> g_pattern_marked;
 
@@ -60,6 +61,25 @@ struct SongCopyBuffer {
     int len;
 };
 
+void shuffle_patterns(size_t i, size_t j) {
+    if (i == j) return;
+    // init mapping
+    std::array<uint8_t, gt::MAX_PATT> mapping;
+    for (int n = 0; n < gt::MAX_PATT; ++n) mapping[n] = n;
+    if (i < j) {
+        std::rotate(mapping.begin() + i, mapping.begin() + j, mapping.begin() + j + 1);
+    } else if (i > j) {
+        std::rotate(mapping.begin() + j, mapping.begin() + j + 1, mapping.begin() + i + 1);
+    }
+    // apply mapping
+    auto copy = g_song.patterns;
+    for (int n = 0; n < gt::MAX_PATT; ++n) g_song.patterns[mapping[n]] = copy[n];
+    for (auto& o : g_song.song_order) {
+        for (gt::OrderRow& row : o) {
+            row.pattnum = mapping[row.pattnum];
+        }
+    }
+}
 
 void check_empty_patterns() {
     for (int i = 0; i < gt::MAX_PATT; ++i) {
@@ -74,18 +94,8 @@ void check_empty_patterns() {
         }
     }
 }
-
-
-void init_order_edit() {
-    g_show_order_edit_window = true;
-    g_transpose = g_song.song_order[g_cursor_chan][g_cursor_song_row].trans;
-    check_empty_patterns();
-
+void check_marked_patterns() {
     g_pattern_marked = {};
-    if (g_edit_mode != EditMode::SongMark) {
-        g_mark_row  = g_cursor_song_row;
-        g_mark_chan = g_cursor_chan;
-    }
     int mark_row_min  = std::min(g_mark_row, g_cursor_song_row);
     int mark_row_max  = std::max(g_mark_row, g_cursor_song_row);
     int mark_chan_min = std::min(g_mark_chan, g_cursor_chan);
@@ -96,6 +106,19 @@ void init_order_edit() {
             g_pattern_marked[row.pattnum] = true;
         }
     }
+}
+
+
+void init_order_edit() {
+    g_show_order_edit_window = true;
+    g_transpose = g_song.song_order[g_cursor_chan][g_cursor_song_row].trans;
+    check_empty_patterns();
+
+    if (g_edit_mode != EditMode::SongMark) {
+        g_mark_row  = g_cursor_song_row;
+        g_mark_chan = g_cursor_chan;
+    }
+    check_marked_patterns();
 }
 
 
@@ -115,24 +138,60 @@ void draw_order_edit() {
     gui::text("SET PATTERN");
     gui::separator();
 
+    gui::DrawContext& dc = gui::draw_context();
     char str[32];
     gui::item_size({ CW, row_h });
     for (int i = 0; i < gt::MAX_PATT; ++i) {
         gui::same_line(i % 8 != 0);
         sprintf(str, "%02X", i);
-        gui::button_style(g_pattern_empty[i] ? gui::ButtonStyle::Shaded : gui::ButtonStyle::Normal);
-        if (gui::button(str, g_pattern_marked[i])) {
-            int mark_row_min  = std::min(g_mark_row, g_cursor_song_row);
-            int mark_row_max  = std::max(g_mark_row, g_cursor_song_row);
-            int mark_chan_min = std::min(g_mark_chan, g_cursor_chan);
-            int mark_chan_max = std::max(g_mark_chan, g_cursor_chan);
-            for (int c = mark_chan_min; c <= mark_chan_max; ++c) {
-                for (int r = mark_row_min; r <= mark_row_max ; ++r) {
-                    g_song.song_order[c][r].pattnum = i;
-                }
+
+
+        if (i == g_drag_pattern) {
+            // drag pattern
+            int prev_pattern = g_drag_pattern;
+
+            gui::Box box = gui::item_box();
+            dc.rgb(color::BUTTON_DRAGGED);
+            dc.box(box, gui::BoxStyle::Normal);
+            dc.rgb(color::WHITE);
+            dc.text(gui::text_pos(box, str), str);
+            ivec2 p = gui::touch::pos() - box.pos;
+            ivec2 mov = {
+                div_floor(p.x, box.size.x),
+                div_floor(p.y, box.size.y),
+            };
+            ivec2 pos = ivec2(i % 8, i / 8) + mov;
+            pos = clamp(pos, { 0, 0 }, { 7, 25 });
+            g_drag_pattern = pos.x + pos.y * 8;
+            if (prev_pattern != g_drag_pattern) {
+                shuffle_patterns(prev_pattern, g_drag_pattern);
+                check_empty_patterns();
+                check_marked_patterns();
             }
-            g_show_order_edit_window = false;
+            if (gui::touch::just_released()) g_drag_pattern = -1;
         }
+        else {
+            gui::button_style(g_pattern_empty[i] ? gui::ButtonStyle::Shaded : gui::ButtonStyle::Normal);
+            if (gui::button(str, g_pattern_marked[i])) {
+                int mark_row_min  = std::min(g_mark_row, g_cursor_song_row);
+                int mark_row_max  = std::max(g_mark_row, g_cursor_song_row);
+                int mark_chan_min = std::min(g_mark_chan, g_cursor_chan);
+                int mark_chan_max = std::max(g_mark_chan, g_cursor_chan);
+                for (int c = mark_chan_min; c <= mark_chan_max; ++c) {
+                    for (int r = mark_row_min; r <= mark_row_max ; ++r) {
+                        g_song.song_order[c][r].pattnum = i;
+                    }
+                }
+                g_show_order_edit_window = false;
+            }
+            else if (gui::hold()) {
+                g_drag_pattern = i;
+                gui::set_active_item(&g_drag_pattern);
+            }
+
+        }
+
+
     }
     gui::button_style(gui::ButtonStyle::Normal);
     gui::item_size({ WIDTH, app::BUTTON_HEIGHT });
@@ -212,6 +271,7 @@ void reset() {
     g_mark_edit                = false;
     g_show_order_edit_window   = false;
     g_show_pattern_edit_window = false;
+    g_drag_pattern             = -1;
 }
 
 bool get_follow() {
