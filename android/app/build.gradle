@@ -4,7 +4,7 @@ plugins {
 
 android {
     namespace 'com.twobit.gtmobile'
-    compileSdk 35
+    compileSdk 36
 
     defaultConfig {
         applicationId "com.twobit.gtmobile"
