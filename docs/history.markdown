@@ -4,6 +4,14 @@ title: History
 permalink: /history/
 ---
 
+## 1.0.13 (2025-08-05)
++ hide speed table partition magic
++ instr table: adding a row clones the selected row
++ song table: support for bulk edit on selection
++ set pattern window: re-arrange patterns via hold+drag
++ chage loop mark color to white
+
+
 ## 1.0.11 (2025-07-29)
 + support 16 KB page sizes
 + remove deprecated Android APIs

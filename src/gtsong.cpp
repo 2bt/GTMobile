@@ -350,7 +350,7 @@ void Song::load(std::istream& stream) {
             }
         }
         if (nlt.size() > ltable[t].size()) {
-            load_error("not enough table space");
+            load_error("not enough space in table " + std::to_string(t));
         }
         ltable[t] = {};
         rtable[t] = {};
