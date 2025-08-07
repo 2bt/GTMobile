@@ -738,8 +738,24 @@ void draw() {
     int num_free_rows = gt::MAX_TABLELEN - g_song.get_table_length(g_table);
     if (g_cursor_select == CursorSelect::Table) {
         gui::cursor({ app::CANVAS_WIDTH - 55, cursor.y });
-
         gui::item_size({ 55, app::BUTTON_HEIGHT });
+
+        gui::disabled(g_cursor_row >= len);
+        if (gui::button(gui::Icon::DeleteRow)) {
+            delete_table_row(g_table, start_row + g_cursor_row);
+            --len;
+            --end_row;
+            if (len == 0) {
+                // delete jump row
+                delete_table_row(g_table, start_row);
+            }
+            else {
+                // clamp jump pointer
+                auto& loop = rtable[end_row];
+                if (loop > 0) loop = clamp<int>(loop, start_row + 1, end_row);
+                g_cursor_row = std::min(g_cursor_row, len - 1);
+            }
+        }
         gui::disabled(num_free_rows <= 0 + (len == 0));
         if (gui::button(gui::Icon::AddRowAbove)) {
             uint8_t cursor_lval = 0;
@@ -778,25 +794,9 @@ void draw() {
             ltable[start_row + g_cursor_row] = cursor_lval;
             rtable[start_row + g_cursor_row] = cursor_rval;
         }
-
-        gui::disabled(g_cursor_row >= len);
-        if (gui::button(gui::Icon::DeleteRow)) {
-            delete_table_row(g_table, start_row + g_cursor_row);
-            --len;
-            --end_row;
-            if (len == 0) {
-                // delete jump row
-                delete_table_row(g_table, start_row);
-            }
-            else {
-                // clamp jump pointer
-                auto& loop = rtable[end_row];
-                if (loop > 0) loop = clamp<int>(loop, start_row + 1, end_row);
-                g_cursor_row = std::min(g_cursor_row, len - 1);
-            }
-        }
-        bool is_loop = rtable[end_row] == start_row + g_cursor_row + 1;
+        gui::disabled(len == 0);
         if (gui::button(gui::Icon::JumpBack)) {
+            bool is_loop = rtable[end_row] == start_row + g_cursor_row + 1;
             if (is_loop) rtable[end_row] = 0;
             else rtable[end_row] = start_row + g_cursor_row + 1;
         }

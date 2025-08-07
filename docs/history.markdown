@@ -9,7 +9,7 @@ permalink: /history/
 + instr table: adding a row clones the selected row
 + song table: support for bulk edit on selection
 + set pattern window: re-arrange patterns via hold+drag
-+ chage loop mark color to white
++ change loop mark color to white
 
 
 ## 1.0.11 (2025-07-29)

@@ -655,6 +655,17 @@ void draw() {
                 }
             }
         }
+        gui::disabled(!(len > 1 && pos < len));
+        if (gui::button(gui::Icon::DeleteRow)) {
+            for (auto& order : g_song.song_order) {
+                order[pos] = {};
+                std::rotate(order.begin() + pos, order.begin() + pos + 1, order.end());
+            }
+            --len;
+            if (pos > 0 && g_song.song_loop > pos) --g_song.song_loop;
+            if (g_song.song_loop >= len) g_song.song_loop = len - 1;
+            if (pos >= len) --pos;
+        }
 
         gui::disabled(!(len < gt::MAX_SONG_ROWS && pos <= len));
         if (gui::button(gui::Icon::AddRowAbove)) {
@@ -673,17 +684,6 @@ void draw() {
             }
             if (g_song.song_loop >= pos) ++g_song.song_loop;
             ++len;
-        }
-        gui::disabled(!(len > 1 && pos < len));
-        if (gui::button(gui::Icon::DeleteRow)) {
-            for (auto& order : g_song.song_order) {
-                order[pos] = {};
-                std::rotate(order.begin() + pos, order.begin() + pos + 1, order.end());
-            }
-            --len;
-            if (pos > 0 && g_song.song_loop > pos) --g_song.song_loop;
-            if (g_song.song_loop >= len) g_song.song_loop = len - 1;
-            if (pos >= len) --pos;
         }
         gui::disabled(g_song.song_loop == g_cursor_song_row);
         if (gui::button(gui::Icon::JumpBack)) {
@@ -723,6 +723,7 @@ void draw() {
     // pattern edit
     static std::array<gt::Pattern, 3> pattern_copy_buffer = {};
     static uint8_t                    pattern_copy_flags  = 0;
+    enum { PCF_NOTE = 1, PCF_COMMAND = 2 };
 
     gt::Pattern& patt = g_song.patterns[patt_nums[g_cursor_chan]];
     if (g_edit_mode == EditMode::Pattern && g_cursor_pattern_row < patt.len) {
@@ -735,11 +736,11 @@ void draw() {
 
                 for (int i = 0; i < src.len; ++i) {
                     if (g_cursor_pattern_row + i >= dst.len) break;
-                    if (pattern_copy_flags & 1) {
+                    if (pattern_copy_flags & PCF_NOTE) {
                         dst.rows[g_cursor_pattern_row + i].note  = src.rows[i].note;
                         dst.rows[g_cursor_pattern_row + i].instr = src.rows[i].instr;
                     }
-                    if (pattern_copy_flags & 2) {
+                    if (pattern_copy_flags & PCF_COMMAND) {
                         dst.rows[g_cursor_pattern_row + i].command = src.rows[i].command;
                         dst.rows[g_cursor_pattern_row + i].data    = src.rows[i].data;
                     }
@@ -802,21 +803,28 @@ void draw() {
 
         gt::PatternRow& row  = patt.rows[g_cursor_pattern_row];
         // note edit buttons
-        if (gui::button(gui::Icon::Record, g_recording)) {
-            g_recording = !g_recording;
-        }
-        if (gui::button(row.note != gt::KEYOFF ? "\x0a\x0b\x0c" : "\x0d\x0e\x0f")) {
-            row.note  = row.note != gt::KEYOFF ? gt::KEYOFF : gt::KEYON;
-            row.instr = 0;
-        }
         gui::disabled(row.note == gt::REST);
         if (gui::button(gui::Icon::X)) {
             row.note  = gt::REST;
             row.instr = 0;
         }
         gui::disabled(false);
+        if (gui::button(row.note != gt::KEYOFF ? "\x0a\x0b\x0c" : "\x0d\x0e\x0f")) {
+            row.note  = row.note != gt::KEYOFF ? gt::KEYOFF : gt::KEYON;
+            row.instr = 0;
+        }
+        if (gui::button(gui::Icon::Record, g_recording)) {
+            g_recording = !g_recording;
+        }
         gui::separator();
+
         // command edit buttons
+        gui::disabled(row.command == 0);
+        if (gui::button(gui::Icon::X)) {
+            row.command = 0;
+            row.data = 0;
+        }
+        gui::disabled(false);
         if (gui::button(gui::Icon::Edit)) {
             command_edit::init(command_edit::Location::Pattern, row.command, row.data, [&row](uint8_t cmd, uint8_t data) {
                 row.command = cmd;
@@ -830,13 +838,6 @@ void draw() {
             piano::set_instrument(row.data);
             instrument_view::select_table(row.command - gt::CMD_SETWAVEPTR);
         }
-
-        gui::disabled(row.command == 0);
-        if (gui::button(gui::Icon::X)) {
-            row.command = 0;
-            row.data = 0;
-        }
-        gui::disabled(false);
         gui::separator();
 
 
@@ -878,7 +879,7 @@ void draw() {
         // copy all
         if (gui::button(gui::Icon::Copy)) {
             copy_to_pattern_buffer();
-            pattern_copy_flags = 3;
+            pattern_copy_flags = PCF_NOTE | PCF_COMMAND;
         }
         // delete
         if (gui::button(gui::Icon::X)) {
@@ -891,6 +892,23 @@ void draw() {
             }
         }
         gui::separator();
+
+        // copy notes
+        if (gui::button(gui::Icon::Copy)) {
+            copy_to_pattern_buffer();
+            pattern_copy_flags = PCF_NOTE;
+        }
+        // delete notes
+        if (gui::button(gui::Icon::X)) {
+            for (int c = mark_chan_min; c <= mark_chan_max; ++c) {
+                gt::Pattern& patt = g_song.patterns[patt_nums[c]];
+                for (int i = mark_row_min; i <= mark_row_max; ++i) {
+                    if (i >= patt.len) break;
+                    patt.rows[i].note  = gt::REST;
+                    patt.rows[i].instr = 0;
+                }
+            }
+        }
 
         // transpose up
         if (gui::button("\x09\x10")) {
@@ -928,24 +946,24 @@ void draw() {
             }
         }
 
-        // copy notes
+        gui::separator();
+
+        // copy command
         if (gui::button(gui::Icon::Copy)) {
             copy_to_pattern_buffer();
-            pattern_copy_flags = 1;
+            pattern_copy_flags = PCF_COMMAND;
         }
-        // delete notes
+        // delete command
         if (gui::button(gui::Icon::X)) {
             for (int c = mark_chan_min; c <= mark_chan_max; ++c) {
                 gt::Pattern& patt = g_song.patterns[patt_nums[c]];
                 for (int i = mark_row_min; i <= mark_row_max; ++i) {
                     if (i >= patt.len) break;
-                    patt.rows[i].note  = gt::REST;
-                    patt.rows[i].instr = 0;
+                    patt.rows[i].command = 0;
+                    patt.rows[i].data    = 0;
                 }
             }
         }
-        gui::separator();
-
         // edit command
         if (gui::button(gui::Icon::Edit)) {
             gt::Pattern const&    patt = g_song.patterns[patt_nums[mark_chan_min]];
@@ -960,22 +978,6 @@ void draw() {
                     }
                 }
             });
-        }
-        // copy command
-        if (gui::button(gui::Icon::Copy)) {
-            copy_to_pattern_buffer();
-            pattern_copy_flags = 2;
-        }
-        // delete command
-        if (gui::button(gui::Icon::X)) {
-            for (int c = mark_chan_min; c <= mark_chan_max; ++c) {
-                gt::Pattern& patt = g_song.patterns[patt_nums[c]];
-                for (int i = mark_row_min; i <= mark_row_max; ++i) {
-                    if (i >= patt.len) break;
-                    patt.rows[i].command = 0;
-                    patt.rows[i].data    = 0;
-                }
-            }
         }
         gui::separator();
     }

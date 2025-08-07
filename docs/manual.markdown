@@ -95,9 +95,9 @@ The following buttons are available when a single cell is selected:
 <img src="{{ '/assets/song-cell-buttons.png' | relative_url }}">
 
 + **PASTE** – Paste the copied region starting at the selected cell.
++ **DELETE ROW** – Delete the selected row.
 + **ADD ROW ABOVE** – Insert a new row above the current one.
 + **ADD ROW BELOW** – Insert a new row below the current one.
-+ **DELETE ROW** – Delete the selected row.
 + **LOOP** – Mark the selected row as the loop start point when playback restarts.
 + **EDIT** – Open the **pattern index window** for the selected cell.
 <p>
@@ -110,8 +110,7 @@ The following buttons are available when a multiple cells are selected:
 <img src="{{ '/assets/song-region-buttons.png' | relative_url }}">
 
 + **COPY** – Copy the selected region.
-+ **TRANSPOSE UP** – Transpose selected region up by one semitone.
-+ **TRANSPOSE DOWN** – Transpose selected region down by one semitone.
++ **EDIT** – Open the **pattern index window** for the selected cells.
 
 ### Pattern Table
 
@@ -131,15 +130,15 @@ When a single pattern row is selected, the following buttons are available, grou
   + **PASTE** – Paste the copied region starting at the selected row.
   + **PATTERN LENGTH** – Open the **pattern length window**.
 2. Note & Instrument Controls
+  + **CLEAR NOTE** – Clear the note and instrument index of this row.
+  + **GATE OFF/ON** – Write a **gate-off** event. If the row already has **gate-off**, replace it with **gate-on**.
   + **RECORD** – Enable/disable note recording.
     When enabled, tapping the piano writes the note and current instrument to this row.
-  + **GATE OFF/ON** – Write a **gate-off** event. If the row already has **gate-off**, replace it with **gate-on**.
-  + **CLEAR NOTE** – Clear the note and instrument index of this row.
 3. Command Controls
+  + **CLEAR COMMAND** – Delete an existing command in this row.
   + **EDIT COMMAND** – Open the **command editor** window for this row.
     If a table command is selected (i.e., `8`, `9`, or, `A`),
     **long-pressing** this button jumps to **INSTRUMENT** view, showing the corresponding instrument and table.
-  + **CLEAR COMMAND** – Delete an existing command in this row.
 4. Playback
   + **PLAY** – Play the song starting at the selected pattern row.
 
@@ -151,15 +150,15 @@ When multiple pattern rows are selected, a number of buttons are available, grou
   + **COPY** – Copy the region.
   + **CLEAR** – Clear the region.
 2. Note & Instrument Controls
+  + **COPY NOTE** – Copy notes from the region.
+  + **CLEAR NOTE** – Clear notes of the region.
   + **TRANSPOSE UP** – Raise selected notes by one semitone.
   + **TRANSPOSE DOWN** – Lower selected notes by one semitone.
   + **INSTRUMENT OVERWRITE** – Set all selected notes to the current instrument.
-  + **COPY NOTE** – Copy notes from the region.
-  + **CLEAR NOTE** – Clear notes of the region.
 3. Command Controls
-  + **EDIT COMMAND** – Open the **command editor** window for the entire region.
   + **COPY COMMAND** – Copy commands from the region.
   + **CLEAR COMMAND** – Clear commands of the region.
+  + **EDIT COMMAND** – Open the **command editor** window for the entire region.
 
 
 ### Pattern Length Window
