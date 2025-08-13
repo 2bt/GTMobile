@@ -52,6 +52,7 @@ bool            g_initialized = false;
 std::string     g_storage_dir = ".";
 Mixer           g_mixer(g_player, g_sid);
 bool            g_take_screenshot = false;
+std::string     g_import_song_path;
 
 
 void setup_canvas() {
@@ -193,6 +194,7 @@ Sid&               sid() { return g_sid; }
 int                canvas_height() { return g_canvas_height; }
 std::string const& storage_dir() { return g_storage_dir; }
 void               set_storage_dir(std::string const& storage_dir) { g_storage_dir = storage_dir; }
+void               set_import_song_path(std::string const& import_song_path) { g_import_song_path = import_song_path; }
 bool               is_in_song_view() { return g_view == View::Song; }
 void               go_to_instrument_view() { g_view = View::Instrument; }
 
@@ -401,9 +403,18 @@ void key(int key, int unicode) {
 }
 
 void draw() {
+    // setup canvas
     if (g_canvas_setup_requested) {
         g_canvas_setup_requested = false;
         setup_canvas();
+    }
+
+    // import song
+    if (!g_import_song_path.empty()) {
+        g_view = View::Project;
+        project_view::init();
+        project_view::import_song(g_import_song_path);
+        g_import_song_path = "";
     }
 
     gfx::canvas(g_canvas);

@@ -7,7 +7,7 @@
     X(row_highlight,        int,  8) \
     X(row_height,           int,  15) \
     X(sampling_method,      int,  3) \
-    X(register_write_order, int,  0)
+    X(register_write_order, int,  1)
 
 
 namespace settings_view {

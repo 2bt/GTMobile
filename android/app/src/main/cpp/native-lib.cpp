@@ -2,7 +2,6 @@
 #include "app.hpp"
 #include "gui.hpp"
 #include "settings_view.hpp"
-#include "project_view.hpp"
 #include <android/asset_manager.h>
 #include <android/asset_manager_jni.h>
 #include <jni.h>
@@ -231,7 +230,7 @@ extern "C" {
 
     JNIEXPORT void JNICALL Java_com_twobit_gtmobile_Native_importSong(JNIEnv* env, jclass clazz, jstring jpath) {
         char const* path = env->GetStringUTFChars(jpath, nullptr);
-        project_view::import_song(path);
+        if (path) app::set_import_song_path(path);
         env->ReleaseStringUTFChars(jpath, path);
     }
 

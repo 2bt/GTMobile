@@ -204,6 +204,7 @@ bool poll_midi_event(uint8_t& status, uint8_t& data1, uint8_t& data2) {
 
 
 int main(int argc, char** argv) {
+    if (argc == 2) app::set_import_song_path(argv[1]);
 
     SDL_Init(SDL_INIT_VIDEO | SDL_INIT_AUDIO);
     SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1);

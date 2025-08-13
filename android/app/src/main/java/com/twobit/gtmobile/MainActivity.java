@@ -12,8 +12,6 @@ import android.os.Build;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.Window;
-import android.view.WindowInsets;
-import android.view.WindowInsetsController;
 import android.view.inputmethod.InputMethodManager;
 import android.view.KeyEvent;
 import android.media.midi.MidiManager;
@@ -67,6 +65,26 @@ public class MainActivity extends Activity {
         sInstance.startActivityForResult(intent, REQUEST_CODE_IMPORT_FILE);
     }
 
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, @Nullable Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+        Log.i(TAG, "onActivityResult " + requestCode + " " + resultCode);
+        if (resultCode != Activity.RESULT_OK || data == null) return;
+        Uri fileUri = data.getData();
+
+        if (requestCode == REQUEST_CODE_IMPORT_FILE) {
+            String fileName = FileUtils.getFileName(this, fileUri);
+            if (fileName == null) fileName = "song.sng";
+            String path = new File(getCacheDir(), fileName).getAbsolutePath();
+            FileUtils.copyUriToFile(this, fileUri, path);
+            Native.importSong(path);
+        }
+        if (requestCode == REQUEST_CODE_EXPORT_FILE) {
+            FileUtils.copyFileToUri(this, mExportPath, fileUri);
+            if (mExportDeleteWhenDone) new File(mExportPath).delete();
+        }
+    }
+
     // called from C++
     static public void exportFile(String path, String title, boolean deleteWhenDone) {
         Intent intent = new Intent(Intent.ACTION_CREATE_DOCUMENT);
@@ -94,28 +112,6 @@ public class MainActivity extends Activity {
             }
         });
     }
-
-    @Override
-    protected void onActivityResult(int requestCode, int resultCode, @Nullable Intent data) {
-        super.onActivityResult(requestCode, resultCode, data);
-        Log.i(TAG, "onActivityResult " + requestCode + " " + resultCode);
-        if (resultCode != Activity.RESULT_OK || data == null) return;
-        Uri fileUri = data.getData();
-
-        if (requestCode == REQUEST_CODE_IMPORT_FILE) {
-            String fileName = FileUtils.getFileName(this, fileUri);
-            if (fileName == null) fileName = "song.sng";
-            String path = getCacheDir() + "/" + fileName;
-            FileUtils.copyUriToFile(this, fileUri, path);
-            Native.importSong(path);
-            new File(path).delete();
-        }
-        if (requestCode == REQUEST_CODE_EXPORT_FILE) {
-            FileUtils.copyFileToUri(this, mExportPath, fileUri);
-            if (mExportDeleteWhenDone) new File(mExportPath).delete();
-        }
-    }
-
 
     private void loadSettings() {
         Log.i(TAG, "loadSettings");
@@ -180,6 +176,12 @@ public class MainActivity extends Activity {
         Log.i(TAG, "onCreate");
         super.onCreate(savedInstanceState);
 
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            if (ActivityCompat.checkSelfPermission(this, android.Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) {
+                ActivityCompat.requestPermissions(this, new String[]{ android.Manifest.permission.POST_NOTIFICATIONS }, NOTIFICATION_PERMISSION_CODE);
+            }
+        }
+
         loadSettings();
         mView = new View(getApplication());
         setContentView(mView);
@@ -192,17 +194,50 @@ public class MainActivity extends Activity {
             });
         }
 
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            if (ActivityCompat.checkSelfPermission(this, android.Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) {
-                ActivityCompat.requestPermissions(this, new String[]{ android.Manifest.permission.POST_NOTIFICATIONS }, NOTIFICATION_PERMISSION_CODE);
-            }
-        }
-
         // apply settings
         updateSetting(SETTING_FULLSCREEN_ENABLED);
         updateSetting(SETTING_KEEP_SCREEN_ON);
 
         openFirstMidiDevice();
+        handleIncomingIntent(getIntent());
+    }
+
+    @Override
+    protected void onNewIntent(Intent intent) {
+        Log.i(TAG, "onNewIntent " + intent);
+        super.onNewIntent(intent);
+        setIntent(intent);
+        handleIncomingIntent(intent);
+    }
+
+    private void handleIncomingIntent(@Nullable Intent intent) {
+        Log.i(TAG, "handleIncomingIntent " + intent);
+
+        setIntent(new Intent(this, MainActivity.class));
+        if (intent == null) {
+            Log.e(TAG, "handleIncomingIntent: intent is null");
+            return;
+        }
+
+        Uri fileUri = null;
+        String action = intent.getAction();
+        if (Intent.ACTION_VIEW.equals(action)) {
+            fileUri = intent.getData();
+        } else if (Intent.ACTION_SEND.equals(action)) {
+            fileUri = intent.getParcelableExtra(Intent.EXTRA_STREAM);
+        }
+        if (fileUri == null) {
+            Log.e(TAG, "handleIncomingIntent: fileUri is null");
+            return;
+        }
+
+        String fileName = FileUtils.getFileName(this, fileUri);
+        if (fileName == null) fileName = "song.sng";
+        String path = new File(getCacheDir(), fileName).getAbsolutePath();
+        FileUtils.copyUriToFile(this, fileUri, path);
+        Native.importSong(path);
+
+        Log.i(TAG, "handleIncomingIntent: file imported");
     }
 
 

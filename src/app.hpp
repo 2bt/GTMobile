@@ -44,6 +44,7 @@ namespace app {
 
     bool               is_in_song_view();
     void               go_to_instrument_view();
+    void               set_import_song_path(std::string const& import_song_path);
 
     using ConfirmCallback = std::function<void(bool)>;
     void draw_confirm();

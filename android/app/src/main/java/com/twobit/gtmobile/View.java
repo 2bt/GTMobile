@@ -20,6 +20,7 @@ public class View extends GLSurfaceView {
 
     public View(Context context) {
         super(context);
+        Log.i(TAG, "View constructor");
 
         float refreshRate;
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O_MR1) {
