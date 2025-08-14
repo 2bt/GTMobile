@@ -38,6 +38,7 @@ std::thread              g_export_thread;
 bool                     g_export_canceled;
 bool                     g_export_done;
 float                    g_export_progress;
+std::string              g_export_dir;
 #endif
 
 
@@ -65,9 +66,6 @@ void start_export_thread() {
     std::string file_name = g_file_name.data();
     assert(file_name != "");
 
-    std::string export_dir = app::storage_dir() + "/exports/";
-    fs::create_directories(export_dir);
-
     SF_INFO info = { 0, app::MIXRATE, 1 };
     if (g_export_format == ExportFormat::Ogg) {
         info.format = SF_FORMAT_OGG | SF_FORMAT_VORBIS;
@@ -78,7 +76,7 @@ void start_export_thread() {
         file_name += ".wav";
     }
 
-    SNDFILE* sndfile = sf_open((export_dir + file_name).c_str(), SFM_WRITE, &info);
+    SNDFILE* sndfile = sf_open((g_export_dir + file_name).c_str(), SFM_WRITE, &info);
     if (!sndfile) {
         status("EXPORT ERROR");
         g_show_export_window = false;
@@ -167,9 +165,13 @@ void reset() {
 
 void init() {
     if (g_song_dir.empty()) {
-        g_song_dir = app::storage_dir() + "/songs/";
-        // copy demo songs
+        g_song_dir   = app::storage_dir() + "/songs/";
+        g_export_dir = app::storage_dir() + "/exports/";
+
         fs::create_directories(g_song_dir);
+        fs::create_directories(g_export_dir);
+
+        // copy demo songs
         for (std::string const& s : platform::list_assets("songs")) {
             std::string dst_name = g_song_dir + s;
             if (fs::exists(dst_name)) continue;
@@ -365,9 +367,7 @@ void draw() {
             gui::item_size({ box.size.x / 2, app::BUTTON_HEIGHT });
             if (gui::button("EXPORT")) {
                 if (g_export_format == ExportFormat::Sng) {
-                    std::string path = app::storage_dir() + "/exports/";
-                    path += g_file_name.data();
-                    path += SNG_SUFFIX;
+                    std::string path = g_export_dir + g_file_name.data() + SNG_SUFFIX;
                     bool ok = g_song.save(path.c_str());
                     if (ok) platform::export_song(path, g_file_name.data());
                     else status("EXPORT ERROR");
@@ -403,8 +403,7 @@ void draw() {
                     status("SONG EXPORT CANCELED");
                 }
                 else {
-                    std::string path = app::storage_dir() + "/exports/";
-                    path += g_file_name.data();
+                    std::string path = g_export_dir + g_file_name.data();
                     path += g_export_format == ExportFormat::Ogg ? ".ogg" : ".wav";
                     platform::export_song(path, g_file_name.data());
                 }

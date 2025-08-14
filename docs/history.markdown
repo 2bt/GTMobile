@@ -4,7 +4,7 @@ title: History
 permalink: /history/
 ---
 
-## 1.0.15 (2025-08-15)
+## 1.0.16 (2025-08-14)
 + Improved song import: Songs can now be opened directly from other apps (e.g., WhatsApp) without saving to a file first.
 + Simplified export: Songs can now be shared directly to other apps instead of manually choosing a save location.
 + UI: Rearranged buttons in song and instrument views
