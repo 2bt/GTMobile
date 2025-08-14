@@ -179,7 +179,7 @@ void show_keyboard(bool enabled) {
     SDL_StartTextInput();
 }
 
-void export_file(std::string const& path, std::string const& title, bool delete_when_done) {}
+void export_song(std::string const& path, std::string const& title) {}
 void start_song_import() {}
 void update_setting(int i) {}
 

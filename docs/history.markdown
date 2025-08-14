@@ -4,9 +4,10 @@ title: History
 permalink: /history/
 ---
 
-## master
-+ implement "Open with" to open song files from other apps
-+ re-arrange buttons in song and instr view
+## 1.0.15 (2025-08-15)
++ Improved song import: Songs can now be opened directly from other apps (e.g., WhatsApp) without saving to a file first.
++ Simplified export: Songs can now be shared directly to other apps instead of manually choosing a save location.
++ UI: Rearranged buttons in song and instrument views
 
 ## 1.0.13 (2025-08-05)
 + hide speed table partition magic

@@ -33,15 +33,12 @@ public class MainActivity extends Activity {
     private static final String TAG = "Main";
     private static final int NOTIFICATION_PERMISSION_CODE = 1;
     private static final int REQUEST_CODE_IMPORT_FILE = 1;
-    private static final int REQUEST_CODE_EXPORT_FILE = 2;
 
     private static final int SETTING_FULLSCREEN_ENABLED = 0;
     private static final int SETTING_KEEP_SCREEN_ON = 1;
 
 
     private static MainActivity sInstance;
-    private String mExportPath;
-    private boolean mExportDeleteWhenDone;
     private View mView;
 
 
@@ -57,21 +54,20 @@ public class MainActivity extends Activity {
         });
     }
 
+    // song import
     // called from C++
     static public void startSongImport() {
         Intent intent = new Intent(Intent.ACTION_OPEN_DOCUMENT);
         intent.addCategory(Intent.CATEGORY_OPENABLE);
-        intent.setType("*/*");
+        intent.setType("application/octet-stream");
         sInstance.startActivityForResult(intent, REQUEST_CODE_IMPORT_FILE);
     }
-
     @Override
     protected void onActivityResult(int requestCode, int resultCode, @Nullable Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
         Log.i(TAG, "onActivityResult " + requestCode + " " + resultCode);
         if (resultCode != Activity.RESULT_OK || data == null) return;
         Uri fileUri = data.getData();
-
         if (requestCode == REQUEST_CODE_IMPORT_FILE) {
             String fileName = FileUtils.getFileName(this, fileUri);
             if (fileName == null) fileName = "song.sng";
@@ -79,21 +75,29 @@ public class MainActivity extends Activity {
             FileUtils.copyUriToFile(this, fileUri, path);
             Native.importSong(path);
         }
-        if (requestCode == REQUEST_CODE_EXPORT_FILE) {
-            FileUtils.copyFileToUri(this, mExportPath, fileUri);
-            if (mExportDeleteWhenDone) new File(mExportPath).delete();
-        }
     }
 
+    // song export
     // called from C++
-    static public void exportFile(String path, String title, boolean deleteWhenDone) {
-        Intent intent = new Intent(Intent.ACTION_CREATE_DOCUMENT);
-        intent.addCategory(Intent.CATEGORY_OPENABLE);
-        intent.setType("*/*");
-        intent.putExtra(Intent.EXTRA_TITLE, title);
-        sInstance.mExportPath = path;
-        sInstance.mExportDeleteWhenDone = deleteWhenDone;
-        sInstance.startActivityForResult(intent, REQUEST_CODE_EXPORT_FILE);
+    static public void exportSong(String path, String title) {
+        File file = new File(path);
+        Uri uri = androidx.core.content.FileProvider.getUriForFile(
+                sInstance,
+                sInstance.getPackageName() + ".fileprovider",
+                file);
+        Intent share = new Intent(Intent.ACTION_SEND);
+        share.setType(getMimeFromName(file.getName()));
+        share.putExtra(Intent.EXTRA_STREAM, uri);
+        share.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+        share.putExtra(Intent.EXTRA_SUBJECT, title);
+        share.putExtra(Intent.EXTRA_TEXT, title);
+        sInstance.startActivity(Intent.createChooser(share, "Export song"));
+    }
+    private static String getMimeFromName(String name) {
+        if (name.endsWith(".sng")) return "application/octet-stream";
+        if (name.endsWith(".ogg")) return "audio/ogg";
+        if (name.endsWith(".wav")) return "audio/wav";
+        return "application/octet-stream";
     }
 
     // called from C++

@@ -116,12 +116,12 @@ void show_keyboard(bool enabled) {
     g_env->CallStaticVoidMethod(clazz, method, enabled);
 }
 
-void export_file(std::string const& path, std::string const& title, bool delete_when_done) {
+void export_song(std::string const& path, std::string const& title) {
     jclass clazz = g_env->FindClass("com/twobit/gtmobile/MainActivity");
-    jmethodID method = g_env->GetStaticMethodID(clazz, "exportFile", "(Ljava/lang/String;Ljava/lang/String;Z)V");
+    jmethodID method = g_env->GetStaticMethodID(clazz, "exportSong", "(Ljava/lang/String;Ljava/lang/String;)V");
     jstring jpath = g_env->NewStringUTF(path.c_str());
     jstring jtitle = g_env->NewStringUTF(title.c_str());
-    g_env->CallStaticVoidMethod(clazz, method, jpath, jtitle, delete_when_done);
+    g_env->CallStaticVoidMethod(clazz, method, jpath, jtitle);
     g_env->DeleteLocalRef(jpath);
     g_env->DeleteLocalRef(jtitle);
 }

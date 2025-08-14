@@ -41,7 +41,7 @@ float                    g_export_progress;
 #endif
 
 
-#define FILE_SUFFIX ".sng"
+#define SNG_SUFFIX ".sng"
 
 
 void status(std::string const& msg) {
@@ -51,7 +51,7 @@ void status(std::string const& msg) {
 
 
 void save() {
-    bool ok = g_song.save((g_song_dir + g_file_name.data() + FILE_SUFFIX).c_str());
+    bool ok = g_song.save((g_song_dir + g_file_name.data() + SNG_SUFFIX).c_str());
     init();
     if (ok) status("SONG WAS SAVED");
     else status("SAVE ERROR");
@@ -184,7 +184,7 @@ void init() {
     g_file_names.clear();
     for (auto const& entry : fs::directory_iterator(g_song_dir)) {
         if (!entry.is_regular_file()) continue;
-        if (entry.path().extension().string() != FILE_SUFFIX) continue;
+        if (entry.path().extension().string() != SNG_SUFFIX) continue;
         g_file_names.emplace_back(entry.path().stem().string());
     }
     std::sort(g_file_names.begin(), g_file_names.end(), [](std::string const& a, std::string const& b) {
@@ -302,7 +302,7 @@ void draw() {
         app::confirm("LOSE CHANGES TO THE CURRENT SONG?", [](bool ok) {
             if (!ok) return;
             try {
-                g_song.load((g_song_dir + g_file_name.data() + FILE_SUFFIX).c_str());
+                g_song.load((g_song_dir + g_file_name.data() + SNG_SUFFIX).c_str());
                 status("SONG WAS LOADED");
             }
             catch (gt::LoadError const& e) {
@@ -328,7 +328,7 @@ void draw() {
     if (gui::button("DELETE")) {
         app::confirm("DELETE SONG?", [](bool ok) {
             if (!ok) return;
-            fs::remove(g_song_dir + g_file_name.data() + FILE_SUFFIX);
+            fs::remove(g_song_dir + g_file_name.data() + SNG_SUFFIX);
             init();
             status("SONG WAS DELETED");
         });
@@ -365,10 +365,13 @@ void draw() {
             gui::item_size({ box.size.x / 2, app::BUTTON_HEIGHT });
             if (gui::button("EXPORT")) {
                 if (g_export_format == ExportFormat::Sng) {
-                    std::string file_name = std::string(g_file_name.data()) + FILE_SUFFIX;
-                    platform::export_file(g_song_dir + file_name, file_name, false);
+                    std::string path = app::storage_dir() + "/exports/";
+                    path += g_file_name.data();
+                    path += SNG_SUFFIX;
+                    bool ok = g_song.save(path.c_str());
+                    if (ok) platform::export_song(path, g_file_name.data());
+                    else status("EXPORT ERROR");
                     g_show_export_window = false;
-                    status("SONG WAS EXPORTED");
                 }
                 else {
                     start_export_thread();
@@ -378,6 +381,7 @@ void draw() {
             if (gui::button("CLOSE")) g_show_export_window = false;
         }
         else {
+            // WAV and OGG
             gui::item_size({ box.size.x, app::BUTTON_HEIGHT });
             gui::DrawContext& dc = gui::draw_context();
             gui::Box b = gui::item_box();
@@ -399,13 +403,10 @@ void draw() {
                     status("SONG EXPORT CANCELED");
                 }
                 else {
-                    status("SONG WAS EXPORTED");
-
-                    // android
                     std::string path = app::storage_dir() + "/exports/";
-                    std::string file_name = g_file_name.data();
-                    file_name += g_export_format == ExportFormat::Ogg ? ".ogg" : ".wav";
-                    platform::export_file(path + file_name, file_name, true);
+                    path += g_file_name.data();
+                    path += g_export_format == ExportFormat::Ogg ? ".ogg" : ".wav";
+                    platform::export_song(path, g_file_name.data());
                 }
             }
         }
