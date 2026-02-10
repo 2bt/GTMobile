@@ -33,6 +33,7 @@ public class MainActivity extends Activity {
     private static final String TAG = "Main";
     private static final int NOTIFICATION_PERMISSION_CODE = 1;
     private static final int REQUEST_CODE_IMPORT_FILE = 1;
+    private static final int REQUEST_CODE_EXPORT_FILE = 2;
 
     private static final int SETTING_FULLSCREEN_ENABLED = 0;
     private static final int SETTING_KEEP_SCREEN_ON = 1;
@@ -40,6 +41,7 @@ public class MainActivity extends Activity {
 
     private static MainActivity sInstance;
     private View mView;
+    private String mExportFilePath; // track exported file for cleanup
 
 
     // called from C++
@@ -66,14 +68,25 @@ public class MainActivity extends Activity {
     protected void onActivityResult(int requestCode, int resultCode, @Nullable Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
         Log.i(TAG, "onActivityResult " + requestCode + " " + resultCode);
-        if (resultCode != Activity.RESULT_OK || data == null) return;
-        Uri fileUri = data.getData();
         if (requestCode == REQUEST_CODE_IMPORT_FILE) {
+            if (resultCode != Activity.RESULT_OK || data == null) return;
+            Uri fileUri = data.getData();
             String fileName = FileUtils.getFileName(this, fileUri);
             if (fileName == null) fileName = "song.sng";
             String path = new File(getCacheDir(), fileName).getAbsolutePath();
             FileUtils.copyUriToFile(this, fileUri, path);
             Native.importSong(path);
+        } else if (requestCode == REQUEST_CODE_EXPORT_FILE) {
+            // Clean up the exported file regardless of whether the user completed or canceled
+            if (mExportFilePath != null) {
+                File file = new File(mExportFilePath);
+                if (file.delete()) {
+                    Log.i(TAG, "Deleted exported file: " + mExportFilePath);
+                } else {
+                    Log.w(TAG, "Failed to delete exported file: " + mExportFilePath);
+                }
+                mExportFilePath = null;
+            }
         }
     }
 
@@ -91,7 +104,8 @@ public class MainActivity extends Activity {
         share.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
         share.putExtra(Intent.EXTRA_SUBJECT, title);
         share.putExtra(Intent.EXTRA_TEXT, title);
-        sInstance.startActivity(Intent.createChooser(share, "Export song"));
+        sInstance.mExportFilePath = path;
+        sInstance.startActivityForResult(Intent.createChooser(share, "Export song"), REQUEST_CODE_EXPORT_FILE);
     }
     private static String getMimeFromName(String name) {
         if (name.endsWith(".sng")) return "application/octet-stream";
