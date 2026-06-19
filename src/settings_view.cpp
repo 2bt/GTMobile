@@ -48,18 +48,15 @@ void set_setting_value(int i, int v) {
 }
 
 
-
 void draw() {
-
-
     enum class Mode { Project, Editor };
     enum class Window {
         None,
         SamplingMethod,
         HardRestart,
     };
-    static Mode   mode   = Mode::Project;
     static Window window = Window::None;
+    static Mode   mode   = Mode::Project;
 
     constexpr char const* SAMPLING_LABELS[] = {
         "FAST",
@@ -67,7 +64,6 @@ void draw() {
         "RESAMPLE INTERPOLATE",
         "RESAMPLE FAST",
     };
-
 
     gui::button_style(gui::ButtonStyle::Tab);
     gui::item_size({ app::CANVAS_WIDTH / 2, app::BUTTON_HEIGHT });
@@ -178,5 +174,3 @@ void draw() {
 }
 
 } // namespace settings_view
-
-

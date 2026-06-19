@@ -4,44 +4,48 @@ title: History
 permalink: /history/
 ---
 
+
+## WIP 1.0.17 (2026-06-2x)
++ Added comprehensive undo/redo functionality.
++ ...
+
 ## 1.0.16 (2025-08-14)
-+ Improved song import: Songs can now be opened directly from other apps (e.g., WhatsApp) without saving to a file first.
-+ Simplified export: Songs can now be shared directly to other apps instead of manually choosing a save location.
-+ UI: Rearranged buttons in song and instrument views
++ Improved song import: Songs can be opened directly from other apps (e.g., WhatsApp) without saving to a file first.
++ Enhanced export: Songs can be shared directly to other apps, no need to manually choose a save location.
++ UI: Rearranged buttons in the song and instrument views.
 
 ## 1.0.13 (2025-08-05)
-+ hide speed table partition magic
-+ instr table: adding a row clones the selected row
-+ song table: support for bulk edit on selection
-+ set pattern window: re-arrange patterns via hold+drag
-+ change loop mark color to white
++ Hide speed table partition magic.
++ Instrument table: Adding a row now clones the selected row.
++ Song table: Added support for bulk editing of selections.
++ Set pattern window: Rearranged patterns via hold-and-drag.
++ Changed loop mark color to white.
 
 ## 1.0.11 (2025-07-29)
-+ support 16 KB page sizes
-+ remove deprecated Android APIs
++ Support for 16 KB page sizes.
++ Removed deprecated Android APIs.
 
 ## 1.0.8 (2025-07-02)
-+ target API level 35
-+ tweak button labels and headings of some dialog windows
-+ song view: improve pattern length button icon
-+ instrument view: select table when touching empty rows
++ Target API level 35.
++ Tweaked button labels and headings in several dialog windows.
++ Song view: Improved pattern length button icon.
++ Instrument view: Selecting the table by touching empty rows is now possible.
 
 ## 1.0.7 (2025-04-11)
-+ replaced AMidi with Android’s MIDI API for broader compatibility
++ Replaced AMidi with Android’s MIDI API for broader compatibility.
 
 ## 1.0.6 (2025-04-04)
-+ instrument rearranging in table sharing window
-+ inc/dec instrument in instrument view
-+ fix player tempo reset on song load/reset/import
-+ basic MIDI support
++ Instrument rearrangement in the table sharing window.
++ Increment/decrement instrument controls in instrument view.
++ Fixed player tempo resetting on song load, reset, or import.
++ Basic MIDI support added.
 
 ## 1.0.5 (2025-01-21)
-+ long press of edit button jumps to corresponding instrument table if table pointer command is selected
-+ configurable register write order
++ Long press on the edit button jumps to the corresponding instrument table when a table pointer command is selected.
++ Configurable register write order.
 
 ## 1.0.4
-+ separate copy buttons in pattern select for notes and effects
-+ transpose buttons in track select
-+ extra play button to play from current pattern position
-+ long press of instrument button picks up instrument of pattern cursor
-
++ Separate copy buttons in pattern select for notes and effects.
++ Transpose buttons in track select.
++ Extra play button to play from the current pattern position.
++ Long press on the instrument button picks up the instrument of the pattern cursor.

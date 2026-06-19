@@ -22,5 +22,6 @@ emcc \
     ../src/project_view.cpp \
     ../src/settings_view.cpp \
     ../src/sid.cpp \
+    ../src/song_undo.cpp \
     ../src/song_view.cpp \
     -o index.html

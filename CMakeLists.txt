@@ -33,6 +33,8 @@ add_executable(
     src/sid.hpp
     src/song_view.cpp
     src/song_view.hpp
+    src/song_undo.cpp
+    src/song_undo.hpp
     src/vec.hpp
 )
 

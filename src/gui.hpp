@@ -276,6 +276,8 @@ enum class Icon {
     Copy = 208,
     Paste,
     Share,
+    Undo,
+    Redo,
 
     Noise = 224,
     Pulse,
@@ -318,12 +320,13 @@ enum {
 };
 
 
-void init();
-void free();
-void touch_event(int x, int y, bool pressed);
-void key_event(int key, int unicode);
-void set_refresh_rate(float refresh_rate);
-float frame_time();
+void   init();
+void   free();
+void   touch_event(int x, int y, bool pressed);
+void   key_event(int key, int unicode);
+void   set_refresh_rate(float refresh_rate);
+float  frame_time();
+size_t max_window_index();
 
 
 namespace touch {
@@ -366,6 +369,7 @@ bool button(char const* label, bool active = false);
 
 void input_text(char* str, int len);
 template<size_t L>void input_text(std::array<char, L>& t) { input_text(t.data(), L - 1); }
+bool input_text_active();
 bool horizontal_drag_bar(int& value, int min, int max, int page);
 bool vertical_drag_bar(int& value, int min, int max, int page);
 bool vertical_drag_button(int& pos, int row_height);
@@ -383,7 +387,7 @@ bool slider(int width, char const* fmt, int& value, int min, int max, void const
 template<class T>
 bool slider(int width, char const* fmt, T& value, int min, int max, void const* addr=nullptr) {
     int v = value;
-    bool res = slider(width, fmt, v, min, max, &value);
+    bool res = slider(width, fmt, v, min, max, addr ? addr : &value);
     value = v;
     return res;
 }

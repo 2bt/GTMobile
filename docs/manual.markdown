@@ -5,11 +5,8 @@ permalink: /manual/
 ---
 
 
-GTMobile is designed to make **composing C64 music more accessible**.
-While it provides a mobile-friendly tracker experience,
-it may take some time to get familiar with,
-especially if you are new to the **SID chip** or **trackers** in general.
-
+GTMobile is based on and largely compatible with [GoatTracker 2](https://sourceforge.net/projects/goattracker2/)
+and offers a familiar workflow.
 
 ## App Layout and Navigation
 

@@ -1,8 +1,10 @@
 #include "instrument_view.hpp"
-#include "command_edit.hpp"
-#include "piano.hpp"
+
 #include "app.hpp"
+#include "command_edit.hpp"
 #include "log.hpp"
+#include "piano.hpp"
+
 #include <cassert>
 
 
@@ -20,14 +22,15 @@ enum class CursorSelect {
     Table,
 };
 
-gt::Song&          g_song = app::song();
-CursorSelect       g_cursor_select;
-int                g_table;
-int                g_scroll;
-int                g_cursor_row;
-std::array<int, 4> g_table_scroll;
-bool               g_table_debug;
-bool               g_draw_share_window;
+gt::Song&            g_song = app::song();
+CursorSelect         g_cursor_select;
+int                  g_table;
+int                  g_scroll;
+int                  g_cursor_row;
+std::array<int, 4>   g_table_scroll;
+bool                 g_table_debug;
+bool                 g_draw_share_window;
+InstrumentCopyBuffer g_instr_copy_buffer;
 
 
 void add_table_row(int table, int pos) {
@@ -521,13 +524,8 @@ void draw() {
 
     gui::cursor({ app::CANVAS_WIDTH - app::BUTTON_HEIGHT * 2, gui::cursor().y - app::BUTTON_HEIGHT * 2 });
     gui::item_size({ app::BUTTON_HEIGHT * 2, app::BUTTON_HEIGHT });
-    static InstrumentCopyBuffer instr_copy_buffer;
-    if (gui::button(gui::Icon::Copy)) {
-        instr_copy_buffer.copy();
-    }
-    if (gui::button(gui::Icon::Paste)) {
-        instr_copy_buffer.paste();
-    }
+    if (gui::button(gui::Icon::Copy)) g_instr_copy_buffer.copy();
+    if (gui::button(gui::Icon::Paste)) g_instr_copy_buffer.paste();
     gui::cursor({ 0, gui::cursor().y });
 
 

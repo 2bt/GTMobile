@@ -4,6 +4,7 @@
 #include "log.hpp"
 #include "platform.hpp"
 #include "piano.hpp"
+#include "song_undo.hpp"
 #include "song_view.hpp"
 #include <filesystem>
 #include <cstring>
@@ -150,6 +151,7 @@ void import_song(std::string const& path) {
     }
     app::player().set_action(gt::Player::Action::Reset);
     song_view::reset();
+    song_undo::reset();
 }
 
 void reset() {
@@ -197,7 +199,6 @@ void init() {
 
 
 void draw() {
-
     enum {
         C1 = 12 + 8 * 8,
         C2 = app::CANVAS_WIDTH - C1,
@@ -289,6 +290,7 @@ void draw() {
             g_song.clear();
             app::player().set_action(gt::Player::Action::Reset);
             song_view::reset();
+            song_undo::reset();
             status("SONG WAS RESET");
         });
     }
@@ -313,6 +315,7 @@ void draw() {
             }
             app::player().set_action(gt::Player::Action::Reset);
             song_view::reset();
+            song_undo::reset();
         });
     }
     gui::disabled(g_file_name[0] == '\0');

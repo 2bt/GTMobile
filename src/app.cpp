@@ -8,11 +8,11 @@
 #include "instrument_view.hpp"
 #include "log.hpp"
 #include "piano.hpp"
-#include "platform.hpp"
 #include "project_view.hpp"
 #include "settings_view.hpp"
 #include "sid.hpp"
 #include "song_view.hpp"
+#include "song_undo.hpp"
 
 #include <cstddef>
 #include <cstring>
@@ -345,6 +345,7 @@ void reset() {
     instrument_view::reset();
     instrument_manager_view::reset();
     command_edit::reset();
+    song_undo::reset();
     g_song.clear();
     g_sid.init(Sid::Model::MOS8580, Sid::SamplingMethod::Fast);
     g_player.set_action(gt::Player::Action::Reset);
@@ -417,13 +418,17 @@ void draw() {
         g_import_song_path = "";
     }
 
+    if (gui::max_window_index() == 0 && !gui::has_active_item() && !gui::input_text_active()) {
+        song_undo::sync();
+    }
+
     gfx::canvas(g_canvas);
     gfx::blend(true);
     gfx::clear(0.0, 0.0, 0.0);
 
     gui::begin_frame();
 
-    gui::item_size({ (CANVAS_WIDTH - TAB_HEIGHT) / 3 , TAB_HEIGHT });
+    gui::item_size({ (CANVAS_WIDTH - TAB_HEIGHT - BUTTON_HEIGHT * 2) / 3 , TAB_HEIGHT });
     gui::align(gui::Align::Center);
     gui::button_style(gui::ButtonStyle::Tab);
     if (gui::button("PROJECT", g_view == View::Project)) {
@@ -449,7 +454,7 @@ void draw() {
     else if (g_view == View::InstrumentManager) {
         gui::color_theme().button_normal = color::BUTTON_ALT_ACTIVE;
     }
-    if (gui::button("INSTRUMENT")) {
+    if (gui::button("INSTR")) {
         if (g_view == View::Instrument) {
             g_view = View::InstrumentManager;
             instrument_manager_view::init();
@@ -462,13 +467,30 @@ void draw() {
 
 
     gui::same_line();
-    gui::item_size({ CANVAS_WIDTH - gui::cursor().x, TAB_HEIGHT });
+    gui::item_size({ CANVAS_WIDTH - gui::cursor().x - BUTTON_HEIGHT * 2, TAB_HEIGHT });
     if (gui::button(gui::Icon::Settings, g_view == View::Settings)) {
         g_view = View::Settings;
     }
+
+
+    // undo/redo buttons
+    gui::button_style(gui::ButtonStyle::Normal);
+    gui::item_size({ BUTTON_HEIGHT, BUTTON_HEIGHT });
+    gui::cursor({ CANVAS_WIDTH - BUTTON_HEIGHT * 2, TAB_HEIGHT - BUTTON_HEIGHT });
+    gui::disabled(!song_undo::can_undo());
+    if (gui::button(gui::Icon::Undo)) {
+        song_undo::undo();
+    }
+    gui::same_line();
+    gui::disabled(!song_undo::can_redo());
+    if (gui::button(gui::Icon::Redo)) {
+        song_undo::redo();
+    }
+    gui::disabled(false);
+
+    gui::cursor({ 0, TAB_HEIGHT });
     gui::item_size({ CANVAS_WIDTH, BUTTON_HEIGHT });
     gui::separator();
-    gui::button_style(gui::ButtonStyle::Normal);
 
     switch (g_view) {
     case View::Splash: draw_splash(); break;

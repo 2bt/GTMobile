@@ -8,5 +8,6 @@ namespace command_edit {
     using CommandCallback = std::function<void(uint8_t, uint8_t)>;
     void reset();
     void init(Location location, uint8_t cmd, uint8_t data, CommandCallback cb);
+    bool is_open();
     void draw();
 }

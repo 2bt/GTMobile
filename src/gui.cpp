@@ -223,6 +223,8 @@ void set_refresh_rate(float refresh_rate) {
 
 float frame_time() { return g_frame_time; }
 
+size_t max_window_index() { return g_max_window_index; }
+
 void begin_frame() {
 
     g_window_index = 0;
@@ -445,6 +447,10 @@ void input_text(char* str, int len) {
     if (g_input_text_str == str && g_input_cursor_blink < 0.5f) {
         g_dc.text(p + ivec2(strlen(str) * 8, 0), "\x7f");
     }
+}
+
+bool input_text_active() {
+    return g_input_text_str != nullptr;
 }
 
 bool horizontal_drag_bar(int& value, int min, int max, int page) {

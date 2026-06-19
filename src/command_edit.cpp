@@ -40,6 +40,10 @@ void init(Location location, uint8_t cmd, uint8_t data, std::function<void(uint8
     g_callback          = std::move(cb);
 }
 
+bool is_open() {
+    return g_edit_enabled;
+}
+
 
 void draw() {
     if (!g_edit_enabled) return;
