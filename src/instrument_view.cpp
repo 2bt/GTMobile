@@ -638,6 +638,7 @@ void draw() {
         uint8_t& rval = rtable[start_row + r];
         assert(lval != 0xff);
 
+
         ivec2 p = box.pos + ivec2(5, 6);
         char* s = str;
         if (g_table == gt::WTBL) {
@@ -655,16 +656,16 @@ void draw() {
                 int cmd = lval & 0xf;
                 uint8_t data = rval;
                 if (data > 0 && cmd == gt::CMD_VIBRATO) data -= gt::STBL_VIB_START;
-                sprintf(s, "COMMAND \x81%c%X%02X", cmd, cmd, data);
+                sprintf(s, "COMMAND          \x81%c%X%02X", cmd, cmd, data);
             }
             else {
                 if (lval < 0x10) {
-                    s += sprintf(s, "DELAY \xf3%X ", lval);
+                    s += sprintf(s, "DELAY      \xf3%X ", lval);
                 }
                 else {
                     uint8_t v = lval;
                     if (v >= 0xe0) v -= 0xe0;
-                    s += sprintf(s, "WAVE \xf2%02X ", v);
+                    s += sprintf(s, "WAVE    \xf2%02X   ", v);
                 }
                 if (rval >= 0 && rval <= 0x7f) { // relative pitch
                     int v = rval < 0x60 ? rval : rval - 0x80;
@@ -680,11 +681,11 @@ void draw() {
             // 8X-FX set pulsewidth XYY
             if (lval < 0x80) {
                 int v = int8_t(rval);
-                s += sprintf(s, "MOD \xf3%02X \xf4%c%02X", lval, "+-"[v < 0], abs(v));
+                s += sprintf(s, "MOD PW \xf3%02X \xf4%c%02X", lval, "+-"[v < 0], abs(v));
             }
             else {
                 int v = ((lval & 0xf) << 8) | rval;
-                s += sprintf(s, "SET    \xf5%03X", v);
+                s += sprintf(s, "SET PW    \xf5%03X", v);
             }
         }
         else if (g_table == gt::FTBL) {
@@ -692,14 +693,14 @@ void draw() {
             // 01-7F filter mod step time/speed
             // 80-F0 set params
             if (lval == 0) { // set
-                s += sprintf(s, "SET CUTOFF     \xf5%02X", rval);
+                s += sprintf(s, "SET CUTOFF               \xf5%02X", rval);
             }
             if (lval >= 0x01 && lval <= 0x7f) { // mod
                 int v = int8_t(rval);
-                s += sprintf(s, "MOD CUTOFF \xf3%02X \xf4%c%02X", lval, "+-"[v < 0], abs(v));
+                s += sprintf(s, "MOD CUTOFF           \xf3%02X \xf4%c%02X", lval, "+-"[v < 0], abs(v));
             }
             if (lval >= 0x80 && lval < 0xff) { // params
-                s += sprintf(s, "PARAMS  ");
+                s += sprintf(s, "SET PARAMS ");
                 *s++ = (rval & 0x1) ? 0xf1 : 0xf7;
                 *s++ = '1';
                 *s++ = (rval & 0x2) ? 0xf1 : 0xf7;
