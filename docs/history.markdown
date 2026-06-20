@@ -5,9 +5,9 @@ permalink: /history/
 ---
 
 
-## WIP 1.0.17 (2026-06-2x)
+## WIP 1.0.17 (2026-06-20)
 + Added comprehensive undo/redo functionality.
-+ ...
++ Minor instrument table UI tweaks
 
 ## 1.0.16 (2025-08-14)
 + Improved song import: Songs can be opened directly from other apps (e.g., WhatsApp) without saving to a file first.
