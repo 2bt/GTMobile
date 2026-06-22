@@ -3,12 +3,14 @@
 #include "app.hpp"
 #include "platform.hpp"
 #include "piano.hpp"
+#include "sha256.hpp"
 #include <algorithm>
 #include <cstdio>
 #include <filesystem>
 #include <cstring>
 #include <fstream>
 #include <sstream>
+#include <vector>
 
 
 namespace fs = std::filesystem;
@@ -30,6 +32,36 @@ int                      g_preset_scroll;
 
 
 #define FILE_SUFFIX ".ins"
+
+struct LegacyInstrument {
+    char const* name;
+    char const* sha256;
+};
+
+LegacyInstrument const LEGACY_INSTRUMENTS[] = {
+    { "!Arp 1",       "428dad0604dcb915d78b4f57a2a807b4a2873eda8ead47c15c7c2bd1eb11c4b9" },
+    { "!Bass 1",      "16598aa58847bd0a5b6800f8bea609c8819877cc51c144b41f73f0f9a136a8e3" },
+    { "!Bass 2",      "9d8fd934d8e48f7474cf471ab0b73c94b742a0220f28e6c9bd2aa55b2af901d7" },
+    { "!Bass 3",      "51f9c6103a4a70ef2d035e8b0c9ef93ec2a3d7c1d65928646655e391837eab19" },
+    { "!Clap 1",      "271fbbb9a22afe166b10f85e9ade070c78425ad524f3649b4b2d9001cbed2780" },
+    { "!Kick+Bass 1", "bdb185c5d24cbbfdea827da3cacdc9a76d514917d26241f029d00e94afa45b6c" },
+    { "!Lead 1",      "41d712721df676761fbb3a5bc648df3b5e4a91a4c60c3d3d75455b96086f941c" },
+    { "!Lead 2",      "3d222fb40e2b9e6a93ff437b1e04324f480381d882f633329a14bd4572741bad" },
+    { "!Snare 1",     "cbcbca6547306f26231a8534584f4da6589ac6feaa8cd0dd3feefc61a6b59c98" },
+    { "!Snare 2",     "0617793b7f64329bf7e999e7767ef31e3e8fb96b1d72c8a1d12395eea5cf2fb4" },
+};
+
+void remove_legacy_instruments() {
+    for (LegacyInstrument const& legacy : LEGACY_INSTRUMENTS) {
+        fs::path path = g_instruments_dir + legacy.name + FILE_SUFFIX;
+        if (!fs::is_regular_file(path)) continue;
+        std::ifstream stream(path, std::ios::binary);
+        if (!stream.is_open()) continue;
+        std::vector<uint8_t> data((std::istreambuf_iterator<char>(stream)), std::istreambuf_iterator<char>());
+        if (!sha256::sha256_matches_hex(data.data(), data.size(), legacy.sha256)) continue;
+        fs::remove(path);
+    }
+}
 
 template <class T>
 bool read(std::istream& stream, T& v) {
@@ -166,6 +198,7 @@ void init() {
     if (g_instruments_dir.empty()) {
         g_instruments_dir = app::storage_dir() + "/instruments/";
         fs::create_directories(g_instruments_dir);
+        remove_legacy_instruments();
     }
 
     g_preset_names.clear();

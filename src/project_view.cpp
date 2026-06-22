@@ -1,7 +1,6 @@
 #include "project_view.hpp"
 #include "app.hpp"
 #include "gui.hpp"
-#include "log.hpp"
 #include "platform.hpp"
 #include "piano.hpp"
 #include "song_undo.hpp"
@@ -10,7 +9,6 @@
 #include <cstdio>
 #include <filesystem>
 #include <cstring>
-#include <fstream>
 #include <thread>
 #include <cassert>
 #ifndef __EMSCRIPTEN__
