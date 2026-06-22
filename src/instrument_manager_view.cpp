@@ -1,7 +1,6 @@
 #include "instrument_manager_view.hpp"
 #include "instrument_view.hpp"
 #include "app.hpp"
-#include "log.hpp"
 #include "platform.hpp"
 #include "piano.hpp"
 #include <algorithm>
@@ -23,30 +22,14 @@ enum class Tab { Files, Presets };
 gt::Song&                g_song = app::song();
 std::string              g_instruments_dir;
 Tab                      g_tab = Tab::Files;
-std::array<char, 32>     g_preset_name;
 std::array<char, 32>     g_file_name;
-std::vector<std::string> g_preset_files;
+std::vector<std::string> g_preset_names;
 std::vector<std::string> g_user_names;
 int                      g_file_scroll;
-std::string              g_status_msg;
-float                    g_status_age;
+int                      g_preset_scroll;
 
 
 #define FILE_SUFFIX ".ins"
-
-void status(std::string const& msg) {
-    g_status_msg = msg;
-    g_status_age = 0.0f;
-}
-
-std::string file_stem(std::string const& path) {
-    return fs::path(path).stem().string();
-}
-
-template <size_t N>
-void copy_name(std::array<char, N>& dst, char const* src) {
-    snprintf(dst.data(), dst.size(), "%s", src);
-}
 
 template <class T>
 bool read(std::istream& stream, T& v) {
@@ -70,7 +53,7 @@ bool load_instrument(std::istream& stream) {
     std::array<char, 4> ident;
     read(stream, ident);
     if (ident != std::array<char, 4>{'G', 'T', 'I', '5'}) {
-        status("LOAD ERROR: bad file format");
+        app::alert("LOAD ERROR: bad file format");
         return false;
     }
     instrument_view::InstrumentCopyBuffer b = {};
@@ -98,25 +81,13 @@ bool load_instrument(std::istream& stream) {
         }
     }
     b.paste();
-    status("INSTRUMENT WAS LOADED");
     return true;
 }
 
 void load_preset() {
-    std::string asset_file;
-    for (std::string const& f : g_preset_files) {
-        if (strcmp(file_stem(f).c_str(), g_preset_name.data()) == 0) {
-            asset_file = f;
-            break;
-        }
-    }
-    if (asset_file.empty()) {
-        status("LOAD ERROR: cannot open file");
-        return;
-    }
     std::vector<uint8_t> buffer;
-    if (!platform::load_asset("instruments/" + asset_file, buffer)) {
-        status("LOAD ERROR: cannot open file");
+    if (!platform::load_asset("instruments/" + std::string(g_file_name.data()) + FILE_SUFFIX, buffer)) {
+        app::alert("LOAD ERROR: cannot open file");
         return;
     }
     std::istringstream stream(std::string(buffer.begin(), buffer.end()), std::ios::binary);
@@ -126,7 +97,7 @@ void load_preset() {
 void load_user() {
     std::ifstream stream(g_instruments_dir + g_file_name.data() + FILE_SUFFIX, std::ios::binary);
     if (!stream.is_open()) {
-        status("LOAD ERROR: cannot open file");
+        app::alert("LOAD ERROR: cannot open file");
         return;
     }
     load_instrument(stream);
@@ -135,7 +106,7 @@ void load_user() {
 void save() {
     std::ofstream stream(g_instruments_dir + g_file_name.data() + FILE_SUFFIX, std::ios::binary);
     if (!stream.is_open()) {
-        status("SAVE ERROR");
+        app::alert("SAVE ERROR");
         return;
     }
     stream.write("GTI5", 4);
@@ -174,22 +145,39 @@ void save() {
             write<uint8_t>(stream, g_song.rtable[t][start + i]);
         }
     }
-    status("INSTRUMENT WAS SAVED");
     init();
 }
 
-void refresh_preset_list() {
-    g_preset_files.clear();
-    for (std::string const& s : platform::list_assets("instruments")) {
-        if (fs::path(s).extension() != FILE_SUFFIX) continue;
-        g_preset_files.emplace_back(s);
-    }
-    std::sort(g_preset_files.begin(), g_preset_files.end(), [](std::string const& a, std::string const& b) {
-        return strcasecmp(file_stem(a).c_str(), file_stem(b).c_str()) < 0;
-    });
+} // namespace
+
+
+void reset() {
+    g_instruments_dir = {};
+    g_tab             = Tab::Files;
+    g_file_name       = {};
+    g_preset_names    = {};
+    g_user_names      = {};
+    g_file_scroll     = {};
+    g_preset_scroll   = {};
 }
 
-void refresh_user_list() {
+
+void init() {
+    if (g_instruments_dir.empty()) {
+        g_instruments_dir = app::storage_dir() + "/instruments/";
+        fs::create_directories(g_instruments_dir);
+    }
+
+    g_preset_names.clear();
+    for (std::string const& s : platform::list_assets("instruments")) {
+        auto path = fs::path(s);
+        if (path.extension() != FILE_SUFFIX) continue;
+        g_preset_names.emplace_back(path.stem().string());
+    }
+    std::sort(g_preset_names.begin(), g_preset_names.end(), [](std::string const& a, std::string const& b) {
+        return strcasecmp(a.c_str(), b.c_str()) < 0;
+    });
+
     g_user_names.clear();
     for (auto const& entry : fs::directory_iterator(g_instruments_dir)) {
         if (!entry.is_regular_file()) continue;
@@ -201,147 +189,92 @@ void refresh_user_list() {
     });
 }
 
-size_t list_size() {
-    return g_tab == Tab::Presets ? g_preset_files.size() : g_user_names.size();
-}
-
-bool row_selected(char const* name) {
-    if (g_tab == Tab::Presets) return strcmp(name, g_preset_name.data()) == 0;
-    return strcmp(name, g_file_name.data()) == 0;
-}
-
-void select_row(char const* name) {
-    if (g_tab == Tab::Presets) copy_name(g_preset_name, name);
-    else copy_name(g_file_name, name);
-}
-
-bool file_selected() {
-    if (g_tab == Tab::Presets) return g_preset_name[0] != '\0';
-    for (std::string const& n : g_user_names) {
-        if (strcmp(n.c_str(), g_file_name.data()) == 0) return true;
-    }
-    return false;
-}
-
-
-} // namespace
-
-
-void reset() {
-    g_instruments_dir = {};
-    g_tab             = Tab::Files;
-    g_preset_name     = {};
-    g_file_name       = {};
-    g_preset_files    = {};
-    g_user_names      = {};
-    g_file_scroll     = 0;
-    g_status_msg      = {};
-    g_status_age      = 0.0f;
-}
-
-
-void init() {
-    if (g_instruments_dir.empty()) {
-        g_instruments_dir = app::storage_dir() + "/instruments/";
-        fs::create_directories(g_instruments_dir);
-    }
-
-    refresh_preset_list();
-    refresh_user_list();
-    g_status_msg = "";
-}
-
 
 void draw() {
 
+    gui::align(gui::Align::Center);
     gui::button_style(gui::ButtonStyle::Tab);
     gui::item_size({ app::CANVAS_WIDTH / 2, app::BUTTON_HEIGHT });
-    if (gui::button("FILES", g_tab == Tab::Files)) {
-        if (g_tab != Tab::Files) {
-            g_tab = Tab::Files;
-            g_file_scroll = 0;
-            if (g_preset_name[0] != '\0') {
-                copy_name(g_file_name, g_preset_name.data());
-            }
-        }
-    }
+    if (gui::button("FILES", g_tab == Tab::Files)) g_tab = Tab::Files;
     gui::same_line();
-    if (gui::button("PRESETS", g_tab == Tab::Presets)) {
-        if (g_tab != Tab::Presets) {
-            g_tab = Tab::Presets;
-            g_file_scroll = 0;
-        }
-    }
+    if (gui::button("PRESETS", g_tab == Tab::Presets)) g_tab = Tab::Presets;
+
     gui::button_style(gui::ButtonStyle::Normal);
     gui::item_size({ app::CANVAS_WIDTH, app::BUTTON_HEIGHT });
     gui::separator();
-
     gui::align(gui::Align::Left);
-    gui::item_size({ app::CANVAS_WIDTH, app::BUTTON_HEIGHT });
-    if (g_tab == Tab::Presets) {
-        gui::text("%s", g_preset_name.data());
-    }
-    else {
-        gui::input_text(g_file_name);
-    }
-    gui::align(gui::Align::Center);
-    gui::item_size({ app::CANVAS_WIDTH, app::BUTTON_HEIGHT });
-    gui::separator();
+    if (g_tab == Tab::Files) gui::input_text(g_file_name);
 
-    ivec2 table_cursor = gui::cursor();
-    int bottom = app::BUTTON_HEIGHT + app::MAX_ROW_HEIGHT + gui::FRAME_WIDTH;
-    int table_height = app::canvas_height() - piano::HEIGHT - table_cursor.y - bottom;
-    int page = table_height / app::MAX_ROW_HEIGHT;
-    table_height = page * app::MAX_ROW_HEIGHT + 2;
+    ivec2 list_cursor = gui::cursor();
+    int toolbar_rows = 1;
+    int list_space = app::canvas_height() - list_cursor.y - piano::HEIGHT;
+    list_space -= gui::FRAME_WIDTH + app::BUTTON_HEIGHT * toolbar_rows;
 
-    gui::item_size({ app::CANVAS_WIDTH, table_height });
-    gui::item_box();
+    int list_page = std::max(1, (list_space - 2) / app::MAX_ROW_HEIGHT);
 
-    gui::cursor(table_cursor + ivec2(0, 1));
+    int& scroll    = g_tab == Tab::Presets ? g_preset_scroll : g_file_scroll;
+    int  list_size = g_tab == Tab::Presets ? int(g_preset_names.size()) : int(g_user_names.size());
+    auto names     = g_tab == Tab::Presets ? g_preset_names : g_user_names;
+
+    gui::cursor(list_cursor + ivec2(0, 1));
     gui::item_size({ app::CANVAS_WIDTH - app::SCROLL_WIDTH, app::MAX_ROW_HEIGHT });
     gui::button_style(gui::ButtonStyle::TableCell);
     gui::align(gui::Align::Left);
-    for (int i = 0; i < page; ++i) {
-        size_t row = g_file_scroll + i;
-        if (row >= list_size()) {
+    for (int i = 0; i < list_page; ++i) {
+        int row = scroll + i;
+        if (row >= list_size) {
             gui::item_box();
             continue;
         }
-        std::string preset_stem;
-        char const* s;
-        if (g_tab == Tab::Presets) {
-            preset_stem = file_stem(g_preset_files[row]);
-            s = preset_stem.c_str();
-        }
-        else {
-            s = g_user_names[row].c_str();
-        }
-        if (gui::button(s, row_selected(s))) {
-            select_row(s);
+        char const* s = names[row].c_str();
+        if (gui::button(s, strcmp(s, g_file_name.data()) == 0)) {
+            snprintf(g_file_name.data(), g_file_name.size(), "%s", s);
         }
     }
     gui::align(gui::Align::Center);
     gui::button_style(gui::ButtonStyle::Normal);
-    gui::cursor({ app::CANVAS_WIDTH - app::SCROLL_WIDTH, table_cursor.y });
-    gui::item_size({ app::SCROLL_WIDTH, table_height });
-    int max_scroll = std::max(0, int(list_size()) - page);
+
+    gui::cursor({ app::CANVAS_WIDTH - app::SCROLL_WIDTH, list_cursor.y });
+    gui::item_size({ app::SCROLL_WIDTH, list_page * app::MAX_ROW_HEIGHT + 2 });
+    int max_scroll = std::max(0, list_size - list_page);
+    scroll = std::min(scroll, max_scroll);
     gui::drag_bar_style(gui::DragBarStyle::Scrollbar);
-    gui::vertical_drag_bar(g_file_scroll, 0, max_scroll, page);
+    gui::vertical_drag_bar(scroll, 0, max_scroll, list_page);
+
+    gui::cursor({ 0, gui::cursor().y });
+    gui::item_size({ app::CANVAS_WIDTH, app::BUTTON_HEIGHT });
+    gui::separator();
 
     if (g_tab == Tab::Presets) {
+        bool selected = false;
+        for (std::string const& name : g_preset_names) {
+            if (strcmp(name.c_str(), g_file_name.data()) == 0) {
+                selected = true;
+                break;
+            }
+        }
+
         gui::item_size({ app::CANVAS_WIDTH, app::BUTTON_HEIGHT });
-        gui::disabled(g_preset_name[0] == '\0');
+        gui::disabled(!selected);
         if (gui::button("LOAD")) load_preset();
         gui::disabled(false);
     }
     else {
+        bool selected = false;
+        for (std::string const& name : g_user_names) {
+            if (strcmp(name.c_str(), g_file_name.data()) == 0) {
+                selected = true;
+                break;
+            }
+        }
+
         gui::item_size({ app::CANVAS_WIDTH / 3, app::BUTTON_HEIGHT });
-        gui::disabled(!file_selected());
+        gui::disabled(!selected);
         if (gui::button("LOAD")) load_user();
         gui::same_line();
         gui::disabled(g_file_name[0] == '\0');
         if (gui::button("SAVE")) {
-            if (file_selected()) {
+            if (selected) {
                 app::confirm("OVERWRITE THE EXISTING INSTRUMENT?", [](bool ok) {
                     if (ok) save();
                 });
@@ -351,23 +284,16 @@ void draw() {
             }
         }
         gui::same_line();
-        gui::disabled(!file_selected());
+        gui::disabled(!selected);
         if (gui::button("DELETE")) {
             app::confirm("DELETE INSTRUMENT?", [](bool ok) {
                 if (!ok) return;
                 fs::remove(g_instruments_dir + g_file_name.data() + FILE_SUFFIX);
                 init();
-                status("INSTRUMENT WAS DELETED");
             });
         }
         gui::disabled(false);
     }
-
-    gui::item_size({ app::CANVAS_WIDTH, app::MAX_ROW_HEIGHT });
-    gui::align(gui::Align::Left);
-    gui::text("%s", g_status_msg.c_str());
-    g_status_age += gui::frame_time();
-    if (g_status_age > 2.0f) g_status_msg.clear();
 
     app::draw_confirm();
     piano::draw();
