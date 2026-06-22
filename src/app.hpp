@@ -49,6 +49,7 @@ namespace app {
     using ConfirmCallback = std::function<void(bool)>;
     void draw_confirm();
     void confirm(std::string msg, ConfirmCallback cb);
+    void alert(std::string msg);
 
 
     void init();

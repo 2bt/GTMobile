@@ -35,8 +35,6 @@ std::vector<std::string> g_demo_names;
 std::vector<std::string> g_user_names;
 int                      g_file_scroll;
 int                      g_demo_scroll;
-std::string              g_status_msg;
-float                    g_status_age;
 
 bool                     g_show_export_window;
 ExportFormat             g_export_format;
@@ -51,11 +49,6 @@ std::string              g_export_dir;
 
 #define SNG_SUFFIX ".sng"
 
-void status(std::string const& msg) {
-    g_status_msg = msg;
-    g_status_age = 0.0f;
-}
-
 std::string file_stem(std::string const& path) {
     return fs::path(path).stem().string();
 }
@@ -65,29 +58,6 @@ void copy_name(std::array<char, N>& dst, char const* src) {
     snprintf(dst.data(), dst.size(), "%s", src);
 }
 
-void refresh_demo_list() {
-    g_demo_names.clear();
-    for (std::string const& s : platform::list_assets("songs")) {
-        if (fs::path(s).extension() != SNG_SUFFIX) continue;
-        g_demo_names.emplace_back(file_stem(s));
-    }
-    std::sort(g_demo_names.begin(), g_demo_names.end(), [](std::string const& a, std::string const& b) {
-        return strcasecmp(a.c_str(), b.c_str()) < 0;
-    });
-}
-
-void refresh_user_list() {
-    g_user_names.clear();
-    for (auto const& entry : fs::directory_iterator(g_song_dir)) {
-        if (!entry.is_regular_file()) continue;
-        if (entry.path().extension().string() != SNG_SUFFIX) continue;
-        g_user_names.emplace_back(entry.path().stem().string());
-    }
-    std::sort(g_user_names.begin(), g_user_names.end(), [](std::string const& a, std::string const& b) {
-        return strcasecmp(a.c_str(), b.c_str()) < 0;
-    });
-}
-
 size_t list_size() {
     return g_tab == Tab::Demos ? g_demo_names.size() : g_user_names.size();
 }
@@ -95,8 +65,7 @@ size_t list_size() {
 void save() {
     bool ok = g_song.save((g_song_dir + g_file_name.data() + SNG_SUFFIX).c_str());
     init();
-    if (ok) status("SONG WAS SAVED");
-    else status("SAVE ERROR");
+    if (!ok) app::alert("SAVE ERROR");
 }
 
 void load_demo() {
@@ -109,21 +78,20 @@ void load_demo() {
         }
     }
     if (asset_file.empty()) {
-        status("LOAD ERROR: cannot open file");
+        app::alert("LOAD ERROR: cannot open file");
         return;
     }
     std::vector<uint8_t> buffer;
     if (!platform::load_asset("songs/" + asset_file, buffer)) {
-        status("LOAD ERROR: cannot open file");
+        app::alert("LOAD ERROR: cannot open file");
         return;
     }
     try {
         g_song.load(buffer.data(), buffer.size());
-        status("SONG WAS LOADED");
     }
     catch (gt::LoadError const& e) {
         g_song.clear();
-        status("LOAD ERROR: " + e.msg);
+        app::alert("LOAD ERROR: " + e.msg);
     }
     app::player().set_action(gt::Player::Action::Reset);
     song_view::reset();
@@ -133,11 +101,10 @@ void load_demo() {
 void load_user() {
     try {
         g_song.load((g_song_dir + g_file_name.data() + SNG_SUFFIX).c_str());
-        status("SONG WAS LOADED");
     }
     catch (gt::LoadError const& e) {
         g_song.clear();
-        status("LOAD ERROR: " + e.msg);
+        app::alert("LOAD ERROR: " + e.msg);
     }
     app::player().set_action(gt::Player::Action::Reset);
     song_view::reset();
@@ -164,7 +131,7 @@ void start_export_thread() {
 
     SNDFILE* sndfile = sf_open((g_export_dir + file_name).c_str(), SFM_WRITE, &info);
     if (!sndfile) {
-        status("EXPORT ERROR");
+        app::alert("EXPORT ERROR");
         g_show_export_window = false;
         return;
     }
@@ -226,14 +193,13 @@ void import_song(std::string const& path) {
     try {
         g_file_name = {};
         g_song.load(path.c_str());
-        status("SONG WAS IMPORTED");
         std::string name = fs::path(path).stem().string();
         copy_name(g_file_name, name.c_str());
         g_tab = Tab::Files;
     }
     catch (gt::LoadError const& e) {
         g_song.clear();
-        status("IMPORT ERROR: " + e.msg);
+        app::alert("IMPORT ERROR: " + e.msg);
     }
     app::player().set_action(gt::Player::Action::Reset);
     song_view::reset();
@@ -250,8 +216,6 @@ void reset() {
     g_demo_scroll        = {};
     g_show_export_window = {};
     g_export_format      = {};
-    g_status_msg         = {};
-    g_status_age         = {};
 }
 
 void init() {
@@ -264,9 +228,26 @@ void init() {
 #endif
     }
 
-    refresh_demo_list();
-    refresh_user_list();
-    g_status_msg = "";
+    // load demo names
+    g_demo_names.clear();
+    for (std::string const& s : platform::list_assets("songs")) {
+        if (fs::path(s).extension() != SNG_SUFFIX) continue;
+        g_demo_names.emplace_back(file_stem(s));
+    }
+    std::sort(g_demo_names.begin(), g_demo_names.end(), [](std::string const& a, std::string const& b) {
+        return strcasecmp(a.c_str(), b.c_str()) < 0;
+    });
+
+    // load user song names
+    g_user_names.clear();
+    for (auto const& entry : fs::directory_iterator(g_song_dir)) {
+        if (!entry.is_regular_file()) continue;
+        if (entry.path().extension().string() != SNG_SUFFIX) continue;
+        g_user_names.emplace_back(entry.path().stem().string());
+    }
+    std::sort(g_user_names.begin(), g_user_names.end(), [](std::string const& a, std::string const& b) {
+        return strcasecmp(a.c_str(), b.c_str()) < 0;
+    });
 }
 
 
@@ -313,7 +294,7 @@ void draw() {
 
     ivec2 table_cursor = gui::cursor();
     int toolbar_rows = g_tab == Tab::Demos ? 1 : 2;
-    int bottom = app::BUTTON_HEIGHT * toolbar_rows + app::MAX_ROW_HEIGHT + gui::FRAME_WIDTH;
+    int bottom = app::BUTTON_HEIGHT * toolbar_rows + gui::FRAME_WIDTH;
     int table_height = app::canvas_height() - piano::HEIGHT - table_cursor.y - bottom;
     int page = std::max(1, table_height / app::MAX_ROW_HEIGHT);
     table_height = page * app::MAX_ROW_HEIGHT + 2;
@@ -382,7 +363,6 @@ void draw() {
                 app::player().set_action(gt::Player::Action::Reset);
                 song_view::reset();
                 song_undo::reset();
-                status("SONG WAS RESET");
             });
         }
         gui::same_line();
@@ -413,7 +393,6 @@ void draw() {
                 if (!ok) return;
                 fs::remove(g_song_dir + g_file_name.data() + SNG_SUFFIX);
                 init();
-                status("SONG WAS DELETED");
             });
         }
         gui::same_line();
@@ -434,12 +413,6 @@ void draw() {
 #endif
     }
 
-    gui::item_size({ app::CANVAS_WIDTH, app::MAX_ROW_HEIGHT });
-    gui::align(gui::Align::Left);
-    gui::text("%s", g_status_msg.c_str());
-    g_status_age += gui::frame_time();
-    if (g_status_age > 2.0f) g_status_msg.clear();
-
 #ifndef __EMSCRIPTEN__
     if (g_show_export_window) {
         gui::Box box = gui::begin_window({ app::CANVAS_WIDTH - 48, app::BUTTON_HEIGHT * 3 + gui::FRAME_WIDTH * 2 });
@@ -459,7 +432,7 @@ void draw() {
                     std::string path = g_export_dir + g_file_name.data() + SNG_SUFFIX;
                     bool ok = g_song.save(path.c_str());
                     if (ok) platform::export_song(path, g_file_name.data());
-                    else status("EXPORT ERROR");
+                    else app::alert("EXPORT ERROR");
                     g_show_export_window = false;
                 }
                 else {
@@ -488,10 +461,7 @@ void draw() {
             if (g_export_done) {
                 g_export_thread.join();
                 g_show_export_window = false;
-                if (g_export_canceled) {
-                    status("SONG EXPORT CANCELED");
-                }
-                else {
+                if (!g_export_canceled) {
                     std::string path = g_export_dir + g_file_name.data();
                     path += g_export_format == ExportFormat::Ogg ? ".ogg" : ".wav";
                     platform::export_song(path, g_file_name.data());

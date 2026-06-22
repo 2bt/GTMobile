@@ -206,25 +206,30 @@ void draw_confirm() {
     gui::align(gui::Align::Center);
     gui::text(g_confirm_msg.c_str());
     gui::separator();
-    if (!g_confirm_callback) {
+    if (g_confirm_callback) {
+        gui::item_size({ box.size.x / 2, app::BUTTON_HEIGHT });
+        if (gui::button("OK")) {
+            g_confirm_msg.clear();
+            g_confirm_callback(true);
+        }
+        gui::same_line();
+        if (gui::button("CANCEL")) {
+            g_confirm_msg.clear();
+            g_confirm_callback(false);
+        }
+    }
+    else {
         if (gui::button("OK")) g_confirm_msg.clear();
-        return;
-    }
-    gui::item_size({ box.size.x / 2, BUTTON_HEIGHT });
-    if (gui::button("OK")) {
-        g_confirm_msg.clear();
-        g_confirm_callback(true);
-    }
-    gui::same_line();
-    if (gui::button("CANCEL")) {
-        g_confirm_msg.clear();
-        g_confirm_callback(false);
     }
     gui::end_window();
 }
 void confirm(std::string msg, ConfirmCallback cb) {
     g_confirm_msg      = std::move(msg);
     g_confirm_callback = std::move(cb);
+}
+
+void alert(std::string msg) {
+    confirm(std::move(msg), nullptr);
 }
 
 
