@@ -5,7 +5,6 @@
 #include <functional>
 #include "gtplayer.hpp"
 #include "gtsong.hpp"
-#include "gui.hpp"
 #include "sid.hpp"
 
 

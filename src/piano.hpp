@@ -1,5 +1,6 @@
 #pragma once
 #include "app.hpp"
+#include "gui.hpp"
 
 namespace piano {
 

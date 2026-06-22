@@ -49,18 +49,12 @@ std::string              g_export_dir;
 
 #define SNG_SUFFIX ".sng"
 
-std::string file_stem(std::string const& path) {
-    return fs::path(path).stem().string();
-}
 
 template <size_t N>
 void copy_name(std::array<char, N>& dst, char const* src) {
     snprintf(dst.data(), dst.size(), "%s", src);
 }
 
-size_t list_size() {
-    return g_tab == Tab::Demos ? g_demo_names.size() : g_user_names.size();
-}
 
 void save() {
     bool ok = g_song.save((g_song_dir + g_file_name.data() + SNG_SUFFIX).c_str());
@@ -69,20 +63,8 @@ void save() {
 }
 
 void load_demo() {
-    std::string asset_file;
-    for (std::string const& s : platform::list_assets("songs")) {
-        if (fs::path(s).extension() != SNG_SUFFIX) continue;
-        if (strcmp(file_stem(s).c_str(), g_file_name.data()) == 0) {
-            asset_file = s;
-            break;
-        }
-    }
-    if (asset_file.empty()) {
-        app::alert("LOAD ERROR: cannot open file");
-        return;
-    }
     std::vector<uint8_t> buffer;
-    if (!platform::load_asset("songs/" + asset_file, buffer)) {
+    if (!platform::load_asset("songs/" + std::string(g_file_name.data()) + SNG_SUFFIX, buffer)) {
         app::alert("LOAD ERROR: cannot open file");
         return;
     }
@@ -231,8 +213,9 @@ void init() {
     // load demo names
     g_demo_names.clear();
     for (std::string const& s : platform::list_assets("songs")) {
-        if (fs::path(s).extension() != SNG_SUFFIX) continue;
-        g_demo_names.emplace_back(file_stem(s));
+        auto path = fs::path(s);
+        if (path.extension() != SNG_SUFFIX) continue;
+        g_demo_names.emplace_back(path.stem().string());
     }
     std::sort(g_demo_names.begin(), g_demo_names.end(), [](std::string const& a, std::string const& b) {
         return strcasecmp(a.c_str(), b.c_str()) < 0;
@@ -292,40 +275,45 @@ void draw() {
     gui::align(gui::Align::Left);
     if (g_tab == Tab::Files) gui::input_text(g_file_name);
 
-    ivec2 table_cursor = gui::cursor();
+    ivec2 list_cursor = gui::cursor();
     int toolbar_rows = g_tab == Tab::Demos ? 1 : 2;
-    int bottom = app::BUTTON_HEIGHT * toolbar_rows + gui::FRAME_WIDTH;
-    int table_height = app::canvas_height() - piano::HEIGHT - table_cursor.y - bottom;
-    int page = std::max(1, table_height / app::MAX_ROW_HEIGHT);
-    table_height = page * app::MAX_ROW_HEIGHT + 2;
-    int& scroll = g_tab == Tab::Demos ? g_demo_scroll : g_file_scroll;
+    int list_space = app::canvas_height() - list_cursor.y - piano::HEIGHT;
+    list_space -= gui::FRAME_WIDTH + app::BUTTON_HEIGHT * toolbar_rows;
 
-    gui::cursor(table_cursor + ivec2(0, 1));
+    int list_page = std::max(1, (list_space - 2) / app::MAX_ROW_HEIGHT);
+
+    int& scroll    = g_tab == Tab::Demos ? g_demo_scroll : g_file_scroll;
+    int  list_size = g_tab == Tab::Demos ? g_demo_names.size() : g_user_names.size();
+    auto names     = g_tab == Tab::Demos ? g_demo_names : g_user_names;
+
+    gui::cursor(list_cursor + ivec2(0, 1));
     gui::item_size({ app::CANVAS_WIDTH - app::SCROLL_WIDTH, app::MAX_ROW_HEIGHT });
     gui::button_style(gui::ButtonStyle::TableCell);
-    for (int i = 0; i < page; ++i) {
-        size_t row = scroll + i;
-        if (row >= list_size()) {
+    gui::align(gui::Align::Left);
+    for (int i = 0; i < list_page; ++i) {
+        int row = scroll + i;
+        if (row >= list_size) {
             gui::item_box();
             continue;
         }
-        char const* s = g_tab == Tab::Demos ? g_demo_names[row].c_str() : g_user_names[row].c_str();
+        char const* s = names[row].c_str();
         if (gui::button(s, strcmp(s, g_file_name.data()) == 0)) {
             copy_name(g_file_name, s);
         }
     }
     gui::align(gui::Align::Center);
     gui::button_style(gui::ButtonStyle::Normal);
-    gui::cursor({ app::CANVAS_WIDTH - app::SCROLL_WIDTH, table_cursor.y });
-    gui::item_size({ app::SCROLL_WIDTH, table_height });
-    int max_scroll = std::max(0, int(list_size()) - page);
+
+    gui::cursor({ app::CANVAS_WIDTH - app::SCROLL_WIDTH, list_cursor.y });
+    gui::item_size({ app::SCROLL_WIDTH, list_page * app::MAX_ROW_HEIGHT + 2 });
+    int max_scroll = std::max(0, list_size - list_page);
     scroll = std::min(scroll, max_scroll);
     gui::drag_bar_style(gui::DragBarStyle::Scrollbar);
-    gui::vertical_drag_bar(scroll, 0, max_scroll, page);
+    gui::vertical_drag_bar(scroll, 0, max_scroll, list_page);
 
     gui::cursor({ 0, gui::cursor().y });
-
-
+    gui::item_size({ app::CANVAS_WIDTH, app::BUTTON_HEIGHT });
+    gui::separator();
 
     if (g_tab == Tab::Demos) {
         bool selected = false;
@@ -356,16 +344,7 @@ void draw() {
         }
 
         gui::item_size({ app::CANVAS_WIDTH / 3, app::BUTTON_HEIGHT });
-        if (gui::button("RESET")) {
-            app::confirm("LOSE CHANGES TO THE CURRENT SONG?", [](bool ok) {
-                if (!ok) return;
-                g_song.clear();
-                app::player().set_action(gt::Player::Action::Reset);
-                song_view::reset();
-                song_undo::reset();
-            });
-        }
-        gui::same_line();
+
         gui::disabled(!selected);
         if (gui::button("LOAD")) {
             app::confirm("LOSE CHANGES TO THE CURRENT SONG?", [](bool ok) {
@@ -385,8 +364,7 @@ void draw() {
                 save();
             }
         }
-
-        gui::item_size({ app::CANVAS_WIDTH / 3, app::BUTTON_HEIGHT });
+        gui::same_line();
         gui::disabled(!selected);
         if (gui::button("DELETE")) {
             app::confirm("DELETE SONG?", [](bool ok) {
@@ -395,7 +373,7 @@ void draw() {
                 init();
             });
         }
-        gui::same_line();
+
         gui::disabled(false);
         if (gui::button("IMPORT")) {
             #ifdef ANDROID
@@ -411,6 +389,17 @@ void draw() {
         if (gui::button("EXPORT")) g_show_export_window = true;
         gui::disabled(false);
 #endif
+        gui::same_line();
+        if (gui::button("RESET")) {
+            app::confirm("LOSE CHANGES TO THE CURRENT SONG?", [](bool ok) {
+                if (!ok) return;
+                g_song.clear();
+                app::player().set_action(gt::Player::Action::Reset);
+                song_view::reset();
+                song_undo::reset();
+            });
+        }
+
     }
 
 #ifndef __EMSCRIPTEN__
