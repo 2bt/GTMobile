@@ -6,6 +6,8 @@
 #include "piano.hpp"
 #include "song_undo.hpp"
 #include "song_view.hpp"
+#include <algorithm>
+#include <cstdio>
 #include <filesystem>
 #include <cstring>
 #include <fstream>
@@ -22,13 +24,17 @@ namespace fs = std::filesystem;
 namespace project_view {
 namespace {
 
+enum class Tab { Files, Demos };
 enum class ExportFormat { Sng, Wav, Ogg };
 
 gt::Song&                g_song = app::song();
 std::string              g_song_dir;
+Tab                      g_tab = Tab::Files;
 std::array<char, 32>     g_file_name;
-std::vector<std::string> g_file_names;
+std::vector<std::string> g_demo_names;
+std::vector<std::string> g_user_names;
 int                      g_file_scroll;
+int                      g_demo_scroll;
 std::string              g_status_msg;
 float                    g_status_age;
 
@@ -45,18 +51,97 @@ std::string              g_export_dir;
 
 #define SNG_SUFFIX ".sng"
 
-
 void status(std::string const& msg) {
     g_status_msg = msg;
     g_status_age = 0.0f;
 }
 
+std::string file_stem(std::string const& path) {
+    return fs::path(path).stem().string();
+}
+
+template <size_t N>
+void copy_name(std::array<char, N>& dst, char const* src) {
+    snprintf(dst.data(), dst.size(), "%s", src);
+}
+
+void refresh_demo_list() {
+    g_demo_names.clear();
+    for (std::string const& s : platform::list_assets("songs")) {
+        if (fs::path(s).extension() != SNG_SUFFIX) continue;
+        g_demo_names.emplace_back(file_stem(s));
+    }
+    std::sort(g_demo_names.begin(), g_demo_names.end(), [](std::string const& a, std::string const& b) {
+        return strcasecmp(a.c_str(), b.c_str()) < 0;
+    });
+}
+
+void refresh_user_list() {
+    g_user_names.clear();
+    for (auto const& entry : fs::directory_iterator(g_song_dir)) {
+        if (!entry.is_regular_file()) continue;
+        if (entry.path().extension().string() != SNG_SUFFIX) continue;
+        g_user_names.emplace_back(entry.path().stem().string());
+    }
+    std::sort(g_user_names.begin(), g_user_names.end(), [](std::string const& a, std::string const& b) {
+        return strcasecmp(a.c_str(), b.c_str()) < 0;
+    });
+}
+
+size_t list_size() {
+    return g_tab == Tab::Demos ? g_demo_names.size() : g_user_names.size();
+}
 
 void save() {
     bool ok = g_song.save((g_song_dir + g_file_name.data() + SNG_SUFFIX).c_str());
     init();
     if (ok) status("SONG WAS SAVED");
     else status("SAVE ERROR");
+}
+
+void load_demo() {
+    std::string asset_file;
+    for (std::string const& s : platform::list_assets("songs")) {
+        if (fs::path(s).extension() != SNG_SUFFIX) continue;
+        if (strcmp(file_stem(s).c_str(), g_file_name.data()) == 0) {
+            asset_file = s;
+            break;
+        }
+    }
+    if (asset_file.empty()) {
+        status("LOAD ERROR: cannot open file");
+        return;
+    }
+    std::vector<uint8_t> buffer;
+    if (!platform::load_asset("songs/" + asset_file, buffer)) {
+        status("LOAD ERROR: cannot open file");
+        return;
+    }
+    try {
+        g_song.load(buffer.data(), buffer.size());
+        status("SONG WAS LOADED");
+    }
+    catch (gt::LoadError const& e) {
+        g_song.clear();
+        status("LOAD ERROR: " + e.msg);
+    }
+    app::player().set_action(gt::Player::Action::Reset);
+    song_view::reset();
+    song_undo::reset();
+}
+
+void load_user() {
+    try {
+        g_song.load((g_song_dir + g_file_name.data() + SNG_SUFFIX).c_str());
+        status("SONG WAS LOADED");
+    }
+    catch (gt::LoadError const& e) {
+        g_song.clear();
+        status("LOAD ERROR: " + e.msg);
+    }
+    app::player().set_action(gt::Player::Action::Reset);
+    song_view::reset();
+    song_undo::reset();
 }
 
 
@@ -143,7 +228,8 @@ void import_song(std::string const& path) {
         g_song.load(path.c_str());
         status("SONG WAS IMPORTED");
         std::string name = fs::path(path).stem().string();
-        strncpy(g_file_name.data(), name.c_str(), g_file_name.size() - 1);
+        copy_name(g_file_name, name.c_str());
+        g_tab = Tab::Files;
     }
     catch (gt::LoadError const& e) {
         g_song.clear();
@@ -156,9 +242,12 @@ void import_song(std::string const& path) {
 
 void reset() {
     g_song_dir           = {};
+    g_tab                = Tab::Files;
     g_file_name          = {};
-    g_file_names         = {};
+    g_demo_names         = {};
+    g_user_names         = {};
     g_file_scroll        = {};
+    g_demo_scroll        = {};
     g_show_export_window = {};
     g_export_format      = {};
     g_status_msg         = {};
@@ -167,33 +256,16 @@ void reset() {
 
 void init() {
     if (g_song_dir.empty()) {
-        g_song_dir   = app::storage_dir() + "/songs/";
-        g_export_dir = app::storage_dir() + "/exports/";
-
+        g_song_dir = app::storage_dir() + "/songs/";
         fs::create_directories(g_song_dir);
+#ifndef __EMSCRIPTEN__
+        g_export_dir = app::storage_dir() + "/exports/";
         fs::create_directories(g_export_dir);
-
-        // copy demo songs
-        for (std::string const& s : platform::list_assets("songs")) {
-            std::string dst_name = g_song_dir + s;
-            if (fs::exists(dst_name)) continue;
-            std::vector<uint8_t> buffer;
-            if (!platform::load_asset("songs/" + s, buffer)) continue;
-            std::ofstream f(dst_name, std::ios::binary);
-            f.write((char const*)buffer.data(), buffer.size());
-            f.close();
-        }
+#endif
     }
 
-    g_file_names.clear();
-    for (auto const& entry : fs::directory_iterator(g_song_dir)) {
-        if (!entry.is_regular_file()) continue;
-        if (entry.path().extension().string() != SNG_SUFFIX) continue;
-        g_file_names.emplace_back(entry.path().stem().string());
-    }
-    std::sort(g_file_names.begin(), g_file_names.end(), [](std::string const& a, std::string const& b) {
-        return strcasecmp(a.c_str(), b.c_str()) < 0;
-    });
+    refresh_demo_list();
+    refresh_user_list();
     g_status_msg = "";
 }
 
@@ -203,7 +275,6 @@ void draw() {
         C1 = 12 + 8 * 8,
         C2 = app::CANVAS_WIDTH - C1,
     };
-
 
     gui::align(gui::Align::Left);
     gui::item_size({ C1, app::BUTTON_HEIGHT });
@@ -224,137 +295,152 @@ void draw() {
     gui::item_size({ C2, app::BUTTON_HEIGHT });
     gui::input_text(g_song.copyright_name);
 
-    gui::item_size({ C1, app::BUTTON_HEIGHT });
-    gui::text("FILE");
-    gui::same_line();
-    gui::item_size({ C2, app::BUTTON_HEIGHT });
-    gui::input_text(g_file_name);
-    gui::align(gui::Align::Center);
-
     gui::item_size({ app::CANVAS_WIDTH, app::BUTTON_HEIGHT });
     gui::separator();
 
-    ivec2 table_cursor = gui::cursor();
-    int table_height = app::canvas_height() - piano::HEIGHT - table_cursor.y - 2 - app::MAX_ROW_HEIGHT - gui::FRAME_WIDTH;
-    int page = table_height / app::MAX_ROW_HEIGHT;
-    table_height = page * app::MAX_ROW_HEIGHT + 2;
-
-    gui::item_size({ C2, table_height });
-    gui::item_box();
+    gui::align(gui::Align::Center);
+    gui::button_style(gui::ButtonStyle::Tab);
+    gui::item_size({ app::CANVAS_WIDTH / 2, app::BUTTON_HEIGHT });
+    if (gui::button("FILES", g_tab == Tab::Files)) g_tab = Tab::Files;
     gui::same_line();
+    if (gui::button("DEMOS", g_tab == Tab::Demos)) g_tab = Tab::Demos;
+
+    gui::button_style(gui::ButtonStyle::Normal);
+    gui::item_size({ app::CANVAS_WIDTH, app::BUTTON_HEIGHT });
     gui::separator();
-    ivec2 button_cursor = gui::cursor();
-    gui::same_line(false);
-    gui::item_size(app::CANVAS_WIDTH);
-    gui::separator();
-    gui::item_size({ app::CANVAS_WIDTH, app::canvas_height() - gui::cursor().y - piano::HEIGHT });
+    gui::align(gui::Align::Left);
+    if (g_tab == Tab::Files) gui::input_text(g_file_name);
+
+    ivec2 table_cursor = gui::cursor();
+    int toolbar_rows = g_tab == Tab::Demos ? 1 : 2;
+    int bottom = app::BUTTON_HEIGHT * toolbar_rows + app::MAX_ROW_HEIGHT + gui::FRAME_WIDTH;
+    int table_height = app::canvas_height() - piano::HEIGHT - table_cursor.y - bottom;
+    int page = std::max(1, table_height / app::MAX_ROW_HEIGHT);
+    table_height = page * app::MAX_ROW_HEIGHT + 2;
+    int& scroll = g_tab == Tab::Demos ? g_demo_scroll : g_file_scroll;
+
+    gui::cursor(table_cursor + ivec2(0, 1));
+    gui::item_size({ app::CANVAS_WIDTH - app::SCROLL_WIDTH, app::MAX_ROW_HEIGHT });
+    gui::button_style(gui::ButtonStyle::TableCell);
+    for (int i = 0; i < page; ++i) {
+        size_t row = scroll + i;
+        if (row >= list_size()) {
+            gui::item_box();
+            continue;
+        }
+        char const* s = g_tab == Tab::Demos ? g_demo_names[row].c_str() : g_user_names[row].c_str();
+        if (gui::button(s, strcmp(s, g_file_name.data()) == 0)) {
+            copy_name(g_file_name, s);
+        }
+    }
+    gui::align(gui::Align::Center);
+    gui::button_style(gui::ButtonStyle::Normal);
+    gui::cursor({ app::CANVAS_WIDTH - app::SCROLL_WIDTH, table_cursor.y });
+    gui::item_size({ app::SCROLL_WIDTH, table_height });
+    int max_scroll = std::max(0, int(list_size()) - page);
+    scroll = std::min(scroll, max_scroll);
+    gui::drag_bar_style(gui::DragBarStyle::Scrollbar);
+    gui::vertical_drag_bar(scroll, 0, max_scroll, page);
+
+    gui::cursor({ 0, gui::cursor().y });
+
+
+
+    if (g_tab == Tab::Demos) {
+        bool selected = false;
+        for (std::string const& name : g_demo_names) {
+            if (strcmp(name.c_str(), g_file_name.data()) == 0) {
+                selected = true;
+                break;
+            }
+        }
+
+        gui::item_size({ app::CANVAS_WIDTH, app::BUTTON_HEIGHT });
+        gui::disabled(!selected);
+        if (gui::button("LOAD")) {
+            app::confirm("LOSE CHANGES TO THE CURRENT SONG?", [](bool ok) {
+                if (!ok) return;
+                load_demo();
+            });
+        }
+        gui::disabled(false);
+    }
+    else {
+        bool selected = false;
+        for (std::string const& name : g_user_names) {
+            if (strcmp(name.c_str(), g_file_name.data()) == 0) {
+                selected = true;
+                break;
+            }
+        }
+
+        gui::item_size({ app::CANVAS_WIDTH / 3, app::BUTTON_HEIGHT });
+        if (gui::button("RESET")) {
+            app::confirm("LOSE CHANGES TO THE CURRENT SONG?", [](bool ok) {
+                if (!ok) return;
+                g_song.clear();
+                app::player().set_action(gt::Player::Action::Reset);
+                song_view::reset();
+                song_undo::reset();
+                status("SONG WAS RESET");
+            });
+        }
+        gui::same_line();
+        gui::disabled(!selected);
+        if (gui::button("LOAD")) {
+            app::confirm("LOSE CHANGES TO THE CURRENT SONG?", [](bool ok) {
+                if (!ok) return;
+                load_user();
+            });
+        }
+        gui::same_line();
+        gui::disabled(g_file_name[0] == '\0');
+        if (gui::button("SAVE")) {
+            if (selected) {
+                app::confirm("OVERWRITE THE EXISTING SONG?", [](bool ok) {
+                    if (ok) save();
+                });
+            }
+            else {
+                save();
+            }
+        }
+
+        gui::item_size({ app::CANVAS_WIDTH / 3, app::BUTTON_HEIGHT });
+        gui::disabled(!selected);
+        if (gui::button("DELETE")) {
+            app::confirm("DELETE SONG?", [](bool ok) {
+                if (!ok) return;
+                fs::remove(g_song_dir + g_file_name.data() + SNG_SUFFIX);
+                init();
+                status("SONG WAS DELETED");
+            });
+        }
+        gui::same_line();
+        gui::disabled(false);
+        if (gui::button("IMPORT")) {
+            #ifdef ANDROID
+            app::confirm("LOSE CHANGES TO THE CURRENT SONG?", [](bool ok) {
+                if (!ok) return;
+                platform::start_song_import();
+            });
+            #endif
+        }
+        gui::same_line();
+#ifndef __EMSCRIPTEN__
+        gui::disabled(g_file_name[0] == '\0');
+        if (gui::button("EXPORT")) g_show_export_window = true;
+        gui::disabled(false);
+#endif
+    }
+
+    gui::item_size({ app::CANVAS_WIDTH, app::MAX_ROW_HEIGHT });
     gui::align(gui::Align::Left);
     gui::text("%s", g_status_msg.c_str());
     g_status_age += gui::frame_time();
     if (g_status_age > 2.0f) g_status_msg.clear();
 
-
-    // file table
-    gui::cursor(table_cursor + ivec2(0, 1));
-    gui::item_size({ C2 - app::SCROLL_WIDTH, app::MAX_ROW_HEIGHT });
-    gui::button_style(gui::ButtonStyle::TableCell);
-    gui::align(gui::Align::Left);
-    for (int i = 0; i < page; ++i) {
-        size_t row = g_file_scroll + i;
-        if (row >= g_file_names.size()) {
-            gui::item_box();
-            continue;
-        }
-        char const* s = g_file_names[row].c_str();
-        bool selected = strcmp(s, g_file_name.data()) == 0;
-        if (gui::button(s, selected)) {
-            strncpy(g_file_name.data(), s, g_file_name.size() - 1);
-        }
-    }
-    gui::align(gui::Align::Center);
-    gui::button_style(gui::ButtonStyle::Normal);
-    gui::cursor(ivec2(C2 - app::SCROLL_WIDTH, table_cursor.y));
-    gui::item_size({ app::SCROLL_WIDTH, table_height });
-    int max_scroll = std::max(0, int(g_file_names.size()) - page);
-    gui::drag_bar_style(gui::DragBarStyle::Scrollbar);
-    gui::vertical_drag_bar(g_file_scroll, 0, max_scroll, page);
-
-
-    // button column
-    gui::cursor(button_cursor);
-    gui::align(gui::Align::Center);
-    gui::item_size({ C1 - gui::FRAME_WIDTH, app::BUTTON_HEIGHT });
-    if (gui::button("RESET")) {
-        app::confirm("LOSE CHANGES TO THE CURRENT SONG?", [](bool ok) {
-            if (!ok) return;
-            g_song.clear();
-            app::player().set_action(gt::Player::Action::Reset);
-            song_view::reset();
-            song_undo::reset();
-            status("SONG WAS RESET");
-        });
-    }
-    bool file_selected = false;
-    for (std::string const& n : g_file_names) {
-        if (strcmp(n.c_str(), g_file_name.data()) == 0) {
-            file_selected = true;
-            break;
-        }
-    }
-    gui::disabled(!file_selected);
-    if (gui::button("LOAD")) {
-        app::confirm("LOSE CHANGES TO THE CURRENT SONG?", [](bool ok) {
-            if (!ok) return;
-            try {
-                g_song.load((g_song_dir + g_file_name.data() + SNG_SUFFIX).c_str());
-                status("SONG WAS LOADED");
-            }
-            catch (gt::LoadError const& e) {
-                g_song.clear();
-                status("LOAD ERROR: " + e.msg);
-            }
-            app::player().set_action(gt::Player::Action::Reset);
-            song_view::reset();
-            song_undo::reset();
-        });
-    }
-    gui::disabled(g_file_name[0] == '\0');
-    if (gui::button("SAVE")) {
-        if (file_selected) {
-            app::confirm("OVERWRITE THE EXISTING SONG?", [](bool ok) {
-                if (ok) save();
-            });
-        }
-        else {
-            save();
-        }
-    }
-    gui::disabled(!file_selected);
-    if (gui::button("DELETE")) {
-        app::confirm("DELETE SONG?", [](bool ok) {
-            if (!ok) return;
-            fs::remove(g_song_dir + g_file_name.data() + SNG_SUFFIX);
-            init();
-            status("SONG WAS DELETED");
-        });
-    }
-    gui::disabled(false);
-
-
-#ifdef ANDROID
-    if (gui::button("IMPORT")) {
-        app::confirm("LOSE CHANGES TO THE CURRENT SONG?", [](bool ok) {
-            if (!ok) return;
-            platform::start_song_import();
-        });
-    }
-#endif
-
 #ifndef __EMSCRIPTEN__
-    gui::disabled(g_file_name[0] == '\0');
-    if (gui::button("EXPORT")) g_show_export_window = true;
-    gui::disabled(false);
-
     if (g_show_export_window) {
         gui::Box box = gui::begin_window({ app::CANVAS_WIDTH - 48, app::BUTTON_HEIGHT * 3 + gui::FRAME_WIDTH * 2 });
         gui::item_size({ box.size.x, app::BUTTON_HEIGHT });
@@ -415,8 +501,6 @@ void draw() {
         gui::end_window();
     }
 #endif
-
-    gui::separator();
 
     app::draw_confirm();
     piano::draw();
