@@ -177,6 +177,7 @@ void key_event(int key, int unicode) {
     int c = unicode;
     if (c >= ' ' && c < '~' && c != '/') {
         g_input_text_str[g_input_text_pos++] = c;
+        g_input_text_str[g_input_text_pos] = '\0';
     }
 }
 
