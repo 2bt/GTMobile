@@ -135,7 +135,7 @@ void load_user() {
     load_instrument(stream);
 }
 
-void save() {
+void save_instrument() {
     std::ofstream stream(g_instruments_dir + g_file_name.data() + FILE_SUFFIX, std::ios::binary);
     if (!stream.is_open()) {
         app::alert("SAVE ERROR");
@@ -309,11 +309,11 @@ void draw() {
         if (gui::button("SAVE")) {
             if (selected) {
                 app::confirm("OVERWRITE THE EXISTING INSTRUMENT?", [](bool ok) {
-                    if (ok) save();
+                    if (ok) save_instrument();
                 });
             }
             else {
-                save();
+                save_instrument();
             }
         }
         gui::same_line();
