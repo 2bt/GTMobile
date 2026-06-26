@@ -807,6 +807,19 @@ void draw() {
             gui::item_size({ 55, app::BUTTON_HEIGHT });
         }
 
+        if (gui::button(gui::Icon::DeleteRow)) {
+            for (int i = g_cursor_pattern_row; i < patt.len - 1; ++i) {
+                patt.rows[i] = patt.rows[i + 1];
+            }
+            patt.rows[patt.len - 1] = {};
+        }
+        if (gui::button(gui::Icon::AddRowAbove)) {
+            for (int i = patt.len - 2; i >= g_cursor_pattern_row; --i) {
+                patt.rows[i + 1] = patt.rows[i];
+            }
+            patt.rows[g_cursor_pattern_row] = {};
+        }
+
         gui::separator();
 
 

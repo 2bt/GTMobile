@@ -755,10 +755,19 @@ void draw() {
                 g_cursor_row = std::min(g_cursor_row, len - 1);
             }
         }
-        gui::disabled(num_free_rows <= 0 + (len == 0));
+        gui::disabled(num_free_rows == 0 || len == 0);
         if (gui::button(gui::Icon::AddRowAbove)) {
-            uint8_t cursor_lval = 0;
-            uint8_t cursor_rval = 0;
+            uint8_t cursor_lval = ltable[start_row + g_cursor_row];
+            uint8_t cursor_rval = rtable[start_row + g_cursor_row];
+            ++len;
+            add_table_row(g_table, start_row + g_cursor_row);
+            ltable[start_row + g_cursor_row] = cursor_lval;
+            rtable[start_row + g_cursor_row] = cursor_rval;
+        }
+        gui::disabled(num_free_rows == 0 && len != 0);
+        if (gui::button(gui::Icon::AddRowBelow)) {
+            uint8_t cursor_lval;
+            uint8_t cursor_rval;
             // add jump
             if (len == 0) {
                 assert(num_free_rows >= 2);
@@ -766,28 +775,20 @@ void draw() {
                 instr.ptr[g_table] = start_row + 1;
                 add_table_row(g_table, start_row);
                 ltable[start_row] = 0xff;
+                rtable[start_row] = 0x00;
                 ++len;
-                if (g_table == gt::WTBL) cursor_lval = 0x21;
+                if (g_table == gt::WTBL) cursor_lval = 0x11; // triangle wave
                 if (g_table == gt::PTBL) cursor_lval = 0x88; // set pw
                 if (g_table == gt::FTBL) {
-                    cursor_lval = 0x81;
-                    cursor_rval = 0xf1;
+                    cursor_lval = 0x90; // low pass filter
+                    cursor_rval = 0xf1; // voice 1, resonance 15
                 }
             }
             else {
                 cursor_lval = ltable[start_row + g_cursor_row];
                 cursor_rval = rtable[start_row + g_cursor_row];
+                ++g_cursor_row;
             }
-            ++len;
-            add_table_row(g_table, start_row + g_cursor_row);
-            ltable[start_row + g_cursor_row] = cursor_lval;
-            rtable[start_row + g_cursor_row] = cursor_rval;
-        }
-        gui::disabled(len == 0 || num_free_rows == 0);
-        if (gui::button(gui::Icon::AddRowBelow)) {
-            uint8_t cursor_lval = ltable[start_row + g_cursor_row];
-            uint8_t cursor_rval = rtable[start_row + g_cursor_row];
-            ++g_cursor_row;
             ++len;
             add_table_row(g_table, start_row + g_cursor_row);
             ltable[start_row + g_cursor_row] = cursor_lval;
@@ -1032,8 +1033,8 @@ void draw() {
             int mode = (lval >= 0x80) ? 0 : (lval == 0x00) ? 1 : 2;
             if (gui::choose(app::CANVAS_WIDTH, nullptr, mode, { "SET PARAMS", "SET CUTOFF", "MOD CUTOFF" })) {
                 if (mode == 0) {
-                    lval = 0x90;
-                    rval = 0xF1;
+                    lval = 0x90; // low pass filter
+                    rval = 0xf1; // voice 1, resonance 15
                 }
                 if (mode == 1) {
                     lval = 0x00;

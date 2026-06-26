@@ -5,7 +5,10 @@ permalink: /history/
 ---
 
 
-## WIP 1.0.17 (2026-06-20)
+## WIP
++ Buttons to delete/add a pattern row, shifting all rows below up/down.
+
+## 1.0.17 (2026-06-20)
 + Added comprehensive undo/redo functionality.
 + Minor instrument table UI tweaks
 
