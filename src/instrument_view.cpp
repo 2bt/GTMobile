@@ -766,8 +766,8 @@ void draw() {
         }
         gui::disabled(num_free_rows == 0 && len != 0);
         if (gui::button(gui::Icon::AddRowBelow)) {
-            uint8_t cursor_lval;
-            uint8_t cursor_rval;
+            uint8_t cursor_lval = 0;
+            uint8_t cursor_rval = 0;
             // add jump
             if (len == 0) {
                 assert(num_free_rows >= 2);
