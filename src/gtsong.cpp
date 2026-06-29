@@ -382,6 +382,7 @@ int Song::get_table_part_length(int table, int start_row) const {
     for (i = start_row; i < gt::MAX_TABLELEN; ++i) {
         if (ltable[table][i] == 0xff) {
             int a = rtable[table][i];
+            (void)a;
             assert(a == 0 || (a - 1 >= start_row && a - 1 < i));
             ++i;
             break;

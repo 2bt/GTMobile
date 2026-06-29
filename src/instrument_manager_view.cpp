@@ -85,7 +85,7 @@ bool load_instrument(std::istream& stream) {
     std::array<char, 4> ident;
     read(stream, ident);
     if (ident != std::array<char, 4>{'G', 'T', 'I', '5'}) {
-        app::alert("LOAD ERROR: bad file format");
+        app::alert("LOAD ERROR: Bad file format");
         return false;
     }
     instrument_view::InstrumentCopyBuffer b = {};
@@ -119,7 +119,7 @@ bool load_instrument(std::istream& stream) {
 void load_preset() {
     std::vector<uint8_t> buffer;
     if (!platform::load_asset("instruments/" + std::string(g_file_name.data()) + FILE_SUFFIX, buffer)) {
-        app::alert("LOAD ERROR: cannot open file");
+        app::alert("LOAD ERROR: Cannot open file");
         return;
     }
     std::istringstream stream(std::string(buffer.begin(), buffer.end()), std::ios::binary);
@@ -129,7 +129,7 @@ void load_preset() {
 void load_user() {
     std::ifstream stream(g_instruments_dir + g_file_name.data() + FILE_SUFFIX, std::ios::binary);
     if (!stream.is_open()) {
-        app::alert("LOAD ERROR: cannot open file");
+        app::alert("LOAD ERROR: Cannot open file");
         return;
     }
     load_instrument(stream);
@@ -162,6 +162,7 @@ void save_instrument() {
             for (i = start; i < gt::MAX_TABLELEN; ++i) {
                 if (g_song.ltable[t][i] == 0xff) {
                     int a = g_song.rtable[t][i];
+                    (void)a;
                     assert(a == 0 || (a - 1 >= start && a - 1 < i));
                     ++i;
                     break;

@@ -717,6 +717,7 @@ void draw() {
                 s += sprintf(s, " \xf1%X", rval >> 4);
             }
         }
+        (void)s;
 
         dc.rgb(color::WHITE);
         dc.text(p, str);

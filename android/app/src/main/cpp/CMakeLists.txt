@@ -7,7 +7,7 @@ set(LIB_DIR "../../../../native-libs")
 
 project(native)
 
-add_subdirectory(${LIB_DIR}/libsndfile ${CMAKE_BINARY_DIR}/libsndfile_build)
+add_subdirectory(${LIB_DIR} ${CMAKE_BINARY_DIR}/native_libs_build)
 
 find_package (
     oboe
@@ -66,4 +66,6 @@ target_link_libraries(
     oboe::oboe
     android
     sndfile
+    ogg
+    vorbis
 )

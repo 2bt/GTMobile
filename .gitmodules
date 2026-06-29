@@ -1,0 +1,9 @@
+[submodule "android/native-libs/libsndfile"]
+	path = android/native-libs/libsndfile
+	url = https://github.com/libsndfile/libsndfile.git
+[submodule "android/native-libs/libogg"]
+	path = android/native-libs/libogg
+	url = https://github.com/xiph/ogg.git
+[submodule "android/native-libs/libvorbis"]
+	path = android/native-libs/libvorbis
+	url = https://github.com/xiph/vorbis.git

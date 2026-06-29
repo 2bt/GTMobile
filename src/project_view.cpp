@@ -63,7 +63,7 @@ void save() {
 void load_demo() {
     std::vector<uint8_t> buffer;
     if (!platform::load_asset("songs/" + std::string(g_file_name.data()) + SNG_SUFFIX, buffer)) {
-        app::alert("LOAD ERROR: cannot open file");
+        app::alert("LOAD ERROR: Cannot open file");
         return;
     }
     try {
@@ -111,7 +111,7 @@ void start_export_thread() {
 
     SNDFILE* sndfile = sf_open((g_export_dir + file_name).c_str(), SFM_WRITE, &info);
     if (!sndfile) {
-        app::alert("EXPORT ERROR");
+        app::alert("EXPORT ERROR: " + std::string(sf_strerror(sndfile)));
         g_show_export_window = false;
         return;
     }
