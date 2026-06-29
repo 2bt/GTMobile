@@ -5,8 +5,10 @@ permalink: /history/
 ---
 
 
-## WIP
-+ Buttons to delete/add a pattern row, shifting all rows below up/down.
+## WIP 1.0.18
++ Fixed audio playback stopping permanently after plugging or unplugging headphones.
++ Added buttons to delete/add a pattern row, shifting all rows below up/down.
++ Improved instrument preset library
 
 ## 1.0.17 (2026-06-20)
 + Added comprehensive undo/redo functionality.
