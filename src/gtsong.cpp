@@ -52,7 +52,7 @@ void Song::clear() {
 
 void Song::load(char const* filename) {
     std::ifstream stream(filename, std::ios::binary);
-    if (!stream.is_open()) load_error("cannot open file");
+    if (!stream.is_open()) load_error("Cannot open file");
     load(stream);
 }
 void Song::load(uint8_t const* data, size_t size) {
@@ -69,7 +69,7 @@ void Song::load(std::istream& stream) {
     char ident[4];
     read(stream, ident);
     if (strncmp(ident, "GTS5", 4) != 0) {
-        load_error("bad file format");
+        load_error("Bad file format");
     }
 
     clear();
@@ -79,7 +79,7 @@ void Song::load(std::istream& stream) {
 
     // read songorderlists
     int amount = read8(stream);
-    if (amount != 1) load_error("multiple songs not supported");
+    if (amount != 1) load_error("Multiple songs not supported");
     for (int c = 0; c < MAX_CHN; c++) {
         int buffer_len = read8(stream) + 1;
         assert(buffer_len >= 3);
@@ -106,11 +106,11 @@ void Song::load(std::istream& stream) {
                 x = buffer[i++];
             }
             if (x >= MAX_PATT) {
-                load_error("invalid pattern number");
+                load_error("Invalid pattern number");
             }
             for (int j = 0; j < repeat; ++j) {
                 if (pos >= int(order.size())) {
-                    load_error("max song length exceeded");
+                    load_error("Max song length exceeded");
                 }
                 order[pos].trans   = trans;
                 order[pos].pattnum = x;
@@ -122,8 +122,8 @@ void Song::load(std::istream& stream) {
             song_loop = loop;
         }
         else {
-            if (pos != song_len) load_error("order length mismatch");
-            if (loop != song_loop) load_error("order loop mismatch");
+            if (pos != song_len) load_error("Order length mismatch");
+            if (loop != song_loop) load_error("Order loop mismatch");
         }
     }
 
@@ -239,9 +239,9 @@ void Song::load(std::istream& stream) {
             funk[i] = funk_pos++;
         }
     }
-    if (porta_pos >= STBL_PORTA_START + STBL_SUBTABLE_LEN - 1) load_error("too many portamenti");
-    if (vib_pos   >= STBL_VIB_START   + STBL_SUBTABLE_LEN - 1) load_error("too many vibratos");
-    if (funk_pos  >= STBL_FUNK_START  + STBL_SUBTABLE_LEN - 1) load_error("too many funk tempi");
+    if (porta_pos >= STBL_PORTA_START + STBL_SUBTABLE_LEN - 1) load_error("Too many portamenti");
+    if (vib_pos   >= STBL_VIB_START   + STBL_SUBTABLE_LEN - 1) load_error("Too many vibratos");
+    if (funk_pos  >= STBL_FUNK_START  + STBL_SUBTABLE_LEN - 1) load_error("Too many funk tempi");
     for (Pattern& patt : patterns) {
         for (PatternRow& row : patt.rows) {
             if (row.data == 0) continue;
@@ -281,7 +281,7 @@ void Song::load(std::istream& stream) {
                 int addr = row.data - 1;
                 if (addr_to_instr[addr] == 0) {
                     if (instr_count >= MAX_INSTR - 1) {
-                        load_error("cannot remap table ptr command");
+                        load_error("Cannot remap table ptr command");
                     }
                     addr_to_instr[addr] = ++instr_count;
                     Instrument& instr = instruments[addr_to_instr[addr]];
@@ -301,7 +301,7 @@ void Song::load(std::istream& stream) {
             int addr = data - 1;
             if (addr_to_instr[addr] == 0) {
                 if (instr_count >= MAX_INSTR - 1) {
-                    load_error("cannot remap table ptr command");
+                    load_error("Cannot remap table ptr command");
                 }
                 addr_to_instr[addr] = ++instr_count;
                 Instrument& instr = instruments[addr_to_instr[addr]];
@@ -350,7 +350,7 @@ void Song::load(std::istream& stream) {
             }
         }
         if (nlt.size() > ltable[t].size()) {
-            load_error("not enough space in table " + std::to_string(t));
+            load_error("Not enough space in table " + std::to_string(t));
         }
         ltable[t] = {};
         rtable[t] = {};

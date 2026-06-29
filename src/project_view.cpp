@@ -63,7 +63,7 @@ void save() {
 void load_demo() {
     std::vector<uint8_t> buffer;
     if (!platform::load_asset("songs/" + std::string(g_file_name.data()) + SNG_SUFFIX, buffer)) {
-        app::alert("LOAD ERROR: Cannot open file");
+        app::alert("LOAD ERROR", "Cannot open file");
         return;
     }
     try {
@@ -71,7 +71,7 @@ void load_demo() {
     }
     catch (gt::LoadError const& e) {
         g_song.clear();
-        app::alert("LOAD ERROR: " + e.msg);
+        app::alert("LOAD ERROR", e.msg);
     }
     app::player().set_action(gt::Player::Action::Reset);
     song_view::reset();
@@ -84,7 +84,7 @@ void load_user() {
     }
     catch (gt::LoadError const& e) {
         g_song.clear();
-        app::alert("LOAD ERROR: " + e.msg);
+        app::alert("LOAD ERROR", e.msg);
     }
     app::player().set_action(gt::Player::Action::Reset);
     song_view::reset();
@@ -111,7 +111,7 @@ void start_export_thread() {
 
     SNDFILE* sndfile = sf_open((g_export_dir + file_name).c_str(), SFM_WRITE, &info);
     if (!sndfile) {
-        app::alert("EXPORT ERROR: " + std::string(sf_strerror(sndfile)));
+        app::alert("EXPORT ERROR", sf_strerror(sndfile));
         g_show_export_window = false;
         return;
     }
@@ -179,7 +179,7 @@ void import_song(std::string const& path) {
     }
     catch (gt::LoadError const& e) {
         g_song.clear();
-        app::alert("IMPORT ERROR: " + e.msg);
+        app::alert("IMPORT ERROR", e.msg);
     }
     app::player().set_action(gt::Player::Action::Reset);
     song_view::reset();

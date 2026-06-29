@@ -46,7 +46,9 @@ int             g_canvas_offset;
 bool            g_canvas_setup_requested;
 
 ConfirmCallback g_confirm_callback;
-std::string     g_confirm_msg;
+std::string     g_confirm_header;
+std::string     g_confirm_detail;
+bool            g_confirm_defer;
 View            g_view        = View::Splash;
 bool            g_initialized = false;
 std::string     g_storage_dir = ".";
@@ -199,37 +201,55 @@ bool               is_in_song_view() { return g_view == View::Song; }
 void               go_to_instrument_view() { g_view = View::Instrument; }
 
 void draw_confirm() {
-    if (g_confirm_msg.empty()) return;
-    gui::Box box = gui::begin_window({ CANVAS_WIDTH - 48, BUTTON_HEIGHT * 2 + gui::FRAME_WIDTH });
+    if (g_confirm_header.empty()) return;
+    if (g_confirm_defer) {
+        g_confirm_defer = false;
+        return;
+    }
+
+    int height    = BUTTON_HEIGHT * 2 + gui::FRAME_WIDTH;
+    if (!g_confirm_detail.empty()) height += BUTTON_HEIGHT + gui::FRAME_WIDTH;
+    gui::Box box = gui::begin_window({ CANVAS_WIDTH - 48, height });
 
     gui::item_size({ box.size.x, BUTTON_HEIGHT });
     gui::align(gui::Align::Center);
-    gui::text(g_confirm_msg.c_str());
+    gui::text(g_confirm_header.c_str());
+    if (!g_confirm_detail.empty()) {
+        gui::separator();
+        gui::text(g_confirm_detail.c_str());
+    }
     gui::separator();
     if (g_confirm_callback) {
         gui::item_size({ box.size.x / 2, app::BUTTON_HEIGHT });
         if (gui::button("OK")) {
-            g_confirm_msg.clear();
+            g_confirm_header.clear();
+            g_confirm_detail.clear();
             g_confirm_callback(true);
         }
         gui::same_line();
         if (gui::button("CANCEL")) {
-            g_confirm_msg.clear();
+            g_confirm_header.clear();
+            g_confirm_detail.clear();
             g_confirm_callback(false);
         }
     }
     else {
-        if (gui::button("OK")) g_confirm_msg.clear();
+        if (gui::button("OK")) {
+            g_confirm_header.clear();
+            g_confirm_detail.clear();
+        }
     }
     gui::end_window();
 }
-void confirm(std::string msg, ConfirmCallback cb) {
-    g_confirm_msg      = std::move(msg);
+void confirm(std::string header, ConfirmCallback cb, std::string detail) {
+    g_confirm_header   = std::move(header);
+    g_confirm_detail   = std::move(detail);
     g_confirm_callback = std::move(cb);
+    g_confirm_defer    = true;
 }
 
-void alert(std::string msg) {
-    confirm(std::move(msg), nullptr);
+void alert(std::string header, std::string detail) {
+    confirm(std::move(header), nullptr, std::move(detail));
 }
 
 
