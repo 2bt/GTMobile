@@ -14,13 +14,22 @@
 namespace {
 
 
+bool start_audio();
+
+oboe::AudioStream* g_stream;
+
 struct Callback : oboe::AudioStreamCallback {
     oboe::DataCallbackResult onAudioReady(oboe::AudioStream* oboeStream, void* audioData, int32_t numFrames) override {
         app::audio_callback((int16_t*) audioData, numFrames);
         return oboe::DataCallbackResult::Continue;
     }
+
+    void onErrorAfterClose(oboe::AudioStream*, oboe::Result error) override {
+        LOGE("oboe::AudioStreamCallback::onErrorAfterClose: %s", oboe::convertToText(error));
+        g_stream = nullptr;
+        start_audio();
+    }
 }                  g_callback;
-oboe::AudioStream* g_stream;
 AAssetManager*     g_asset_manager;
 JNIEnv*            g_env;
 
@@ -30,19 +39,31 @@ std::queue<MidiEvent> g_midi_event_queue;
 std::mutex            g_midi_queue_mutex;
 
 
+bool is_stream_playing() {
+    return g_stream && g_stream->getState() == oboe::StreamState::Started;
+}
+
+
+void release_stream() {
+    if (!g_stream) return;
+    if (g_stream->getState() != oboe::StreamState::Closed) {
+        g_stream->stop();
+        g_stream->close();
+    }
+    g_stream = nullptr;
+}
+
+
 void stop_audio() {
     LOGI("stop_audio");
-    if (!g_stream) return;
-    g_stream->stop();
-    g_stream->close();
-    delete g_stream;
-    g_stream = nullptr;
+    release_stream();
 }
 
 
 bool start_audio() {
     LOGI("start_audio");
-    if (g_stream) return true;
+    if (is_stream_playing()) return true;
+    release_stream();
 
     oboe::AudioStreamBuilder builder;
     builder.setDirection(oboe::Direction::Output);
@@ -67,6 +88,7 @@ bool start_audio() {
     result = g_stream->requestStart();
     if (result != oboe::Result::OK) {
         LOGE("start_audio: AudioStream::requestStart failed: %s", oboe::convertToText(result));
+        release_stream();
         return false;
     }
     return true;
@@ -206,7 +228,7 @@ extern "C" {
         else stop_audio();
     }
     JNIEXPORT jboolean JNICALL Java_com_twobit_gtmobile_Native_isStreamPlaying(JNIEnv* env, jclass) {
-        return g_stream != nullptr;
+        return is_stream_playing();
     }
     JNIEXPORT jboolean JNICALL Java_com_twobit_gtmobile_Native_isPlayerPlaying(JNIEnv* env, jclass) {
         return app::player().is_playing();
