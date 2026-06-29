@@ -336,8 +336,9 @@ void Song::load(std::istream& stream) {
                     break;
                 }
                 if (ltable[t][p - 1] == 0xff) {
+                    int q = p;
                     p = rtable[t][p - 1];
-                    if (p > 0) continue;
+                    if (p > 0 && p != q) continue;
                     // end without loop
                     nlt.push_back(0xff);
                     nrt.push_back(0x00);
