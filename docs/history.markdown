@@ -6,6 +6,7 @@ permalink: /history/
 
 
 ## WIP 1.0.18
++ Added SID export.
 + Fixed audio playback stopping permanently after plugging or unplugging headphones.
 + Added buttons to delete/add a pattern row, shifting all rows below up/down.
 + Improved instrument preset library

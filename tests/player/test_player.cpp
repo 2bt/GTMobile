@@ -221,7 +221,7 @@ std::string golden_path(char const* name) {
 #ifndef SNG2SID_DATADIR
 #define SNG2SID_DATADIR "."
 #endif
-    return std::string(SNG2SID_DATADIR) + "/test/player/golden/" + name + ".bin";
+    return std::string(SNG2SID_DATADIR) + "/player/golden/" + name + ".bin";
 }
 
 void check_jmps(char const* name, std::vector<uint8_t> const& b, bool sfx, bool vol) {

@@ -7,13 +7,28 @@ set(LIB_DIR "../../../../native-libs")
 
 project(native)
 
+get_filename_component(
+    GT_ROOT
+    "${CMAKE_CURRENT_SOURCE_DIR}/../../../../.."
+    ABSOLUTE
+)
+
+include(${GT_ROOT}/cmake/EmbedPlayer.cmake)
+write_player_embed(
+    "${CMAKE_CURRENT_BINARY_DIR}/player_embed.hpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/player.asm"
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/altplayer.asm"
+)
+
+file(GLOB ASM64_SOURCES ${GT_ROOT}/third_party/asm64/src/*.c)
+list(FILTER ASM64_SOURCES EXCLUDE REGEX "/main\\.c$")
+add_library(asm64 STATIC ${ASM64_SOURCES})
+target_include_directories(asm64 PUBLIC ${GT_ROOT}/third_party/asm64/include)
+target_compile_options(asm64 PRIVATE -std=c99 -Wall)
+
 add_subdirectory(${LIB_DIR} ${CMAKE_BINARY_DIR}/native_libs_build)
 
-find_package (
-    oboe
-    REQUIRED
-    CONFIG
-)
+find_package(oboe REQUIRED CONFIG)
 
 add_library(
     native
@@ -32,40 +47,21 @@ add_library(
     src/project_view.cpp
     src/settings_view.cpp
     src/sid.cpp
+    src/sid_export.cpp
     src/song_undo.cpp
     src/song_view.cpp
 )
 
-target_include_directories(
-    native
-    PRIVATE
-    src
-)
+target_include_directories(native PRIVATE src ${CMAKE_CURRENT_BINARY_DIR})
 
-target_compile_options(
-    native
-    PRIVATE
-    -std=c++17
-    -O3
-    -Wall
-)
+target_compile_options(native PRIVATE -std=c++17 -O3 -Wall)
 
 set_source_files_properties(
     src/sid.cpp
-    PROPERTIES
-    COMPILE_FLAGS
-    "-Wno-parentheses -Ofast"
+    PROPERTIES COMPILE_FLAGS "-Wno-parentheses -Ofast"
 )
 
 target_link_libraries(
     native
-    PRIVATE
-    log
-    EGL
-    GLESv2
-    oboe::oboe
-    android
-    sndfile
-    ogg
-    vorbis
+    PRIVATE asm64 log EGL GLESv2 oboe::oboe android sndfile ogg vorbis
 )

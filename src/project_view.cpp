@@ -3,12 +3,14 @@
 #include "gui.hpp"
 #include "platform.hpp"
 #include "piano.hpp"
+#include "sid_export.hpp"
 #include "song_undo.hpp"
 #include "song_view.hpp"
 #include <algorithm>
 #include <cstdio>
 #include <filesystem>
 #include <cstring>
+#include <fstream>
 #include <thread>
 #include <cassert>
 #ifndef __EMSCRIPTEN__
@@ -23,7 +25,7 @@ namespace project_view {
 namespace {
 
 enum class Tab { Files, Demos };
-enum class ExportFormat { Sng, Wav, Ogg };
+enum class ExportFormat { Sng, Sid, Wav, Ogg };
 
 gt::Song&                g_song = app::song();
 std::string              g_song_dir;
@@ -94,7 +96,7 @@ void load_user() {
 
 #ifndef __EMSCRIPTEN__
 void start_export_thread() {
-    assert(g_export_format != ExportFormat::Sng);
+    assert(g_export_format == ExportFormat::Wav || g_export_format == ExportFormat::Ogg);
 
     std::string file_name = g_file_name.data();
     assert(file_name != "");
@@ -408,7 +410,7 @@ void draw() {
         gui::separator();
 
         if (!g_export_thread.joinable()) {
-            gui::choose(box.size.x, nullptr, g_export_format, { "SNG", "WAV", "OGG" });
+            gui::choose(box.size.x, nullptr, g_export_format, { "SNG", "SID", "WAV", "OGG" });
 
             gui::item_size(box.size.x);
             gui::separator();
@@ -420,6 +422,24 @@ void draw() {
                     bool ok = g_song.save(path.c_str());
                     if (ok) platform::export_song(path, g_file_name.data());
                     else app::alert("EXPORT ERROR");
+                    g_show_export_window = false;
+                }
+                else if (g_export_format == ExportFormat::Sid) {
+                    std::string path = g_export_dir + g_file_name.data() + ".sid";
+                    try {
+                        auto bytes = gt::export_song(g_song);
+                        std::ofstream out(path, std::ios::binary);
+                        if (!out || !out.write(reinterpret_cast<char const*>(bytes.data()),
+                                               std::streamsize(bytes.size()))) {
+                            app::alert("EXPORT ERROR");
+                        }
+                        else {
+                            platform::export_song(path, g_file_name.data());
+                        }
+                    }
+                    catch (std::exception const& e) {
+                        app::alert("EXPORT ERROR", e.what());
+                    }
                     g_show_export_window = false;
                 }
                 else {
