@@ -1,4 +1,4 @@
-#include "sid_export.hpp"
+#include "player_embed.hpp"
 
 #include <algorithm>
 #include <cstdint>
@@ -7,10 +7,38 @@
 #include <cstring>
 #include <fstream>
 #include <map>
+#include <stdexcept>
 #include <string>
 #include <vector>
 
+extern "C" {
+#include "assembler.h"
+}
+
 namespace {
+
+std::string player_source(bool alt) {
+    if (alt) return { ALTPLAYER_ASM, sizeof ALTPLAYER_ASM };
+    return { PLAYER_ASM, sizeof PLAYER_ASM };
+}
+
+std::vector<uint8_t> assemble(std::string const& source) {
+    Assembler* as = assembler_create();
+    if (!as) throw std::runtime_error("assembler_create failed");
+    int rc = assembler_assemble_string(as, source.c_str(), "player.asm");
+    if (rc != 0 || assembler_has_errors(as)) {
+        int n = assembler_error_count(as);
+        assembler_free(as);
+        throw std::runtime_error("assemble failed with " + std::to_string(n) + " error(s)");
+    }
+    uint16_t start = 0;
+    int      size  = 0;
+    uint8_t const* bytes = assembler_get_output(as, &start, &size);
+    std::vector<uint8_t> out(bytes, bytes + size);
+    assembler_free(as);
+    return out;
+}
+
 
 int g_fails = 0;
 
@@ -222,16 +250,16 @@ void run_case(char const* name, std::map<std::string, int> defs, bool alt,
             snprintf(buf, sizeof buf, "%s = %d\n", kv.first.c_str(), kv.second);
             src += buf;
         }
-        src += gt::load_player_source(alt);
+        src += player_source(alt);
         src += stubs();
-        auto r = gt::assemble_source(src);
-        check_jmps(name, r.bytes, sfx, vol);
+        auto bytes = assemble(src);
+        check_jmps(name, bytes, sfx, vol);
 
         std::string gpath = golden_path(name);
         if (const char* w = getenv("SNG2SID_WRITE_GOLDENS"); w && w[0] == '1') {
             std::ofstream out(gpath, std::ios::binary);
-            out.write(reinterpret_cast<char const*>(r.bytes.data()), std::streamsize(r.bytes.size()));
-            fprintf(stdout, "wrote golden %s (%zu bytes)\n", gpath.c_str(), r.bytes.size());
+            out.write(reinterpret_cast<char const*>(bytes.data()), std::streamsize(bytes.size()));
+            fprintf(stdout, "wrote golden %s (%zu bytes)\n", gpath.c_str(), bytes.size());
             return;
         }
         std::ifstream in(gpath, std::ios::binary);
@@ -241,17 +269,17 @@ void run_case(char const* name, std::map<std::string, int> defs, bool alt,
             return;
         }
         std::vector<uint8_t> golden((std::istreambuf_iterator<char>(in)), {});
-        if (golden.size() != r.bytes.size() || memcmp(golden.data(), r.bytes.data(), r.bytes.size()) != 0) {
-            size_t n = std::min(golden.size(), r.bytes.size());
+        if (golden.size() != bytes.size() || memcmp(golden.data(), bytes.data(), bytes.size()) != 0) {
+            size_t n = std::min(golden.size(), bytes.size());
             size_t i = 0;
-            for (; i < n; i++) if (golden[i] != r.bytes[i]) break;
+            for (; i < n; i++) if (golden[i] != bytes[i]) break;
             fprintf(stderr, "FAIL: %s mismatch at +%zu (got %zu bytes, golden %zu)\n",
-                    name, i, r.bytes.size(), golden.size());
+                    name, i, bytes.size(), golden.size());
             for (size_t k = i; k < i + 16 && k < n; k++)
-                fprintf(stderr, "  %04zx: got %02x golden %02x\n", k, r.bytes[k], golden[k]);
+                fprintf(stderr, "  %04zx: got %02x golden %02x\n", k, bytes[k], golden[k]);
             g_fails++;
         } else {
-            fprintf(stdout, "OK %s (%zu bytes)\n", name, r.bytes.size());
+            fprintf(stdout, "OK %s (%zu bytes)\n", name, bytes.size());
         }
     } catch (std::exception const& e) {
         fprintf(stderr, "FAIL: %s assemble: %s\n", name, e.what());

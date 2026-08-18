@@ -41,13 +41,11 @@ target_link_libraries(sng2sid PRIVATE asm64)
 add_executable(
     sng2sid_player_tests
     test/player/test_player.cpp
-    sid_export.cpp
-    ${GTSONG_SRC}
 )
 target_compile_features(sng2sid_player_tests PRIVATE cxx_std_17)
 target_compile_options(sng2sid_player_tests PRIVATE -Wall)
 target_compile_definitions(sng2sid_player_tests PRIVATE SNG2SID_DATADIR="${SNG2SID_DATADIR}")
-target_include_directories(sng2sid_player_tests PRIVATE ${CMAKE_CURRENT_SOURCE_DIR} ${CMAKE_CURRENT_BINARY_DIR} ${CMAKE_SOURCE_DIR}/src)
+target_include_directories(sng2sid_player_tests PRIVATE ${CMAKE_CURRENT_BINARY_DIR})
 target_link_libraries(sng2sid_player_tests PRIVATE asm64)
 
 add_executable(

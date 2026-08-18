@@ -2,8 +2,8 @@
 #include "player_embed.hpp"
 
 #include <algorithm>
+#include <array>
 #include <cstdio>
-#include <cstring>
 #include <string>
 #include <utility>
 #include <vector>
@@ -15,9 +15,7 @@ extern "C" {
 namespace gt {
 namespace {
 
-constexpr int MAX_NOTES     = 96;
-constexpr int TYPE_OVERFLOW = 1;
-constexpr int TYPE_JUMP     = 2;
+constexpr int MAX_NOTES = 96;
 
 uint8_t const FREQ_TBL_LO[MAX_NOTES] = {
     0x17, 0x27, 0x39, 0x4b, 0x5f, 0x74, 0x8a, 0xa1, 0xba, 0xd4, 0xf0, 0x0e, //
@@ -54,6 +52,16 @@ char const* const TABLE_RIGHT_NAME[] = {
 };
 
 uint8_t swap_nybbles(uint8_t n) { return uint8_t((n & 0xf) << 4) | (n >> 4); }
+
+struct AssembleResult {
+    std::vector<uint8_t> bytes;
+    uint16_t             start = 0;
+};
+
+std::string load_player_source(bool alt_player) {
+    if (alt_player) return { ALTPLAYER_ASM, sizeof(ALTPLAYER_ASM) };
+    return { PLAYER_ASM, sizeof(PLAYER_ASM) };
+}
 
 class AsmSrc {
 public:
@@ -156,62 +164,49 @@ struct PackFlags {
     bool author_info         = false;
 };
 
-// Pack editor pattern rows into playroutine bytes and record which effects were used.
-int pack_pattern_raw(uint8_t*       dest,
-                     uint8_t const* src,
-                     int            rows,
-                     uint8_t const* instr_map,
-                     uint8_t const  table_map[MAX_TABLES][MAX_TABLELEN + 1],
-                     PackFlags&     f) {
-    uint8_t temp1[MAX_PATTROWS * 4];
-    uint8_t temp2[512];
-    uint8_t instr        = 0;
-    int     command      = -1;
-    int     data_byte    = -1;
-    int     dest_size_im = 0;
-    int     dest_size    = 0;
+// Pack editor rows into playroutine bytes and record which effects were used.
+std::vector<uint8_t> pack_pattern_raw(Pattern         patt,
+                                      uint8_t const*  instr_map,
+                                      uint8_t const   table_map[MAX_TABLES][MAX_TABLELEN + 1],
+                                      PackFlags&      f) {
+    uint8_t last_instr = 0;
+    for (int i = 0; i < patt.len; ++i) {
+        PatternRow& r = patt.rows[i];
+        if (r.instr && r.instr == last_instr) r.instr = 0;
+        else if (r.instr)
+            last_instr = r.instr;
 
-    for (int c = 0; c < rows; c++) {
-        if (c && src[c * 4 + 1] && src[c * 4 + 1] == instr) {
-            temp1[c * 4]     = src[c * 4];
-            temp1[c * 4 + 1] = 0;
-            temp1[c * 4 + 2] = src[c * 4 + 2];
-            temp1[c * 4 + 3] = src[c * 4 + 3];
-        }
-        else {
-            memcpy(&temp1[c * 4], &src[c * 4], 4);
-            if (src[c * 4 + 1]) instr = src[c * 4 + 1];
-        }
-        switch (temp1[c * 4 + 2]) {
+        auto remap = [&](int table) { r.data = table_map[table][r.data]; };
+        switch (r.command) {
         case CMD_PORTAUP:
         case CMD_PORTADOWN:
-            f.no_portamento  = false;
-            temp1[c * 4 + 3] = table_map[STBL][temp1[c * 4 + 3]];
+            f.no_portamento = false;
+            remap(STBL);
             break;
         case CMD_TONEPORTA:
-            f.no_tone_porta  = false;
-            temp1[c * 4 + 3] = table_map[STBL][temp1[c * 4 + 3]];
+            f.no_tone_porta = false;
+            remap(STBL);
             break;
         case CMD_VIBRATO:
-            f.no_vib         = false;
-            temp1[c * 4 + 3] = table_map[STBL][temp1[c * 4 + 3]];
+            f.no_vib = false;
+            remap(STBL);
             break;
         case CMD_SETAD: f.no_set_ad = false; break;
         case CMD_SETSR: f.no_set_sr = false; break;
         case CMD_SETWAVE: f.no_set_wave = false; break;
         case CMD_SETWAVEPTR:
             f.no_set_wave_ptr = false;
-            temp1[c * 4 + 3]  = table_map[WTBL][temp1[c * 4 + 3]];
+            remap(WTBL);
             break;
         case CMD_SETPULSEPTR:
             f.no_set_pulse_ptr = false;
             f.no_pulse         = false;
-            temp1[c * 4 + 3]   = table_map[PTBL][temp1[c * 4 + 3]];
+            remap(PTBL);
             break;
         case CMD_SETFILTERPTR:
             f.no_set_filt_ptr = false;
             f.no_filter       = false;
-            temp1[c * 4 + 3]  = table_map[FTBL][temp1[c * 4 + 3]];
+            remap(FTBL);
             break;
         case CMD_SETFILTERCTRL:
             f.no_set_filt_ctrl = false;
@@ -223,465 +218,160 @@ int pack_pattern_raw(uint8_t*       dest,
             break;
         case CMD_SETMASTERVOL:
             f.no_set_master_vol = false;
-            if (!f.author_info && temp1[c * 4 + 3] > 0x0f) {
-                temp1[c * 4 + 2] = 0;
-                temp1[c * 4 + 3] = 0;
+            if (!f.author_info && r.data > 0x0f) {
+                r.command = 0;
+                r.data    = 0;
             }
             break;
         case CMD_FUNKTEMPO:
-            f.no_funk_tempo  = false;
-            temp1[c * 4 + 3] = table_map[STBL][temp1[c * 4 + 3]];
+            f.no_funk_tempo = false;
+            remap(STBL);
             break;
         case CMD_SETTEMPO:
-            if (temp1[c * 4 + 3] >= 0x80) f.no_channel_tempo = false;
+            if (r.data >= 0x80) f.no_channel_tempo = false;
             else
                 f.no_global_tempo = false;
-            if ((temp1[c * 4 + 3] & 0x7f) >= 3) temp1[c * 4 + 3]--;
+            if ((r.data & 0x7f) >= 3) r.data--;
             break;
         }
     }
 
-    if (f.no_effects) {
-        command   = 0;
-        data_byte = 0;
-    }
-
-    for (int c = 0; c < rows; c++) {
-        if (temp1[c * 4 + 1]) temp2[dest_size_im++] = instr_map[temp1[c * 4 + 1]];
-        if (temp1[c * 4] == REST) {
-            if (temp1[c * 4 + 2] != command || temp1[c * 4 + 3] != data_byte) {
-                command               = temp1[c * 4 + 2];
-                data_byte             = temp1[c * 4 + 3];
-                temp2[dest_size_im++] = uint8_t(FXONLY + command);
-                if (command) temp2[dest_size_im++] = uint8_t(data_byte);
-            }
-            else {
-                temp2[dest_size_im++] = REST;
-            }
+    int cmd  = f.no_effects ? 0 : -1;
+    int data = f.no_effects ? 0 : -1;
+    std::vector<uint8_t> mid;
+    auto emit_fx = [&](uint8_t prefix, PatternRow const& r) {
+        if (r.command == cmd && r.data == data) return false;
+        cmd  = r.command;
+        data = r.data;
+        mid.push_back(uint8_t(prefix + cmd));
+        if (cmd) mid.push_back(uint8_t(data));
+        return true;
+    };
+    for (int i = 0; i < patt.len; ++i) {
+        PatternRow const& r = patt.rows[i];
+        if (r.instr) mid.push_back(instr_map[r.instr]);
+        if (r.note == REST) {
+            if (!emit_fx(FXONLY, r)) mid.push_back(REST);
         }
         else {
-            if (temp1[c * 4 + 2] != command || temp1[c * 4 + 3] != data_byte) {
-                command               = temp1[c * 4 + 2];
-                data_byte             = temp1[c * 4 + 3];
-                temp2[dest_size_im++] = uint8_t(FX + command);
-                if (command) temp2[dest_size_im++] = uint8_t(data_byte);
-            }
-            temp2[dest_size_im++] = temp1[c * 4];
+            emit_fx(FX, r);
+            mid.push_back(r.note);
         }
     }
 
-    for (int c = 0; c < dest_size_im;) {
-        int pack_ok = 1;
-        if (!c) pack_ok = 0;
-        if (temp2[c] < FX) {
-            dest[dest_size++] = temp2[c++];
-            pack_ok           = 0;
+    std::vector<uint8_t> dest;
+    for (size_t i = 0; i < mid.size();) {
+        bool pack = i != 0;
+        if (mid[i] < FX) {
+            dest.push_back(mid[i++]);
+            pack = false;
         }
-        if (temp2[c] >= FXONLY && temp2[c] < FIRSTNOTE) {
-            int fx_num        = temp2[c] - FXONLY;
-            dest[dest_size++] = temp2[c++];
-            if (fx_num) dest[dest_size++] = temp2[c++];
-            pack_ok = 0;
+        if (i < mid.size() && mid[i] >= FXONLY && mid[i] < FIRSTNOTE) {
+            int fx = mid[i] - FXONLY;
+            dest.push_back(mid[i++]);
+            if (fx) dest.push_back(mid[i++]);
             continue;
         }
-        if (temp2[c] < FXONLY) {
-            int fx_num        = temp2[c] - FX;
-            dest[dest_size++] = temp2[c++];
-            if (fx_num) dest[dest_size++] = temp2[c++];
-            pack_ok = 0;
+        if (i < mid.size() && mid[i] < FXONLY) {
+            int fx = mid[i] - FX;
+            dest.push_back(mid[i++]);
+            if (fx) dest.push_back(mid[i++]);
+            pack = false;
         }
-        if (temp2[c] != REST) pack_ok = 0;
-        if (!pack_ok) {
-            dest[dest_size++] = temp2[c++];
+        if (i >= mid.size()) break;
+        if (!pack || mid[i] != REST) {
+            dest.push_back(mid[i++]);
+            continue;
+        }
+        size_t n = 0;
+        while (i + n < mid.size() && mid[i + n] == REST && n < 64) n++;
+        if (n > 1) {
+            dest.push_back(uint8_t(-int(n)));
+            i += n;
         }
         else {
-            int d = c;
-            while (d < dest_size_im && temp2[d] == REST) {
-                d++;
-                if (d - c == 64) break;
-            }
-            d -= c;
-            if (d > 1) {
-                dest[dest_size++] = uint8_t(-d);
-                c += d;
-            }
-            else {
-                dest[dest_size++] = temp2[c++];
-            }
+            dest.push_back(mid[i++]);
         }
     }
-    if (dest_size > 256) return -1;
-    if (dest_size < 256) dest[dest_size++] = 0x00;
-    return dest_size;
+    if (dest.size() > 256) throw ExportError("pattern too complex (over 256 bytes packed)");
+    if (dest.size() < 256) dest.push_back(0x00);
+    return dest;
 }
 
-struct Packer {
-    uint8_t                                   chn_used[MAX_CHN]{};
-    uint8_t                                   patt_used[MAX_PATT]{};
-    uint8_t                                   patt_map[MAX_PATT]{};
-    uint8_t                                   instr_used[MAX_INSTR]{};
-    uint8_t                                   instr_map[MAX_INSTR]{};
-    uint8_t                                   table_used[MAX_TABLES][MAX_TABLELEN + 1]{};
-    uint8_t                                   table_map[MAX_TABLES][MAX_TABLELEN + 1]{};
-    Array2<uint8_t, MAX_TABLES, MAX_TABLELEN> ltable{};
-    Array2<uint8_t, MAX_TABLES, MAX_TABLELEN> rtable{};
-    PackFlags                                 f;
-    int                                       table_error       = 0;
-    int                                       channels          = 3;
-    int                                       fixed_params      = 1;
-    int                                       simple_pulse      = 1;
-    int                                       first_note        = MAX_NOTES - 1;
-    int                                       last_note         = 0;
-    int                                       pattern_last_note = 0;
-    int                                       patterns          = 0;
-    int                                       instruments       = 0;
-    int                                       num_legato        = 0;
-    int                                       num_no_hr         = 0;
-    int                                       num_normal        = 0;
-    int                                       trans_up_range    = 0;
-    int                                       trans_down_range  = 0;
+class Packer {
+public:
+    Packer(Song const& song, ExportOptions const& opt) : m_song(song), m_opt(opt) {}
 
-    // Rows from pos through the terminating $ff jump (speed table: always 1).
-    int table_part_len(int num, int pos) const {
-        if (pos < 0) return 0;
-        if (num == STBL) return 1;
-        int c;
-        for (c = pos; c < MAX_TABLELEN; c++) {
-            if (ltable[num][c] == 0xff) {
-                c++;
-                break;
-            }
-        }
-        return c - pos;
-    }
+    // Pack the song, assemble the player, wrap SID/PRG/BIN.
+    std::vector<uint8_t> build() {
+        scan();
 
-    // Mark table rows reachable from ptr; sets table_error on a jump-to-jump or overflow.
-    void exec_table(int num, int ptr) {
-        if (num != STBL && ptr && ptr <= MAX_TABLELEN) {
-            if (ltable[num][ptr - 1] == 0xff) {
-                table_error = TYPE_JUMP;
-                return;
-            }
-        }
-        for (;;) {
-            if (!ptr) break;
-            if (num != STBL && ptr > MAX_TABLELEN) {
-                table_error = TYPE_OVERFLOW;
-                break;
-            }
-            if (table_used[num][ptr]) break;
-            table_used[num][ptr] = 1;
-            if (num != STBL) {
-                if (ltable[num][ptr - 1] == 0xff) ptr = rtable[num][ptr - 1];
-                else
-                    ptr++;
-            }
-            else {
-                break;
-            }
-        }
-    }
-
-    // Note whether a speed-table entry is zero, calculated (>= $80), or normal.
-    void calc_speed_test(uint8_t pos) {
-        if (!pos) {
-            f.no_zero_speed = false;
-            return;
-        }
-        if (ltable[STBL][pos - 1] >= 0x80) f.no_calculated_speed = false;
-        else                               f.no_normal_speed     = false;
-    }
-
-    // True if this table segment is fully used and does not jump (or get jumped) outside itself.
-    int is_used_and_self_contained(int num, int start) const {
-        int len = table_part_len(num, start - 1);
-        int end = start + len - 1;
-        if (len == 1) return 0;
-        for (int c = start; c <= end; c++)
-            if (table_used[num][c] == 0) return 0;
-        if (rtable[num][end - 1] != 0) {
-            if (rtable[num][end - 1] < start || rtable[num][end - 1] > end) return 0;
-        }
-        for (int c = 1; c < start; c++)
-            if (table_used[num][c] && ltable[num][c - 1] == 0xff && rtable[num][c - 1] >= start &&
-                rtable[num][c - 1] <= end)
-                return 0;
-        for (int c = end + 1; c <= MAX_TABLELEN; c++)
-            if (table_used[num][c] && ltable[num][c - 1] == 0xff && rtable[num][c - 1] >= start &&
-                rtable[num][c - 1] <= end)
-                return 0;
-        return 1;
-    }
-
-    // Drop duplicate table segments and remap pointers onto the first copy.
-    void find_table_duplicates(int num) {
-        if (num == STBL) {
-            for (int c = 1; c <= MAX_TABLELEN; c++) {
-                if (!table_used[num][c]) continue;
-                for (int d = c + 1; d <= MAX_TABLELEN; d++) {
-                    if (!table_used[num][d]) continue;
-                    if (ltable[num][d - 1] == ltable[num][c - 1] && rtable[num][d - 1] == rtable[num][c - 1]) {
-                        table_used[num][d] = 0;
-                        for (int e = d; e <= MAX_TABLELEN; e++)
-                            if (table_used[num][e]) table_map[num][e]--;
-                        table_map[num][d] = table_map[num][c];
-                    }
-                }
-            }
-            return;
-        }
-        for (int c = 1; c <= MAX_TABLELEN; c++) {
-            if (!is_used_and_self_contained(num, c)) continue;
-            for (int d = c + table_part_len(num, c - 1); d <= MAX_TABLELEN;) {
-                int len = table_part_len(num, d - 1);
-                if (is_used_and_self_contained(num, d)) {
-                    int e;
-                    for (e = 0; e < len; e++) {
-                        if (e < len - 1) {
-                            if (ltable[num][d + e - 1] != ltable[num][c + e - 1] ||
-                                rtable[num][d + e - 1] != rtable[num][c + e - 1])
-                                break;
-                        }
-                        else {
-                            if (ltable[num][d + e - 1] != ltable[num][c + e - 1]) break;
-                            if (rtable[num][d + e - 1] == 0) {
-                                if (rtable[num][c + e - 1] != 0) break;
-                            }
-                            else if ((rtable[num][d + e - 1] - d) != (rtable[num][c + e - 1] - c)) {
-                                break;
-                            }
-                        }
-                    }
-                    if (e == len) {
-                        for (e = 0; e < len; e++) table_used[num][d + e] = 0;
-                        for (e = d; e < MAX_TABLELEN; e++)
-                            if (table_used[num][e]) table_map[num][e] -= uint8_t(len);
-                        for (e = 0; e < len; e++) table_map[num][d + e] = table_map[num][c + e];
-                    }
-                }
-                d += len;
-            }
-        }
-    }
-
-    // Flatten a pattern to note/instr/cmd/data bytes.
-    void fill_pattern(Song const& song, int p, uint8_t* out) const {
-        Pattern const& patt = song.patterns[p];
-        for (int r = 0; r < patt.len; ++r) {
-            PatternRow row = patt.rows[r];
-            out[r * 4 + 0] = row.note;
-            out[r * 4 + 1] = row.instr;
-            out[r * 4 + 2] = row.command;
-            out[r * 4 + 3] = row.data;
-        }
-    }
-
-    // Walk the song: used channels/patterns/instruments/tables, and which player features to keep.
-    void scan(Song const& song, ExportOptions const& opt) {
-        ltable        = song.ltable;
-        rtable        = song.rtable;
-        f.author_info = opt.author_info;
-
-        if (song.song_len <= 0) throw ExportError("no songs, no data to save");
-
-        for (int d = 0; d < MAX_CHN; d++) {
-            int trans = 0;
-            for (int r = 0; r < song.song_len; r++) {
-                OrderRow const& row = song.song_order[d][r];
-                if (row.trans != trans) {
-                    f.no_trans = false;
-                    trans      = row.trans;
-                    if (trans < 0) {
-                        int nd = -trans;
-                        if (nd > trans_down_range) trans_down_range = nd;
-                    }
-                    else if (trans > trans_up_range) {
-                        trans_up_range = trans;
-                    }
-                }
-                uint8_t num = row.pattnum;
-                if (num >= MAX_PATT) throw ExportError("invalid pattern number in orderlist");
-                patt_used[num]      = 1;
-                Pattern const& patt = song.patterns[num];
-                for (int k = 0; k < patt.len; k++) {
-                    PatternRow const& pr = patt.rows[k];
-                    if (pr.note != REST || pr.instr || pr.command) chn_used[d] = 1;
-                }
-            }
-        }
-
-        if (!chn_used[2]) channels = 2;
-        if (!chn_used[1] && !chn_used[2]) channels = 1;
-
-        instr_used[1] = 1;
-        for (int c = 0; c < MAX_PATT; c++) {
-            if (!patt_used[c]) continue;
-            patt_map[c] = uint8_t(patterns++);
-            uint8_t src[MAX_PATTROWS * 4];
-            fill_pattern(song, c, src);
-            Pattern const& patt = song.patterns[c];
-            for (int d = 0; d < patt.len; d++) {
-                table_error  = 0;
-                uint8_t note = src[d * 4];
-                uint8_t ins  = src[d * 4 + 1];
-                uint8_t cmd  = src[d * 4 + 2];
-                uint8_t data = src[d * 4 + 3];
-                if (note == KEYOFF || note == KEYON) f.no_gate = false;
-                if (ins) instr_used[ins] = 1;
-                if (cmd) f.no_effects = false;
-                if (cmd >= CMD_SETWAVEPTR && cmd <= CMD_SETFILTERPTR) exec_table(cmd - CMD_SETWAVEPTR, data);
-                if (cmd >= CMD_PORTAUP && cmd <= CMD_VIBRATO) {
-                    exec_table(STBL, data);
-                    calc_speed_test(data);
-                }
-                if (cmd == CMD_FUNKTEMPO) {
-                    exec_table(STBL, data);
-                    f.no_funk_tempo   = false;
-                    f.no_global_tempo = false;
-                }
-                if (cmd == CMD_SETTEMPO && (data & 0x7f) < 3) f.no_funk_tempo = false;
-                if (note >= FIRSTNOTE && note <= LASTNOTE) {
-                    int new_first = note - FIRSTNOTE - trans_down_range;
-                    int new_last  = note - FIRSTNOTE + trans_up_range;
-                    if (new_first < 0) new_first = 0;
-                    if (new_last > MAX_NOTES - 1) new_last = MAX_NOTES - 1;
-                    if (new_first < first_note) first_note = new_first;
-                    if (new_last > last_note) {
-                        pattern_last_note = new_last;
-                        last_note         = new_last;
-                    }
-                    if (new_first > last_note) {
-                        pattern_last_note = new_first;
-                        last_note         = new_first;
-                    }
-                }
-                if (table_error)
-                    throw ExportError(table_error == TYPE_JUMP ? "table pointer points to a jump"
-                                                               : "table execution overflows");
-            }
-        }
-
-        for (int c = 0; c < MAX_INSTR; c++) {
-            if (!instr_used[c]) continue;
-            if (song.instruments[c].gatetimer & 0x40) num_legato++;
-            else if (song.instruments[c].gatetimer & 0x80)
-                num_no_hr++;
-            else
-                num_normal++;
-            uint8_t fw = song.instruments[c].firstwave;
-            if (!fw || fw >= 0xfe) f.no_first_wave_cmd = false;
-        }
-        int free_normal = 1;
-        int free_no_hr  = free_normal + num_normal;
-        int free_legato = free_no_hr + num_no_hr;
-        for (int c = 0; c < MAX_INSTR; c++) {
-            if (!instr_used[c]) continue;
-            if (song.instruments[c].gatetimer & 0x40) instr_map[c] = uint8_t(free_legato++);
-            else if (song.instruments[c].gatetimer & 0x80)
-                instr_map[c] = uint8_t(free_no_hr++);
-            else
-                instr_map[c] = uint8_t(free_normal++);
-            instruments++;
-            for (int d = 0; d < MAX_TABLES; d++) {
-                table_error = 0;
-                uint8_t ptr = song.instruments[c].ptr[d];
-                if (d == STBL && song.instruments[c].vibdelay == 0 &&
-                    (ptr == 0 || (ltable[STBL][ptr - 1] == 0 && rtable[STBL][ptr - 1] == 0)))
-                    continue;
-                exec_table(d, ptr);
-                if (d == STBL) calc_speed_test(ptr);
-                if (table_error)
-                    throw ExportError(table_error == TYPE_JUMP ? "table pointer points to a jump"
-                                                               : "table execution overflows");
-            }
-        }
-
-        for (int c = 0; c < MAX_TABLELEN; c++) {
-            if (!table_used[WTBL][c + 1]) continue;
-            if (ltable[WTBL][c] < WAVECMD || ltable[WTBL][c] > WAVELASTCMD) continue;
-            int d       = -1;
-            table_error = 0;
-            switch (ltable[WTBL][c] - WAVECMD) {
-            case CMD_PORTAUP:
-            case CMD_PORTADOWN:
-            case CMD_TONEPORTA:
-            case CMD_VIBRATO:
-                d = STBL;
-                calc_speed_test(rtable[WTBL][c]);
-                break;
-            case CMD_SETPULSEPTR:
-                d          = PTBL;
-                f.no_pulse = false;
-                break;
-            case CMD_SETFILTERPTR:
-                d           = FTBL;
-                f.no_filter = false;
-                break;
-            case CMD_DONOTHING:
-            case CMD_SETWAVEPTR:
-            case CMD_FUNKTEMPO: throw ExportError("illegal wavetable command");
-            }
-            if (d != -1) exec_table(d, rtable[WTBL][c]);
-            if (table_error)
-                throw ExportError(table_error == TYPE_JUMP ? "table pointer points to a jump"
-                                                           : "table execution overflows");
-        }
-
-        for (int c = 0; c < MAX_TABLES; c++) {
-            int e = 1;
-            for (int d = 0; d < MAX_TABLELEN; d++) {
-                if (table_used[c][d + 1]) table_map[c][d + 1] = uint8_t(e++);
-            }
-        }
-        for (int c = 0; c < MAX_TABLES; c++) find_table_duplicates(c);
-    }
-
-    // Emit packed song data as ASM, assemble it with the player, and wrap SID/PRG/BIN.
-    std::vector<uint8_t> emit_and_assemble(Song const& song, ExportOptions const& opt) {
-        int adparam    = opt.adparam_override >= 0 ? opt.adparam_override : song.adparam;
-        int multiplier = opt.multiplier_override >= 0 ? opt.multiplier_override : song.multiplier;
+        // Overrides, buffering, and channel count (SFX/ghostregs need all 3).
+        int adparam    = m_opt.adparam_override    >= 0 ? m_opt.adparam_override    : m_song.adparam;
+        int multiplier = m_opt.multiplier_override >= 0 ? m_opt.multiplier_override : m_song.multiplier;
         if (multiplier > 16) multiplier = 16;
 
-        bool sfx      = opt.sound_effects;
-        bool ghost_zp = opt.zp_ghostregs;
-        bool full_buf = opt.full_buffered;
-        bool buffered = opt.buffered || sfx || ghost_zp || full_buf;
-        if (sfx || full_buf || ghost_zp) channels = 3;
+        bool sfx      = m_opt.sound_effects;
+        bool ghost_zp = m_opt.zp_ghostregs;
+        bool full_buf = m_opt.full_buffered;
+        bool buffered = m_opt.buffered || sfx || ghost_zp || full_buf;
+        if (sfx || full_buf || ghost_zp) m_channels = 3;
 
-        if (!opt.optimize) {
-            fixed_params = 0;
-            if (!num_legato) num_legato++;
-            simple_pulse  = 0;
-            first_note    = 0;
-            last_note     = MAX_NOTES - 1;
-            f             = PackFlags{};
-            f.author_info = opt.author_info;
-            f.no_effects = f.no_gate = f.no_filter = f.no_filter_mod = false;
-            f.no_pulse = f.no_pulse_mod = f.no_wave_delay = f.no_wave_cmd = false;
-            f.no_repeat = f.no_trans = false;
-            f.no_portamento = f.no_tone_porta = f.no_vib = f.no_ins_vib = false;
-            f.no_set_ad = f.no_set_sr = f.no_set_wave = false;
-            f.no_set_wave_ptr = f.no_set_pulse_ptr = f.no_set_filt_ptr = false;
-            f.no_set_filt_cutoff = f.no_set_filt_ctrl = f.no_set_master_vol = false;
-            f.no_funk_tempo = f.no_global_tempo = f.no_channel_tempo = false;
-            f.no_first_wave_cmd = f.no_calculated_speed = f.no_normal_speed = f.no_zero_speed = false;
+        if (!m_opt.optimize) {
+            // Keep every playroutine feature, even if the song does not use it.
+            m_fixed_params = 0;
+            if (!m_num_legato) m_num_legato++;
+            m_simple_pulse = 0;
+            m_first_note   = 0;
+            m_last_note    = MAX_NOTES - 1;
+            m_flags.no_effects          = false;
+            m_flags.no_gate             = false;
+            m_flags.no_filter           = false;
+            m_flags.no_filter_mod       = false;
+            m_flags.no_pulse            = false;
+            m_flags.no_pulse_mod        = false;
+            m_flags.no_wave_delay       = false;
+            m_flags.no_wave_cmd         = false;
+            m_flags.no_repeat           = false;
+            m_flags.no_trans            = false;
+            m_flags.no_portamento       = false;
+            m_flags.no_tone_porta       = false;
+            m_flags.no_vib              = false;
+            m_flags.no_ins_vib          = false;
+            m_flags.no_set_ad           = false;
+            m_flags.no_set_sr           = false;
+            m_flags.no_set_wave         = false;
+            m_flags.no_set_wave_ptr     = false;
+            m_flags.no_set_pulse_ptr    = false;
+            m_flags.no_set_filt_ptr     = false;
+            m_flags.no_set_filt_cutoff  = false;
+            m_flags.no_set_filt_ctrl    = false;
+            m_flags.no_set_master_vol   = false;
+            m_flags.no_funk_tempo       = false;
+            m_flags.no_global_tempo     = false;
+            m_flags.no_channel_tempo    = false;
+            m_flags.no_first_wave_cmd   = false;
+            m_flags.no_calculated_speed = false;
+            m_flags.no_normal_speed     = false;
+            m_flags.no_zero_speed       = false;
         }
 
+        // Orderlists: transpose bytes, remapped pattern indices, loop point.
         std::vector<uint8_t> song_work;
         int                  song_offset[MAX_CHN]{};
         int                  song_size[MAX_CHN]{};
         for (int d = 0; d < MAX_CHN; d++) {
             song_offset[d] = int(song_work.size());
             int trans      = 0;
-            int loop       = song.song_loop;
-            for (int r = 0; r < song.song_len; r++) {
-                OrderRow const& row = song.song_order[d][r];
+            int loop       = m_song.song_loop;
+            for (int r = 0; r < m_song.song_len; r++) {
+                OrderRow const& row = m_song.song_order[d][r];
                 if (row.trans != trans) {
                     trans = row.trans;
                     song_work.push_back(uint8_t(trans + TRANSUP));
-                    if (r < song.song_loop) ++loop;
+                    if (r < m_song.song_loop) ++loop;
                 }
-                song_work.push_back(patt_map[row.pattnum]);
+                song_work.push_back(m_patt_map[row.pattnum]);
             }
             song_work.push_back(LOOPSONG);
             song_work.push_back(uint8_t(loop));
@@ -689,241 +379,250 @@ struct Packer {
             if (loop >= song_size[d] - 2) throw ExportError("illegal song restart position");
         }
 
+        // Used patterns, packed for the playroutine.
         std::vector<uint8_t> patt_work;
         std::vector<int>     patt_offset;
         std::vector<int>     patt_size;
-        uint8_t              patt_temp[512];
-        uint8_t              src[MAX_PATTROWS * 4];
         for (int c = 0; c < MAX_PATT; c++) {
-            if (!patt_used[c]) continue;
-            fill_pattern(song, c, src);
-            int result = pack_pattern_raw(patt_temp, src, song.patterns[c].len, instr_map, table_map, f);
-            if (result < 0) throw ExportError("pattern too complex (over 256 bytes packed)");
+            if (!m_patt_used[c]) continue;
+            auto packed = pack_pattern_raw(m_song.patterns[c], m_instr_map, m_table_map, m_flags);
             patt_offset.push_back(int(patt_work.size()));
-            patt_size.push_back(result);
-            patt_work.insert(patt_work.end(), patt_temp, patt_temp + result);
+            patt_size.push_back(int(packed.size()));
+            patt_work.insert(patt_work.end(), packed.begin(), packed.end());
         }
 
-        std::vector<uint8_t> instr_work(size_t(instruments) * 9, 0);
-        for (int c = 1; c < MAX_INSTR; c++) {
-            if (!instr_used[c]) continue;
-            int               d             = instr_map[c] - 1;
-            Instrument const& ins           = song.instruments[c];
-            instr_work[d]                   = ins.ad;
-            instr_work[d + instruments]     = ins.sr;
-            instr_work[d + instruments * 2] = table_map[WTBL][ins.ptr[WTBL]];
-            instr_work[d + instruments * 3] = table_map[PTBL][ins.ptr[PTBL]];
-            instr_work[d + instruments * 4] = table_map[FTBL][ins.ptr[FTBL]];
+        // Instruments as 9 parallel arrays: AD, SR, table ptrs, vib, gatetimer, firstwave.
+        std::vector<uint8_t> instr_work(m_instruments * 9, 0);
+        for (size_t c = 1; c < MAX_INSTR; c++) {
+            if (!m_instr_used[c]) continue;
+            Instrument const& ins = m_song.instruments[c];
+            size_t d = m_instr_map[c] - 1;
+            instr_work[d + m_instruments * 0] = ins.ad;
+            instr_work[d + m_instruments * 1] = ins.sr;
+            instr_work[d + m_instruments * 2] = m_table_map[WTBL][ins.ptr[WTBL]];
+            instr_work[d + m_instruments * 3] = m_table_map[PTBL][ins.ptr[PTBL]];
+            instr_work[d + m_instruments * 4] = m_table_map[FTBL][ins.ptr[FTBL]];
             if (ins.vibdelay) {
-                instr_work[d + instruments * 5] = table_map[STBL][ins.ptr[STBL]];
-                instr_work[d + instruments * 6] = uint8_t(ins.vibdelay - 1);
+                instr_work[d + m_instruments * 5] = m_table_map[STBL][ins.ptr[STBL]];
+                instr_work[d + m_instruments * 6] = uint8_t(ins.vibdelay - 1);
             }
-            instr_work[d + instruments * 7] = ins.gatetimer & 0x3f;
-            instr_work[d + instruments * 8] = ins.firstwave;
+            instr_work[d + m_instruments * 7] = ins.gatetimer & 0x3f;
+            instr_work[d + m_instruments * 8] = ins.firstwave;
             if (ins.ptr[STBL] && ins.vibdelay) {
-                f.no_vib     = false;
-                f.no_ins_vib = false;
+                m_flags.no_vib     = false;
+                m_flags.no_ins_vib = false;
             }
-            if (ins.ptr[PTBL]) f.no_pulse = false;
-            if (ins.ptr[FTBL]) f.no_filter = false;
-            if (ins.gatetimer != song.instruments[1].gatetimer || ins.firstwave != song.instruments[1].firstwave)
-                fixed_params = 0;
-            if (!ins.firstwave || ins.firstwave >= 0xfe) fixed_params = 0;
+            if (ins.ptr[PTBL]) m_flags.no_pulse = false;
+            if (ins.ptr[FTBL]) m_flags.no_filter = false;
+            if (ins.gatetimer != m_song.instruments[1].gatetimer || ins.firstwave != m_song.instruments[1].firstwave)
+                m_fixed_params = 0;
+            if (!ins.firstwave || ins.firstwave >= 0xfe) m_fixed_params = 0;
         }
 
         if (multiplier > 1) {
-            fixed_params = 0;
-            num_legato++;
-            num_no_hr++;
+            // Dummy extra instruments so the CIA-multiplied player can still index them.
+            m_fixed_params = 0;
+            m_num_legato++;
+            m_num_no_hr++;
         }
 
+        auto const& ltable = m_song.ltable;
+        auto const& rtable = m_song.rtable;
+        // Tables can still enable player features and widen the frequency range.
         for (int c = 0; c < MAX_TABLELEN; c++) {
-            if (!table_used[WTBL][c + 1]) continue;
-            if (ltable[WTBL][c] >= WAVEDELAY && ltable[WTBL][c] <= WAVELASTDELAY) f.no_wave_delay = false;
+            if (!m_table_used[WTBL][c + 1]) continue;
+            if (ltable[WTBL][c] >= WAVEDELAY && ltable[WTBL][c] <= WAVELASTDELAY) m_flags.no_wave_delay = false;
             if (ltable[WTBL][c] >= WAVECMD && ltable[WTBL][c] <= WAVELASTCMD) {
-                f.no_wave_cmd = false;
-                f.no_effects  = false;
+                m_flags.no_wave_cmd = false;
+                m_flags.no_effects  = false;
                 switch (ltable[WTBL][c] - WAVECMD) {
-                case CMD_PORTAUP:
-                case CMD_PORTADOWN: f.no_portamento = false; break;
-                case CMD_TONEPORTA: f.no_tone_porta = false; break;
-                case CMD_VIBRATO: f.no_vib = false; break;
-                case CMD_SETAD: f.no_set_ad = false; break;
-                case CMD_SETSR: f.no_set_sr = false; break;
-                case CMD_SETWAVE: f.no_set_wave = false; break;
-                case CMD_SETPULSEPTR: f.no_set_pulse_ptr = false; break;
-                case CMD_SETFILTERPTR: f.no_set_filt_ptr = false; break;
-                case CMD_SETFILTERCUTOFF: f.no_set_filt_cutoff = false; break;
-                case CMD_SETFILTERCTRL: f.no_set_filt_ctrl = false; break;
-                case CMD_SETMASTERVOL: f.no_set_master_vol = false; break;
+                case CMD_PORTAUP: // fall through
+                case CMD_PORTADOWN:       m_flags.no_portamento      = false; break;
+                case CMD_TONEPORTA:       m_flags.no_tone_porta      = false; break;
+                case CMD_VIBRATO:         m_flags.no_vib             = false; break;
+                case CMD_SETAD:           m_flags.no_set_ad          = false; break;
+                case CMD_SETSR:           m_flags.no_set_sr          = false; break;
+                case CMD_SETWAVE:         m_flags.no_set_wave        = false; break;
+                case CMD_SETPULSEPTR:     m_flags.no_set_pulse_ptr   = false; break;
+                case CMD_SETFILTERPTR:    m_flags.no_set_filt_ptr    = false; break;
+                case CMD_SETFILTERCUTOFF: m_flags.no_set_filt_cutoff = false; break;
+                case CMD_SETFILTERCTRL:   m_flags.no_set_filt_ctrl   = false; break;
+                case CMD_SETMASTERVOL:    m_flags.no_set_master_vol  = false; break;
                 }
             }
             if (ltable[WTBL][c] < WAVECMD) {
                 if (rtable[WTBL][c] <= 0x80) {
-                    int new_last = rtable[WTBL][c] + pattern_last_note;
+                    int new_last = rtable[WTBL][c] + m_pattern_last_note;
                     if (new_last > MAX_NOTES - 1) new_last = MAX_NOTES - 1;
-                    if (rtable[WTBL][c] >= 0x20) first_note = 0;
-                    if (new_last > last_note) last_note = new_last;
+                    if (rtable[WTBL][c] >= 0x20) m_first_note = 0;
+                    if (new_last > m_last_note) m_last_note = new_last;
                 }
                 else {
                     int nn = rtable[WTBL][c] & 0x7f;
                     if (nn > MAX_NOTES - 1) nn = MAX_NOTES - 1;
-                    if (nn < first_note) first_note = nn;
-                    if (nn > last_note) last_note = nn;
+                    if (nn < m_first_note) m_first_note = nn;
+                    if (nn > m_last_note) m_last_note = nn;
                 }
             }
         }
         for (int c = 0; c < MAX_TABLELEN; c++) {
-            if (!table_used[PTBL][c + 1]) continue;
+            if (!m_table_used[PTBL][c + 1]) continue;
             if (ltable[PTBL][c] >= 0x80 && ltable[PTBL][c] != 0xff) {
-                if (rtable[PTBL][c] & 0xf) simple_pulse = 0;
+                if (rtable[PTBL][c] & 0xf) m_simple_pulse = 0;
             }
             if (ltable[PTBL][c] < 0x80) {
-                f.no_pulse_mod = false;
-                if (rtable[PTBL][c] & 0xf) simple_pulse = 0;
+                m_flags.no_pulse_mod = false;
+                if (rtable[PTBL][c] & 0xf) m_simple_pulse = 0;
             }
         }
         for (int c = 0; c < MAX_TABLELEN; c++) {
-            if (table_used[FTBL][c + 1] && ltable[FTBL][c] < 0x80) f.no_filter_mod = false;
+            if (m_table_used[FTBL][c + 1] && ltable[FTBL][c] < 0x80) m_flags.no_filter_mod = false;
         }
 
-        if (last_note < first_note) last_note = first_note;
-        if (first_note < 0) first_note = 0;
-        if (!f.no_calculated_speed) last_note++;
-        if (last_note > MAX_NOTES - 1) last_note = MAX_NOTES - 1;
+        // Clip the frequency table to the notes actually needed (full range for SFX).
+        if (m_last_note < m_first_note) m_last_note = m_first_note;
+        if (m_first_note < 0) m_first_note = 0;
+        if (!m_flags.no_calculated_speed) m_last_note++;
+        if (m_last_note > MAX_NOTES - 1) m_last_note = MAX_NOTES - 1;
         if (sfx) {
-            first_note = 0;
-            last_note  = MAX_NOTES - 1;
+            m_first_note = 0;
+            m_last_note  = MAX_NOTES - 1;
         }
 
+        // Player assembler defines: load addresses, feature flags, instrument counts.
         AsmSrc data;
-        data.def("base", opt.player_addr);
-        data.def("zpbase", opt.zp_base);
-        data.def("SIDBASE", opt.sid_addr);
+        data.def("base", m_opt.player_addr);
+        data.def("zpbase", m_opt.zp_base);
+        data.def("SIDBASE", m_opt.sid_addr);
         data.def("SOUNDSUPPORT", sfx);
-        data.def("VOLSUPPORT", opt.volume);
+        data.def("VOLSUPPORT", m_opt.volume);
         data.def("BUFFEREDWRITES", buffered);
         data.def("GHOSTREGS", ghost_zp || full_buf);
         data.def("ZPGHOSTREGS", ghost_zp);
-        data.def("FIXEDPARAMS", fixed_params);
-        data.def("SIMPLEPULSE", simple_pulse);
-        data.def("PULSEOPTIMIZATION", opt.optimize_pulse);
-        data.def("REALTIMEOPTIMIZATION", opt.optimize_realtime);
-        data.def("NOAUTHORINFO", !opt.author_info);
-        data.def("NOEFFECTS", f.no_effects);
-        data.def("NOGATE", f.no_gate);
-        data.def("NOFILTER", f.no_filter);
-        data.def("NOFILTERMOD", f.no_filter_mod);
-        data.def("NOPULSE", f.no_pulse);
-        data.def("NOPULSEMOD", f.no_pulse_mod);
-        data.def("NOWAVEDELAY", f.no_wave_delay);
-        data.def("NOWAVECMD", f.no_wave_cmd);
-        data.def("NOREPEAT", f.no_repeat);
-        data.def("NOTRANS", f.no_trans);
-        data.def("NOPORTAMENTO", f.no_portamento);
-        data.def("NOTONEPORTA", f.no_tone_porta);
-        data.def("NOVIB", f.no_vib);
-        data.def("NOINSTRVIB", f.no_ins_vib);
-        data.def("NOSETAD", f.no_set_ad);
-        data.def("NOSETSR", f.no_set_sr);
-        data.def("NOSETWAVE", f.no_set_wave);
-        data.def("NOSETWAVEPTR", f.no_set_wave_ptr);
-        data.def("NOSETPULSEPTR", f.no_set_pulse_ptr);
-        data.def("NOSETFILTPTR", f.no_set_filt_ptr);
-        data.def("NOSETFILTCTRL", f.no_set_filt_ctrl);
-        data.def("NOSETFILTCUTOFF", f.no_set_filt_cutoff);
-        data.def("NOSETMASTERVOL", f.no_set_master_vol);
-        data.def("NOFUNKTEMPO", f.no_funk_tempo);
-        data.def("NOGLOBALTEMPO", f.no_global_tempo);
-        data.def("NOCHANNELTEMPO", f.no_channel_tempo);
-        data.def("NOFIRSTWAVECMD", f.no_first_wave_cmd);
-        data.def("NOCALCULATEDSPEED", f.no_calculated_speed);
-        data.def("NONORMALSPEED", f.no_normal_speed);
-        data.def("NOZEROSPEED", f.no_zero_speed);
-        data.def("NUMCHANNELS", channels);
+        data.def("FIXEDPARAMS", m_fixed_params);
+        data.def("SIMPLEPULSE", m_simple_pulse);
+        data.def("PULSEOPTIMIZATION", m_opt.optimize_pulse);
+        data.def("REALTIMEOPTIMIZATION", m_opt.optimize_realtime);
+        data.def("NOAUTHORINFO", !m_opt.author_info);
+        data.def("NOEFFECTS", m_flags.no_effects);
+        data.def("NOGATE", m_flags.no_gate);
+        data.def("NOFILTER", m_flags.no_filter);
+        data.def("NOFILTERMOD", m_flags.no_filter_mod);
+        data.def("NOPULSE", m_flags.no_pulse);
+        data.def("NOPULSEMOD", m_flags.no_pulse_mod);
+        data.def("NOWAVEDELAY", m_flags.no_wave_delay);
+        data.def("NOWAVECMD", m_flags.no_wave_cmd);
+        data.def("NOREPEAT", m_flags.no_repeat);
+        data.def("NOTRANS", m_flags.no_trans);
+        data.def("NOPORTAMENTO", m_flags.no_portamento);
+        data.def("NOTONEPORTA", m_flags.no_tone_porta);
+        data.def("NOVIB", m_flags.no_vib);
+        data.def("NOINSTRVIB", m_flags.no_ins_vib);
+        data.def("NOSETAD", m_flags.no_set_ad);
+        data.def("NOSETSR", m_flags.no_set_sr);
+        data.def("NOSETWAVE", m_flags.no_set_wave);
+        data.def("NOSETWAVEPTR", m_flags.no_set_wave_ptr);
+        data.def("NOSETPULSEPTR", m_flags.no_set_pulse_ptr);
+        data.def("NOSETFILTPTR", m_flags.no_set_filt_ptr);
+        data.def("NOSETFILTCTRL", m_flags.no_set_filt_ctrl);
+        data.def("NOSETFILTCUTOFF", m_flags.no_set_filt_cutoff);
+        data.def("NOSETMASTERVOL", m_flags.no_set_master_vol);
+        data.def("NOFUNKTEMPO", m_flags.no_funk_tempo);
+        data.def("NOGLOBALTEMPO", m_flags.no_global_tempo);
+        data.def("NOCHANNELTEMPO", m_flags.no_channel_tempo);
+        data.def("NOFIRSTWAVECMD", m_flags.no_first_wave_cmd);
+        data.def("NOCALCULATEDSPEED", m_flags.no_calculated_speed);
+        data.def("NONORMALSPEED", m_flags.no_normal_speed);
+        data.def("NOZEROSPEED", m_flags.no_zero_speed);
+        data.def("NUMCHANNELS", m_channels);
         data.def("NUMSONGS", 1);
-        data.def("FIRSTNOTE", first_note);
-        data.def("FIRSTNOHRINSTR", num_normal + 1);
-        data.def("FIRSTLEGATOINSTR", num_normal + num_no_hr + 1);
-        data.def("NUMHRINSTR", num_normal);
-        data.def("NUMNOHRINSTR", num_no_hr);
-        data.def("NUMLEGATOINSTR", num_legato);
+        data.def("FIRSTNOTE", m_first_note);
+        data.def("FIRSTNOHRINSTR", m_num_normal + 1);
+        data.def("FIRSTLEGATOINSTR", m_num_normal + m_num_no_hr + 1);
+        data.def("NUMHRINSTR", m_num_normal);
+        data.def("NUMNOHRINSTR", m_num_no_hr);
+        data.def("NUMLEGATOINSTR", m_num_legato);
         data.def("ADPARAM", (adparam >> 8) & 0xff);
         data.def("SRPARAM", adparam & 0xff);
-        if (song.instruments[MAX_INSTR - 1].ad >= 2 && !song.instruments[MAX_INSTR - 1].ptr[WTBL]) {
-            data.def("DEFAULTTEMPO", song.instruments[MAX_INSTR - 1].ad - 1);
+        if (m_song.instruments[MAX_INSTR - 1].ad >= 2 && !m_song.instruments[MAX_INSTR - 1].ptr[WTBL]) {
+            data.def("DEFAULTTEMPO", m_song.instruments[MAX_INSTR - 1].ad - 1);
         }
         else {
             data.def("DEFAULTTEMPO", multiplier ? (multiplier * 6 - 1) : 5);
         }
-        if (fixed_params) {
-            data.def("FIRSTWAVEPARAM", song.instruments[1].firstwave);
-            data.def("GATETIMERPARAM", song.instruments[1].gatetimer & 0x3f);
+        if (m_fixed_params) {
+            data.def("FIRSTWAVEPARAM", m_song.instruments[1].firstwave);
+            data.def("GATETIMERPARAM", m_song.instruments[1].gatetimer & 0x3f);
         }
 
+        // Player source and frequency table for the used note range.
         std::string player = load_player_source(adparam >= 0xf000);
         data.player(player);
         data.label("mt_freqtbllo");
-        data.bytes(&FREQ_TBL_LO[first_note], last_note - first_note + 1);
+        data.bytes(&FREQ_TBL_LO[m_first_note], m_last_note - m_first_note + 1);
         data.label("mt_freqtblhi");
-        data.bytes(&FREQ_TBL_HI[first_note], last_note - first_note + 1);
+        data.bytes(&FREQ_TBL_HI[m_first_note], m_last_note - m_first_note + 1);
 
+        // Orderlist and pattern address tables.
         data.label("mt_songtbllo");
         for (int c = 0; c < 3; c++) data.addr_lo("mt_song" + std::to_string(c));
         data.label("mt_songtblhi");
         for (int c = 0; c < 3; c++) data.addr_hi("mt_song" + std::to_string(c));
 
         data.label("mt_patttbllo");
-        for (int c = 0; c < patterns; c++) data.addr_lo("mt_patt" + std::to_string(c));
+        for (int c = 0; c < m_patterns; c++) data.addr_lo("mt_patt" + std::to_string(c));
         data.label("mt_patttblhi");
-        for (int c = 0; c < patterns; c++) data.addr_hi("mt_patt" + std::to_string(c));
+        for (int c = 0; c < m_patterns; c++) data.addr_hi("mt_patt" + std::to_string(c));
 
+        // Instrument tables (skip columns the playroutine was built without).
         data.label("mt_insad");
-        data.bytes(&instr_work[0], instruments);
+        data.bytes(&instr_work[0], m_instruments);
         data.label("mt_inssr");
-        data.bytes(&instr_work[size_t(instruments)], instruments);
+        data.bytes(&instr_work[size_t(m_instruments)], m_instruments);
         data.label("mt_inswaveptr");
-        data.bytes(&instr_work[size_t(instruments) * 2], instruments);
-        if (!f.no_pulse) {
+        data.bytes(&instr_work[size_t(m_instruments) * 2], m_instruments);
+        if (!m_flags.no_pulse) {
             data.label("mt_inspulseptr");
-            data.bytes(&instr_work[size_t(instruments) * 3], instruments);
+            data.bytes(&instr_work[size_t(m_instruments) * 3], m_instruments);
         }
-        if (!f.no_filter) {
+        if (!m_flags.no_filter) {
             data.label("mt_insfiltptr");
-            data.bytes(&instr_work[size_t(instruments) * 4], instruments);
+            data.bytes(&instr_work[size_t(m_instruments) * 4], m_instruments);
         }
-        if (!f.no_ins_vib) {
+        if (!m_flags.no_ins_vib) {
             data.label("mt_insvibparam");
-            data.bytes(&instr_work[size_t(instruments) * 5], instruments);
+            data.bytes(&instr_work[size_t(m_instruments) * 5], m_instruments);
             data.label("mt_insvibdelay");
-            data.bytes(&instr_work[size_t(instruments) * 6], instruments);
+            data.bytes(&instr_work[size_t(m_instruments) * 6], m_instruments);
         }
-        if (!fixed_params) {
+        if (!m_fixed_params) {
             data.label("mt_insgatetimer");
-            data.bytes(&instr_work[size_t(instruments) * 7], instruments);
+            data.bytes(&instr_work[size_t(m_instruments) * 7], m_instruments);
             data.label("mt_insfirstwave");
-            data.bytes(&instr_work[size_t(instruments) * 8], instruments);
+            data.bytes(&instr_work[size_t(m_instruments) * 8], m_instruments);
         }
 
-        bool speed_extra = !f.no_vib || !f.no_funk_tempo || !f.no_portamento || !f.no_tone_porta;
+        // Wave/pulse/filter/speed tables: used rows only, jumps remapped.
+        bool speed_extra = !m_flags.no_vib || !m_flags.no_funk_tempo || !m_flags.no_portamento || !m_flags.no_tone_porta;
         for (int c = 0; c < MAX_TABLES; c++) {
-            if (c == PTBL && f.no_pulse) continue;
-            if (c == FTBL && f.no_filter) continue;
+            if (c == PTBL && m_flags.no_pulse) continue;
+            if (c == FTBL && m_flags.no_filter) continue;
             if (c == STBL && speed_extra) data.byte(0);
+
             data.label(TABLE_LEFT_NAME[c]);
             for (int d = 0; d < MAX_TABLELEN; d++) {
-                if (!table_used[c][d + 1]) continue;
+                if (!m_table_used[c][d + 1]) continue;
                 switch (c) {
                 case WTBL: {
                     uint8_t wave = ltable[c][d];
                     if (ltable[c][d] >= WAVESILENT && ltable[c][d] <= WAVELASTSILENT) wave &= 0xf;
-                    if (ltable[c][d] > WAVELASTDELAY && ltable[c][d] <= WAVELASTSILENT && !f.no_wave_delay)
+                    if (ltable[c][d] > WAVELASTDELAY && ltable[c][d] <= WAVELASTSILENT && !m_flags.no_wave_delay)
                         wave += 0x10;
                     data.byte(wave);
                     break;
                 }
                 case PTBL:
-                    if (simple_pulse && ltable[c][d] != 0xff && ltable[c][d] > 0x80) data.byte(0x80);
+                    if (m_simple_pulse && ltable[c][d] != 0xff && ltable[c][d] > 0x80) data.byte(0x80);
                     else
                         data.byte(ltable[c][d]);
                     break;
@@ -937,9 +636,10 @@ struct Packer {
                 }
             }
             if (c == STBL && speed_extra) data.byte(0);
+
             data.label(TABLE_RIGHT_NAME[c]);
             for (int d = 0; d < MAX_TABLELEN; d++) {
-                if (!table_used[c][d + 1]) continue;
+                if (!m_table_used[c][d + 1]) continue;
                 if (ltable[c][d] != 0xff || c == STBL) {
                     switch (c) {
                     case WTBL:
@@ -948,9 +648,9 @@ struct Packer {
                             case CMD_PORTAUP:
                             case CMD_PORTADOWN:
                             case CMD_TONEPORTA:
-                            case CMD_VIBRATO: data.byte(table_map[STBL][rtable[c][d]]); break;
-                            case CMD_SETPULSEPTR: data.byte(table_map[PTBL][rtable[c][d]]); break;
-                            case CMD_SETFILTERPTR: data.byte(table_map[FTBL][rtable[c][d]]); break;
+                            case CMD_VIBRATO: data.byte(m_table_map[STBL][rtable[c][d]]); break;
+                            case CMD_SETPULSEPTR: data.byte(m_table_map[PTBL][rtable[c][d]]); break;
+                            case CMD_SETFILTERPTR: data.byte(m_table_map[FTBL][rtable[c][d]]); break;
                             default: data.byte(rtable[c][d]); break;
                             }
                         }
@@ -959,7 +659,7 @@ struct Packer {
                         }
                         break;
                     case PTBL:
-                        if (simple_pulse) {
+                        if (m_simple_pulse) {
                             if (ltable[c][d] >= 0x80)
                                 data.byte(uint8_t((ltable[c][d] & 0x0f) | (rtable[c][d] & 0xf0)));
                             else {
@@ -979,55 +679,325 @@ struct Packer {
                     }
                 }
                 else {
-                    data.byte(table_map[c][rtable[c][d]]);
+                    data.byte(m_table_map[c][rtable[c][d]]);
                 }
             }
         }
 
+        // Orderlist and pattern bodies.
         for (int d = 0; d < MAX_CHN; d++) {
             std::string n = "mt_song" + std::to_string(d);
             data.label(n.c_str());
             data.bytes(&song_work[size_t(song_offset[d])], song_size[d]);
         }
-        for (int c = 0; c < patterns; c++) {
+        for (int c = 0; c < m_patterns; c++) {
             std::string n = "mt_patt" + std::to_string(c);
             data.label(n.c_str());
             data.bytes(&patt_work[size_t(patt_offset[c])], patt_size[c]);
         }
 
         AssembleResult assembled = data.assemble();
-        if (opt.author_info) {
+        if (m_opt.author_info) {
+            // Author string lives at player+$20 when that feature is on.
             size_t off = 32;
             if (assembled.bytes.size() > off + 32) {
-                for (int c = 0; c < 32; c++) {
-                    char ch                          = song.author_name[c];
-                    assembled.bytes[off + size_t(c)] = ch ? uint8_t(ch) : 0x20;
+                for (size_t c = 0; c < 32; c++) {
+                    char ch = m_song.author_name[c];
+                    assembled.bytes[off + c] = ch ? ch : 0x20;
                 }
             }
         }
-        return wrap_output(assembled.bytes, song, opt, multiplier);
+        return wrap_output(assembled.bytes, multiplier);
     }
 
-    // Wrap assembled player bytes as BIN, PRG (load address), or PSID v2 (CIA stub if needed).
-    std::vector<uint8_t> wrap_output(std::vector<uint8_t> const& packed,
-                                     Song const&                 song,
-                                     ExportOptions const&        opt,
-                                     int                         multiplier)
-    {
-        uint16_t addr           = opt.player_addr & 0xff00;
-        bool     cia_stub       = (multiplier > 1) || (multiplier == 0);
-        uint8_t  speed_code[10] = { 0xa2, 0x00, 0x8e, 0x04, 0xdc, 0xa2, 0x00, 0x8e, 0x05, 0xdc };
-        if (cia_stub) {
-            unsigned speed_value;
-            if (multiplier) speed_value = (opt.ntsc ? 0x42c6u : 0x4cc7u) / unsigned(multiplier);
-            else
-                speed_value = (opt.ntsc ? 0x42c6u : 0x4cc7u) * 2;
-            speed_code[1] = uint8_t(speed_value & 0xff);
-            speed_code[6] = uint8_t(speed_value >> 8);
+private:
+
+    // Mark used channels/patterns/instruments/tables, and which player features to keep.
+    void scan() {
+        auto const& ltable = m_song.ltable;
+        auto const& rtable = m_song.rtable;
+        m_flags.author_info      = m_opt.author_info;
+
+        if (m_song.song_len <= 0) throw ExportError("no songs, no data to save");
+
+        for (int d = 0; d < MAX_CHN; d++) {
+            int trans = 0;
+            for (int r = 0; r < m_song.song_len; r++) {
+                OrderRow const& row = m_song.song_order[d][r];
+                if (row.trans != trans) {
+                    m_flags.no_trans = false;
+                    trans      = row.trans;
+                    if (trans < 0) {
+                        int nd = -trans;
+                        if (nd > m_trans_down_range) m_trans_down_range = nd;
+                    }
+                    else if (trans > m_trans_up_range) {
+                        m_trans_up_range = trans;
+                    }
+                }
+                uint8_t num = row.pattnum;
+                if (num >= MAX_PATT) throw ExportError("invalid pattern number in orderlist");
+                m_patt_used[num]      = 1;
+                Pattern const& patt = m_song.patterns[num];
+                for (int k = 0; k < patt.len; k++) {
+                    PatternRow const& pr = patt.rows[k];
+                    if (pr.note != REST || pr.instr || pr.command) m_chn_used[d] = 1;
+                }
+            }
         }
 
-        if (opt.format == ExportOptions::Format::Bin) return packed;
-        if (opt.format == ExportOptions::Format::Prg) {
+        if (!m_chn_used[2]) m_channels = 2;
+        if (!m_chn_used[1] && !m_chn_used[2]) m_channels = 1;
+
+        m_instr_used[1] = 1;
+        for (int c = 0; c < MAX_PATT; c++) {
+            if (!m_patt_used[c]) continue;
+            m_patt_map[c] = uint8_t(m_patterns++);
+            Pattern const& patt = m_song.patterns[c];
+            for (int d = 0; d < patt.len; d++) {
+                PatternRow const& pr = patt.rows[d];
+                uint8_t note = pr.note;
+                uint8_t ins  = pr.instr;
+                uint8_t cmd  = pr.command;
+                uint8_t data = pr.data;
+                if (note == KEYOFF || note == KEYON) m_flags.no_gate = false;
+                if (ins) m_instr_used[ins] = 1;
+                if (cmd) m_flags.no_effects = false;
+                if (cmd >= CMD_SETWAVEPTR && cmd <= CMD_SETFILTERPTR)
+                    exec_table(cmd - CMD_SETWAVEPTR, data);
+                if (cmd >= CMD_PORTAUP && cmd <= CMD_VIBRATO) {
+                    exec_table(STBL, data);
+                    calc_speed_test(data);
+                }
+                if (cmd == CMD_FUNKTEMPO) {
+                    exec_table(STBL, data);
+                    m_flags.no_funk_tempo   = false;
+                    m_flags.no_global_tempo = false;
+                }
+                if (cmd == CMD_SETTEMPO && (data & 0x7f) < 3) m_flags.no_funk_tempo = false;
+                if (note >= FIRSTNOTE && note <= LASTNOTE) {
+                    int new_first = note - FIRSTNOTE - m_trans_down_range;
+                    int new_last  = note - FIRSTNOTE + m_trans_up_range;
+                    if (new_first < 0) new_first = 0;
+                    if (new_last > MAX_NOTES - 1) new_last = MAX_NOTES - 1;
+                    if (new_first < m_first_note) m_first_note = new_first;
+                    if (new_last > m_last_note) {
+                        m_pattern_last_note = new_last;
+                        m_last_note         = new_last;
+                    }
+                    if (new_first > m_last_note) {
+                        m_pattern_last_note = new_first;
+                        m_last_note         = new_first;
+                    }
+                }
+            }
+        }
+
+        for (int c = 0; c < MAX_INSTR; c++) {
+            if (!m_instr_used[c]) continue;
+            if (m_song.instruments[c].gatetimer & 0x40) m_num_legato++;
+            else if (m_song.instruments[c].gatetimer & 0x80)
+                m_num_no_hr++;
+            else
+                m_num_normal++;
+            uint8_t fw = m_song.instruments[c].firstwave;
+            if (!fw || fw >= 0xfe) m_flags.no_first_wave_cmd = false;
+        }
+        int free_normal = 1;
+        int free_no_hr  = free_normal + m_num_normal;
+        int free_legato = free_no_hr + m_num_no_hr;
+        for (int c = 0; c < MAX_INSTR; c++) {
+            if (!m_instr_used[c]) continue;
+            if (m_song.instruments[c].gatetimer & 0x40) m_instr_map[c] = uint8_t(free_legato++);
+            else if (m_song.instruments[c].gatetimer & 0x80)
+                m_instr_map[c] = uint8_t(free_no_hr++);
+            else
+                m_instr_map[c] = uint8_t(free_normal++);
+            m_instruments++;
+            for (int d = 0; d < MAX_TABLES; d++) {
+                uint8_t ptr = m_song.instruments[c].ptr[d];
+                if (d == STBL && m_song.instruments[c].vibdelay == 0 &&
+                    (ptr == 0 || (ltable[STBL][ptr - 1] == 0 && rtable[STBL][ptr - 1] == 0)))
+                    continue;
+                exec_table(d, ptr);
+                if (d == STBL) calc_speed_test(ptr);
+            }
+        }
+
+        for (int c = 0; c < MAX_TABLELEN; c++) {
+            if (!m_table_used[WTBL][c + 1]) continue;
+            if (ltable[WTBL][c] < WAVECMD || ltable[WTBL][c] > WAVELASTCMD) continue;
+            int d = -1;
+            switch (ltable[WTBL][c] - WAVECMD) {
+            case CMD_PORTAUP:
+            case CMD_PORTADOWN:
+            case CMD_TONEPORTA:
+            case CMD_VIBRATO:
+                d = STBL;
+                calc_speed_test(rtable[WTBL][c]);
+                break;
+            case CMD_SETPULSEPTR:
+                d          = PTBL;
+                m_flags.no_pulse = false;
+                break;
+            case CMD_SETFILTERPTR:
+                d           = FTBL;
+                m_flags.no_filter = false;
+                break;
+            case CMD_DONOTHING:
+            case CMD_SETWAVEPTR:
+            case CMD_FUNKTEMPO: throw ExportError("illegal wavetable command");
+            }
+            if (d != -1) exec_table(d, rtable[WTBL][c]);
+        }
+
+        for (int c = 0; c < MAX_TABLES; c++) {
+            int e = 1;
+            for (int d = 0; d < MAX_TABLELEN; d++) {
+                if (m_table_used[c][d + 1]) m_table_map[c][d + 1] = uint8_t(e++);
+            }
+        }
+        for (int c = 0; c < MAX_TABLES; c++) find_table_duplicates(c);
+    }
+
+    // Rows from pos through the terminating $ff jump (speed table: always 1).
+    int table_part_len(int table, int pos) const {
+        if (pos < 0) return 0;
+        if (table == STBL) return 1;
+        int c;
+        for (c = pos; c < MAX_TABLELEN; c++) {
+            if (m_song.ltable[table][c] == 0xff) {
+                c++;
+                break;
+            }
+        }
+        return c - pos;
+    }
+
+    // Mark table rows reachable from ptr.
+    void exec_table(int table, int ptr) {
+        if (table != STBL && ptr && ptr <= MAX_TABLELEN) {
+            if (m_song.ltable[table][ptr - 1] == 0xff) throw ExportError("table pointer points to a jump");
+        }
+        for (;;) {
+            if (!ptr) break;
+            if (table != STBL && ptr > MAX_TABLELEN) throw ExportError("table execution overflows");
+            if (m_table_used[table][ptr]) break;
+            m_table_used[table][ptr] = 1;
+            if (table != STBL) {
+                if (m_song.ltable[table][ptr - 1] == 0xff) ptr = m_song.rtable[table][ptr - 1];
+                else
+                    ptr++;
+            }
+            else {
+                break;
+            }
+        }
+    }
+
+    // Note whether a speed-table entry is zero, calculated (>= $80), or normal.
+    void calc_speed_test(uint8_t pos) {
+        if (!pos) {
+            m_flags.no_zero_speed = false;
+            return;
+        }
+        if (m_song.ltable[STBL][pos - 1] >= 0x80) m_flags.no_calculated_speed = false;
+        else                                    m_flags.no_normal_speed     = false;
+    }
+
+    // True if this table segment is fully used and does not jump (or get jumped) outside itself.
+    bool is_used_and_self_contained(int table, int start) const {
+        int len = table_part_len(table, start - 1);
+        int end = start + len - 1;
+        if (len == 1) return false;
+        for (int c = start; c <= end; c++)
+            if (m_table_used[table][c] == 0) return false;
+        if (m_song.rtable[table][end - 1] != 0) {
+            if (m_song.rtable[table][end - 1] < start || m_song.rtable[table][end - 1] > end) return false;
+        }
+        for (int c = 1; c < start; c++)
+            if (m_table_used[table][c] && m_song.ltable[table][c - 1] == 0xff &&
+                m_song.rtable[table][c - 1] >= start && m_song.rtable[table][c - 1] <= end)
+                return false;
+        for (int c = end + 1; c <= MAX_TABLELEN; c++)
+            if (m_table_used[table][c] && m_song.ltable[table][c - 1] == 0xff &&
+                m_song.rtable[table][c - 1] >= start && m_song.rtable[table][c - 1] <= end)
+                return false;
+        return true;
+    }
+
+    // Drop duplicate table segments and remap pointers onto the first copy.
+    void find_table_duplicates(int table) {
+        auto const& ltable = m_song.ltable;
+        auto const& rtable = m_song.rtable;
+        if (table == STBL) {
+            for (int c = 1; c <= MAX_TABLELEN; c++) {
+                if (!m_table_used[table][c]) continue;
+                for (int d = c + 1; d <= MAX_TABLELEN; d++) {
+                    if (!m_table_used[table][d]) continue;
+                    if (ltable[table][d - 1] == ltable[table][c - 1] &&
+                        rtable[table][d - 1] == rtable[table][c - 1]) {
+                        m_table_used[table][d] = 0;
+                        for (int e = d; e <= MAX_TABLELEN; e++)
+                            if (m_table_used[table][e]) m_table_map[table][e]--;
+                        m_table_map[table][d] = m_table_map[table][c];
+                    }
+                }
+            }
+            return;
+        }
+        for (int c = 1; c <= MAX_TABLELEN; c++) {
+            if (!is_used_and_self_contained(table, c)) continue;
+            for (int d = c + table_part_len(table, c - 1); d <= MAX_TABLELEN;) {
+                int len = table_part_len(table, d - 1);
+                if (is_used_and_self_contained(table, d)) {
+                    int e;
+                    for (e = 0; e < len; e++) {
+                        if (e < len - 1) {
+                            if (ltable[table][d + e - 1] != ltable[table][c + e - 1] ||
+                                rtable[table][d + e - 1] != rtable[table][c + e - 1])
+                                break;
+                        }
+                        else {
+                            if (ltable[table][d + e - 1] != ltable[table][c + e - 1]) break;
+                            if (rtable[table][d + e - 1] == 0) {
+                                if (rtable[table][c + e - 1] != 0) break;
+                            }
+                            else if ((rtable[table][d + e - 1] - d) != (rtable[table][c + e - 1] - c)) {
+                                break;
+                            }
+                        }
+                    }
+                    if (e == len) {
+                        for (e = 0; e < len; e++) m_table_used[table][d + e] = 0;
+                        for (e = d; e < MAX_TABLELEN; e++)
+                            if (m_table_used[table][e]) m_table_map[table][e] -= uint8_t(len);
+                        for (e = 0; e < len; e++) m_table_map[table][d + e] = m_table_map[table][c + e];
+                    }
+                }
+                d += len;
+            }
+        }
+    }
+
+    // Wrap assembled player bytes as BIN, PRG (2-byte load address), or PSID v2.
+    std::vector<uint8_t> wrap_output(std::vector<uint8_t> const& packed, int multiplier) {
+        uint16_t addr     = m_opt.player_addr & 0xff00; // GT: player always starts on a page
+        bool     cia_stub = (multiplier > 1) || (multiplier == 0);
+
+        // LDX #lo / STX $DC04 / LDX #hi / STX $DC05, then falls into jmp mt_init.
+        uint8_t speed_code[10] = { 0xa2, 0x00, 0x8e, 0x04, 0xdc, 0xa2, 0x00, 0x8e, 0x05, 0xdc };
+        if (cia_stub) {
+            // PAL ~50Hz $4CC7, NTSC ~60Hz $42C6
+            int speed_value = m_opt.ntsc ? 0x42c6u : 0x4cc7u;
+            if (multiplier > 1) speed_value /= multiplier;
+            else                speed_value *= 2;
+            speed_code[1] = speed_value & 0xff;
+            speed_code[6] = speed_value >> 8;
+        }
+
+        if (m_opt.format == ExportOptions::Format::Bin) return packed;
+        if (m_opt.format == ExportOptions::Format::Prg) {
             std::vector<uint8_t> out;
             out.push_back(uint8_t(addr & 0xff));
             out.push_back(uint8_t(addr >> 8));
@@ -1035,36 +1005,35 @@ struct Packer {
             return out;
         }
 
+        // PSID v2, 0x7C-byte header. Multi-byte header fields are big-endian.
         std::vector<uint8_t> out;
-        uint8_t              ident[] = { 'P', 'S', 'I', 'D', 0x00, 0x02, 0x00, 0x7c };
-        out.insert(out.end(), ident, ident + 8);
+        out.insert(out.end(), { 'P', 'S', 'I', 'D', 0x00, 0x02, 0x00, 0x7c }); // magic, version=2, dataOffset
+        out.push_back(0); // loadAddress 0: C64 load address is first 2 bytes of data (little-endian)
         out.push_back(0);
-        out.push_back(0);
-        uint16_t init = cia_stub ? uint16_t(addr - 10) : addr;
+        uint16_t init = cia_stub ? uint16_t(addr - 10) : addr; // CIA stub, else jmp mt_init
         out.push_back(uint8_t(init >> 8));
         out.push_back(uint8_t(init & 0xff));
-        uint16_t play = uint16_t(addr + 3);
+        uint16_t play = uint16_t(addr + 3); // jmp mt_play
         out.push_back(uint8_t(play >> 8));
         out.push_back(uint8_t(play & 0xff));
         out.push_back(0);
-        out.push_back(1);
+        out.push_back(1); // songs
         out.push_back(0);
-        out.push_back(1);
-        uint8_t speed_byte = (opt.ntsc || multiplier > 1 || multiplier == 0) ? 0xff : 0x00;
+        out.push_back(1); // startSong
+        // speed: $FFFFFFFF = CIA for all 32 songs; $00000000 = VIC raster (PAL 1x)
+        uint8_t speed_byte = (m_opt.ntsc || multiplier > 1 || multiplier == 0) ? 0xff : 0x00;
         out.insert(out.end(), 4, speed_byte);
 
-        auto put32 = [&](std::array<char, MAX_STR> const& s) {
-            for (int i = 0; i < MAX_STR; i++) out.push_back(uint8_t(s[i]));
-        };
-        put32(song.song_name);
-        put32(song.author_name);
-        put32(song.copyright_name);
+        out.insert(out.end(), m_song.song_name.begin(), m_song.song_name.end());
+        out.insert(out.end(), m_song.author_name.begin(), m_song.author_name.end());
+        out.insert(out.end(), m_song.copyright_name.begin(), m_song.copyright_name.end());
 
+        // flags: bits 2-3 clock (PAL=01, NTSC=10), bits 4-5 SID (6581=01, 8580=10)
         out.push_back(0);
-        uint8_t flags = opt.ntsc ? 8 : 4;
-        flags |= (song.model == Model::MOS8580) ? 32 : 16;
+        uint8_t flags = m_opt.ntsc ? 8 : 4;
+        flags |= (m_song.model == Model::MOS8580) ? 32 : 16;
         out.push_back(flags);
-        out.insert(out.end(), 4, uint8_t(0));
+        out.insert(out.end(), 4, 0); // startPage, pageLength, reserved
 
         uint16_t load = cia_stub ? uint16_t(addr - 10) : addr;
         out.push_back(uint8_t(load & 0xff));
@@ -1073,43 +1042,50 @@ struct Packer {
         out.insert(out.end(), packed.begin(), packed.end());
         return out;
     }
+
+    Song const&          m_song;
+    ExportOptions const& m_opt;
+    uint8_t              m_chn_used[MAX_CHN]{};
+    uint8_t              m_patt_used[MAX_PATT]{};
+    uint8_t              m_patt_map[MAX_PATT]{};
+    uint8_t              m_instr_used[MAX_INSTR]{};
+    uint8_t              m_instr_map[MAX_INSTR]{};
+    uint8_t              m_table_used[MAX_TABLES][MAX_TABLELEN + 1]{};
+    uint8_t              m_table_map[MAX_TABLES][MAX_TABLELEN + 1]{};
+    PackFlags            m_flags;
+    int                  m_channels          = 3;
+    int                  m_fixed_params      = 1;
+    int                  m_simple_pulse      = 1;
+    int                  m_first_note        = MAX_NOTES - 1;
+    int                  m_last_note         = 0;
+    int                  m_pattern_last_note = 0;
+    int                  m_patterns          = 0;
+    int                  m_instruments       = 0;
+    int                  m_num_legato        = 0;
+    int                  m_num_no_hr         = 0;
+    int                  m_num_normal        = 0;
+    int                  m_trans_up_range    = 0;
+    int                  m_trans_down_range  = 0;
 };
 
 } // namespace
 
-// Embedded player.asm, or altplayer.asm when hardrestart uses the alternate ADSR order.
-std::string load_player_source(bool alt_player) {
-    if (alt_player) return { ALTPLAYER_ASM, sizeof(ALTPLAYER_ASM) };
-    return { PLAYER_ASM, sizeof(PLAYER_ASM) };
-}
-
-AssembleResult assemble_source(std::string const& source) {
-    AsmSrc src;
-    src.player(source);
-    return src.assemble();
-}
-
-// Pack editor rows (note, instr, cmd, data repeating) into playroutine bytes.
-std::vector<uint8_t> pack_pattern(uint8_t const* src,
-                                  int            rows,
+// Used only by tests.
+std::vector<uint8_t> pack_pattern(Pattern const& patt,
                                   uint8_t const  instr_map[MAX_INSTR],
                                   uint8_t const  table_map[MAX_TABLES][MAX_TABLELEN + 1],
-                                  bool           strip_effects) {
+                                  bool           strip_effects)
+{
     PackFlags f;
     f.no_effects = strip_effects;
-    uint8_t dest[512];
-    int     n = pack_pattern_raw(dest, src, rows, instr_map, table_map, f);
-    if (n < 0) throw ExportError("pattern too complex");
-    return { dest, dest + n };
+    return pack_pattern_raw(patt, instr_map, table_map, f);
 }
 
-// Pack a song and assemble a SID, PRG, or BIN.
 std::vector<uint8_t> export_song(Song const& song, ExportOptions const& opt) {
     Song gt = song;
     gt.to_goattracker();
-    Packer p;
-    p.scan(gt, opt);
-    return p.emit_and_assemble(gt, opt);
+    Packer p{gt, opt};
+    return p.build();
 }
 
 } // namespace gt

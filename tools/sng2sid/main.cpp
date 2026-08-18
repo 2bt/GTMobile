@@ -2,35 +2,47 @@
 #include "gtsong.hpp"
 
 #include <cctype>
+#include <charconv>
 #include <cstdio>
-#include <cstdlib>
 #include <cstring>
 #include <fstream>
 #include <string>
+#include <system_error>
 
 namespace {
 
 void usage() {
     fprintf(stdout,
-        "Usage: sng2sid <song.sng> <outfile> [options]\n"
+        "Usage: sng2sid [options] <song.sng> <outfile>\n"
+        "  outfile extension selects format: .sid .bin, otherwise .prg\n"
+        "\n"
         "Options:\n"
-        "-Axx Set ADSR parameter for hardrestart in hex. DEFAULT=from song\n"
-        "-Bx  enable/disable buffered SID writes. DEFAULT=disabled\n"
-        "-Cx  enable/disable zeropage ghost registers. DEFAULT=disabled\n"
-        "-Dx  enable/disable sound effect support. DEFAULT=disabled\n"
-        "-Ex  enable/disable volume change support. DEFAULT=disabled\n"
-        "-Hx  enable/disable storing of author info. DEFAULT=disabled\n"
-        "-Ix  enable/disable optimizations. DEFAULT=enabled\n"
-        "-Jx  enable/disable full buffering. DEFAULT=disabled\n"
-        "-Lxx SID memory location in hex. DEFAULT=D400\n"
-        "-N   Use NTSC timing\n"
-        "-Oxx Set pulseoptimization/skipping (0 = off, 1 = on) DEFAULT=on\n"
-        "-P   Use PAL timing (DEFAULT)\n"
-        "-Rxx Set realtime-effect optimization/skipping (0 = off, 1 = on) DEFAULT=on\n"
-        "-Sxx Set speed multiplier (0 for 25Hz, 1 for 1x, 2 for 2x etc.) DEFAULT=from song\n"
-        "-Wxx player memory location highbyte in hex. DEFAULT=1000\n"
-        "-Zxx zeropage memory location in hex. DEFAULT=FC\n"
-        "-?   Show options\n");
+        "  -A<hex>  hardrestart ADSR (default: from song)\n"
+        "  -B<0|1>  buffered SID writes (default: 0)\n"
+        "  -C<0|1>  zeropage ghost registers (default: 0)\n"
+        "  -D<0|1>  sound effect support (default: 0)\n"
+        "  -E<0|1>  volume-change support (default: 0)\n"
+        "  -H<0|1>  store author info (default: 0)\n"
+        "  -I<0|1>  playroutine optimizations (default: 1)\n"
+        "  -J<0|1>  full buffering (default: 0)\n"
+        "  -L<hex>  SID address (default: $D400)\n"
+        "  -N       NTSC timing (default: PAL)\n"
+        "  -O<0|1>  skip idle pulse-table work (default: 0)\n"
+        "  -P       PAL timing\n"
+        "  -R<0|1>  skip idle realtime-effect work (default: 0)\n"
+        "  -S<n>    speed multiplier, 0 = 25Hz (default: from song)\n"
+        "  -W<hex>  player address high byte (default: $10 = $1000)\n"
+        "  -Z<hex>  zeropage address (default: $FC)\n"
+        "  -?       show this help\n");
+}
+
+template<class T>
+bool parse_int(char const* s, int base, T& dest) {
+    T v{};
+    auto [p, ec] = std::from_chars(s, s + std::strlen(s), v, base);
+    if (ec != std::errc{} || *p) return false;
+    dest = v;
+    return true;
 }
 
 gt::ExportOptions::Format format_from_path(std::string const& path) {
@@ -46,76 +58,58 @@ gt::ExportOptions::Format format_from_path(std::string const& path) {
 } // namespace
 
 int main(int argc, char** argv) {
-    if (argc < 3 || (argv[1][0] == '-' && argv[1][1] == '?')) {
-        usage();
-        return argc < 3 ? 1 : 0;
-    }
-
     gt::ExportOptions opt;
-    opt.format = format_from_path(argv[2]);
+    char const* in_path = nullptr;
+    char const* out_path = nullptr;
 
-    for (int c = 3; c < argc; c++) {
-        if (argv[c][0] != '-') {
-            fprintf(stderr, "error: unknown option\n");
-            usage();
-            return 1;
+    for (int c = 1; c < argc; c++) {
+        char const* a = argv[c];
+        if (a[0] != '-') {
+            if (!in_path) in_path = a;
+            else if (!out_path) out_path = a;
+            else {
+                fprintf(stderr, "error: unexpected argument '%s'\n", a);
+                usage();
+                return 1;
+            }
+            continue;
         }
-        switch (toupper(unsigned(argv[c][1]))) {
-        case '?':
-            usage();
-            return 0;
-        case 'A': {
-            unsigned v = 0;
-            sscanf(&argv[c][2], "%x", &v);
-            opt.adparam_override = int(v);
-            break;
-        }
-        case 'L': {
-            unsigned v = 0;
-            sscanf(&argv[c][2], "%x", &v);
-            opt.sid_addr = uint16_t(v);
-            break;
-        }
-        case 'O': {
-            unsigned v = 1;
-            sscanf(&argv[c][2], "%u", &v);
-            opt.optimize_pulse = v != 0;
-            break;
-        }
-        case 'R': {
-            unsigned v = 1;
-            sscanf(&argv[c][2], "%u", &v);
-            opt.optimize_realtime = v != 0;
-            break;
-        }
-        case 'S': sscanf(&argv[c][2], "%d", &opt.multiplier_override); break;
-        case 'N': opt.ntsc = true; break;
-        case 'P': opt.ntsc = false; break;
-        case 'B': opt.buffered = argv[c][2] == '1'; break;
-        case 'D': opt.sound_effects = argv[c][2] == '1'; break;
-        case 'E': opt.volume = argv[c][2] == '1'; break;
-        case 'H': opt.author_info = argv[c][2] == '1'; break;
-        case 'C': opt.zp_ghostregs = argv[c][2] == '1'; break;
-        case 'I': opt.optimize = argv[c][2] != '0'; break;
-        case 'J': opt.full_buffered = argv[c][2] == '1'; break;
+        char const* val = a + 2;
+        switch (a[1]) {
+        case '?': usage(); return 0;
+        case 'A': parse_int(val, 16, opt.adparam_override); break;
+        case 'L': parse_int(val, 16, opt.sid_addr); break;
+        case 'S': parse_int(val, 10, opt.multiplier_override); break;
+        case 'O': opt.optimize_pulse    = *val == '1'; break;
+        case 'R': opt.optimize_realtime = *val == '1'; break;
+        case 'N': opt.ntsc              = true; break;
+        case 'P': opt.ntsc              = false; break;
+        case 'B': opt.buffered          = *val == '1'; break;
+        case 'D': opt.sound_effects     = *val == '1'; break;
+        case 'E': opt.volume            = *val == '1'; break;
+        case 'H': opt.author_info       = *val == '1'; break;
+        case 'C': opt.zp_ghostregs      = *val == '1'; break;
+        case 'I': opt.optimize          = *val == '1'; break;
+        case 'J': opt.full_buffered     = *val == '1'; break;
         case 'W': {
-            unsigned v = 0x10;
-            sscanf(&argv[c][2], "%x", &v);
+            unsigned v = opt.player_addr >> 8;
+            parse_int(val, 16, v);
             opt.player_addr = uint16_t(v << 8);
             break;
         }
-        case 'Z': {
-            unsigned v = 0xfc;
-            sscanf(&argv[c][2], "%x", &v);
-            opt.zp_base = uint8_t(v);
-            break;
-        }
+        case 'Z': parse_int(val, 16, opt.zp_base); break;
         default:
-            fprintf(stderr, "error: unknown option\n");
+            fprintf(stderr, "error: unknown option '%s'\n", argv[c]);
             usage();
             return 1;
         }
     }
+
+    if (!in_path || !out_path) {
+        usage();
+        return 1;
+    }
+    opt.format = format_from_path(out_path);
 
     if (opt.multiplier_override > 16) opt.multiplier_override = 16;
     opt.player_addr &= 0xff00;
@@ -123,15 +117,15 @@ int main(int argc, char** argv) {
 
     try {
         gt::Song song;
-        song.load(argv[1]);
+        song.load(in_path);
         auto bytes = gt::export_song(song, opt);
-        std::ofstream out(argv[2], std::ios::binary);
+        std::ofstream out(out_path, std::ios::binary);
         if (!out) {
-            fprintf(stderr, "error: could not open output file '%s'.\n", argv[2]);
+            fprintf(stderr, "error: could not open output file '%s'.\n", out_path);
             return 1;
         }
         out.write(reinterpret_cast<char const*>(bytes.data()), std::streamsize(bytes.size()));
-        fprintf(stdout, "sng2sid: wrote %s (%zu bytes)\n", argv[2], bytes.size());
+        fprintf(stdout, "sng2sid: wrote %s (%zu bytes)\n", out_path, bytes.size());
         return 0;
     } catch (std::exception const& e) {
         fprintf(stderr, "error: %s\n", e.what());

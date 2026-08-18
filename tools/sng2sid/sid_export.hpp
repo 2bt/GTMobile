@@ -39,20 +39,4 @@ struct ExportOptions {
 
 std::vector<uint8_t> export_song(Song const& song, ExportOptions const& opt = {});
 
-struct AssembleResult {
-    std::vector<uint8_t> bytes;
-    uint16_t             start = 0;
-};
-
-AssembleResult assemble_source(std::string const& source);
-
-std::string load_player_source(bool alt_player);
-
-// Editor rows as note,instr,cmd,data repeating. Returns packed playroutine bytes.
-std::vector<uint8_t> pack_pattern(uint8_t const* src,
-                                  int            rows,
-                                  uint8_t const  instr_map[MAX_INSTR],
-                                  uint8_t const  table_map[MAX_TABLES][MAX_TABLELEN + 1],
-                                  bool           strip_effects);
-
 } // namespace gt

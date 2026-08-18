@@ -6,6 +6,13 @@
 #include <cstring>
 #include <vector>
 
+namespace gt {
+std::vector<uint8_t> pack_pattern(Pattern const& patt,
+                                  uint8_t const  instr_map[MAX_INSTR],
+                                  uint8_t const  table_map[MAX_TABLES][MAX_TABLELEN + 1],
+                                  bool           strip_effects);
+}
+
 namespace {
 
 int g_fails = 0;
@@ -38,14 +45,10 @@ void identity_maps() {
 }
 
 std::vector<uint8_t> pack_rows(std::vector<gt::PatternRow> const& rows, bool strip) {
-    std::vector<uint8_t> src(rows.size() * 4);
-    for (size_t i = 0; i < rows.size(); i++) {
-        src[i * 4 + 0] = rows[i].note;
-        src[i * 4 + 1] = rows[i].instr;
-        src[i * 4 + 2] = rows[i].command;
-        src[i * 4 + 3] = rows[i].data;
-    }
-    return gt::pack_pattern(src.data(), int(rows.size()), instr_map, table_map, strip);
+    gt::Pattern patt;
+    patt.len = int(rows.size());
+    std::copy(rows.begin(), rows.end(), patt.rows.begin());
+    return gt::pack_pattern(patt, instr_map, table_map, strip);
 }
 
 } // namespace
@@ -109,8 +112,8 @@ int main() {
         song.song_order[2][0] = { 0, 2 };
         song.patterns[0].len = 1;
         song.patterns[0].rows[0] = { gt::FIRSTNOTE, 1, 0, 0 };
-        song.instruments[1].ad = 0x09;
-        song.instruments[1].sr = 0x00;
+        song.instruments[1].ad = 0x13;
+        song.instruments[1].sr = 0x37;
         song.instruments[1].firstwave = 0x09;
         song.instruments[1].gatetimer = 2;
         memcpy(song.song_name.data(), "test", 4);
@@ -122,7 +125,20 @@ int main() {
             fprintf(stderr, "FAIL export: payload missing jmp init/play\n");
             g_fails++;
         } else {
-            fprintf(stdout, "OK export_song PSID (%zu bytes)\n", sid.size());
+            // One used instrument: mt_insad and mt_inssr are consecutive bytes.
+            bool adsr = false;
+            for (size_t i = 0x7c; i + 1 < sid.size(); i++) {
+                if (sid[i] == 0x13 && sid[i + 1] == 0x37) {
+                    adsr = true;
+                    break;
+                }
+            }
+            if (!adsr) {
+                fprintf(stderr, "FAIL export: instrument AD/SR tables missing\n");
+                g_fails++;
+            } else {
+                fprintf(stdout, "OK export_song PSID (%zu bytes)\n", sid.size());
+            }
         }
 
         gt::ExportOptions prg;
