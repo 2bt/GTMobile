@@ -23,7 +23,7 @@ struct ExportOptions {
     uint16_t player_addr         = 0x1000;
     uint8_t  zp_base             = 0xfc;
     uint16_t sid_addr            = 0xd400;
-    bool     buffered            = false; // delay SID writes until end of each channel
+    bool     buffered            = true;  // delay SID writes until end of each channel
     bool     sound_effects       = false; // include SFX engine (implies buffered)
     bool     volume              = false; // jumptable to set master volume
     bool     author_info         = false; // store author string at player+$20

@@ -18,7 +18,7 @@ void usage() {
         "\n"
         "Options:\n"
         "  -A<hex>  hardrestart ADSR (default: from song)\n"
-        "  -B<0|1>  buffered SID writes (default: 0)\n"
+        "  -B<0|1>  buffered SID writes (default: 1)\n"
         "  -C<0|1>  zeropage ghost registers (default: 0)\n"
         "  -D<0|1>  sound effect support (default: 0)\n"
         "  -E<0|1>  volume-change support (default: 0)\n"
