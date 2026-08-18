@@ -107,8 +107,9 @@ public class MainActivity extends Activity {
         sInstance.mExportFilePath = path;
         sInstance.startActivityForResult(Intent.createChooser(share, "Export song"), REQUEST_CODE_EXPORT_FILE);
     }
-    private static String getMimeFromName(String name) {
+    static String getMimeFromName(String name) {
         if (name.endsWith(".sng")) return "application/octet-stream";
+        if (name.endsWith(".sid")) return "application/octet-stream";
         if (name.endsWith(".ogg")) return "audio/ogg";
         if (name.endsWith(".wav")) return "audio/wav";
         return "application/octet-stream";
