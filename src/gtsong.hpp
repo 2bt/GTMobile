@@ -112,6 +112,9 @@ struct LoadError : public std::exception {
 
 enum class Model : uint8_t { MOS6581, MOS8580 };
 
+// SET*PTR command data: GoatTracker uses a table row, GTMobile uses an instrument index.
+enum class Mode : uint8_t { GoatTracker, GTMobile };
+
 struct Song {
     std::array<Instrument, MAX_INSTR>         instruments;
     Array2<uint8_t, MAX_TABLES, MAX_TABLELEN> ltable;
@@ -129,15 +132,19 @@ struct Song {
     uint16_t                                  adparam    = 0x0f00;
     uint8_t                                   multiplier = 1;
     Model                                     model      = Model::MOS8580;
+    Mode                                      mode       = Mode::GTMobile;
 
     int get_table_length(int table) const;
     int get_table_part_length(int table, int start_row) const;
 
+    // Remap SET*PTR data from instrument index to table row. No-op if already GoatTracker.
+    void to_goattracker();
+
     void load(char const* filename);
     void load(uint8_t const* data, size_t size);
     void load(std::istream& stream);
-    bool save(char const* filename);
-    bool save(std::ostream& stream);
+    bool save(char const* filename) const;
+    bool save(std::ostream& stream) const;
     void clear();
 };
 

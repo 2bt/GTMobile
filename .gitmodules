@@ -7,3 +7,6 @@
 [submodule "android/native-libs/libvorbis"]
 	path = android/native-libs/libvorbis
 	url = https://github.com/xiph/vorbis.git
+[submodule "third_party/asm64"]
+	path = third_party/asm64
+	url = https://github.com/fredrikpaulin/ASM64.git

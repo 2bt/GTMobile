@@ -85,3 +85,6 @@ target_link_libraries(
     -lportmidi
 )
 
+enable_testing()
+add_subdirectory(tools/sng2sid)
+

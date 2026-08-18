@@ -8,6 +8,7 @@
 #include <cstdio>
 #include <cstring>
 #include <fstream>
+#include <utility>
 #include <vector>
 
 namespace gt {
@@ -358,10 +359,46 @@ void Song::load(std::istream& stream) {
         std::copy(nlt.begin(), nlt.end(), ltable[t].begin());
         std::copy(nrt.begin(), nrt.end(), rtable[t].begin());
     }
+
+    mode = Mode::GTMobile;
 }
 
 
-bool Song::save(char const* filename) {
+void Song::to_goattracker() {
+    // GTMobile stores SET*PTR data as an instrument index; GoatTracker stores a table row.
+    // Remap patterns (SETWAVEPTR..SETFILTERPTR) and wavetable SETPULSEPTR/SETFILTERPTR.
+    // Work on a copy so a throw leaves *this unchanged. No-op if already GoatTracker.
+    if (mode == Mode::GoatTracker) return;
+    Song tmp = *this;
+    auto remap = [&](uint8_t data, int cmd) -> uint8_t {
+        if (data >= MAX_INSTR) throw LoadError("Invalid SET*PTR instrument");
+        return tmp.instruments[data].ptr[cmd - CMD_SETWAVEPTR];
+    };
+    // fix table pointer commands
+    // map instrument back to table row
+    for (Pattern& patt : tmp.patterns) {
+        for (int r = 0; r < patt.len; ++r) {
+            PatternRow& row = patt.rows[r];
+            if (row.data != 0 && row.command >= CMD_SETWAVEPTR && row.command <= CMD_SETFILTERPTR)
+                row.data = remap(row.data, row.command);
+        }
+    }
+    // fix table pointer commands
+    // map instrument back to table row
+    for (int i = 0; i < MAX_TABLELEN; ++i) {
+        if ((tmp.ltable[WTBL][i] & 0xf0) != 0xf0) continue;
+        uint8_t& data = tmp.rtable[WTBL][i];
+        if (data == 0) continue;
+        uint8_t cmd = tmp.ltable[WTBL][i] & 0xf;
+        if (cmd >= CMD_SETPULSEPTR && cmd <= CMD_SETFILTERPTR)
+            data = remap(data, cmd);
+    }
+    tmp.mode = Mode::GoatTracker;
+    *this = std::move(tmp);
+}
+
+
+bool Song::save(char const* filename) const {
     std::ofstream stream(filename, std::ios::binary);
     if (!stream.is_open()) return false;
     return save(stream);
@@ -393,7 +430,18 @@ int Song::get_table_part_length(int table, int start_row) const {
 }
 
 
-bool Song::save(std::ostream& stream) {
+bool Song::save(std::ostream& stream) const {
+    if (mode != Mode::GoatTracker) {
+        try {
+            Song gt = *this;
+            gt.to_goattracker();
+            return gt.save(stream);
+        }
+        catch (LoadError const&) {
+            return false;
+        }
+    }
+
     assert(song_len <= MAX_SONG_ROWS);
 
     stream.write("GTS5", 4);
@@ -425,14 +473,14 @@ bool Song::save(std::ostream& stream) {
     // instruments
     int max_used_instr = 0;
     for (int i = 1; i < MAX_INSTR; i++) {
-        Instrument& instr = instruments[i];
+        Instrument const& instr = instruments[i];
         if ((instr.ptr[WTBL] | instr.ptr[PTBL] | instr.ptr[FTBL]) || strlen(instr.name.data()) > 0) {
             max_used_instr = i;
         }
     }
     write<uint8_t>(stream, max_used_instr);
     for (int i = 1; i <= max_used_instr; i++) {
-        Instrument& instr = instruments[i];
+        Instrument const& instr = instruments[i];
         write(stream, instr.ad);
         write(stream, instr.sr);
         write(stream, instr.ptr);
@@ -446,23 +494,8 @@ bool Song::save(std::ostream& stream) {
     for (int t = 0; t < MAX_TABLES; t++) {
         int l = get_table_length(t);
         write<uint8_t>(stream, l);
-        // fix table pointer commands
-        // map instrument back to table row
-        auto rtbl = rtable[t];
-        if (t == WTBL) {
-            for (int i = 0; i < MAX_TABLELEN; ++i) {
-                if ((ltable[WTBL][i] & 0xf0) != 0xf0) continue;
-                uint8_t& data = rtbl[i];
-                if (data == 0) continue;
-                uint8_t cmd = ltable[WTBL][i] & 0xf;
-                if (cmd >= CMD_SETPULSEPTR && cmd <= CMD_SETFILTERPTR) {
-                    Instrument const& instr = instruments[data];
-                    data = instr.ptr[cmd - CMD_SETWAVEPTR];
-                }
-            }
-        }
         stream.write((char const*) ltable[t].data(), l);
-        stream.write((char const*) rtbl.data(), l);
+        stream.write((char const*) rtable[t].data(), l);
     }
 
     // patterns
@@ -482,14 +515,7 @@ bool Song::save(std::ostream& stream) {
         Pattern const& patt = patterns[i];
         write<uint8_t>(stream, patt.len + 1);
         for (int r = 0; r < patt.len; ++r) {
-            // fix table pointer commands
-            // map instrument back to table row
-            PatternRow row = patt.rows[r];
-            if (row.data != 0 && row.command >= CMD_SETWAVEPTR && row.command <= CMD_SETFILTERPTR) {
-                Instrument const& instr = instruments[row.data];
-                row.data = instr.ptr[row.command - CMD_SETWAVEPTR];
-            }
-            write(stream, row);
+            write(stream, patt.rows[r]);
         }
         write<uint8_t>(stream, ENDPATT);
         write<uint8_t>(stream, 0);
