@@ -73,7 +73,7 @@ void shuffle_patterns(size_t i, size_t j) {
     // apply mapping
     auto copy = g_song.patterns;
     for (int n = 0; n < gt::MAX_PATT; ++n) g_song.patterns[mapping[n]] = copy[n];
-    for (auto& o : g_song.song_order) {
+    for (auto& o : g_song.current().order) {
         for (gt::OrderRow& row : o) {
             row.pattnum = mapping[row.pattnum];
         }
@@ -101,17 +101,17 @@ void check_marked_patterns() {
     int mark_chan_max = std::max(g_mark_chan, g_cursor_chan);
     for (int c = mark_chan_min; c <= mark_chan_max; ++c) {
         for (int r = mark_row_min; r <= mark_row_max ; ++r) {
-            auto row = g_song.song_order[c][r];
+            auto row = g_song.current().order[c][r];
             g_pattern_marked[row.pattnum] = true;
         }
     }
 }
 
 void clamp_view_state() {
-    g_cursor_song_row = clamp(g_cursor_song_row, 0, g_song.song_len - 1);
+    g_cursor_song_row = clamp(g_cursor_song_row, 0, g_song.current().len - 1);
 
-    int song_row = clamp(g_cursor_song_row, 0, g_song.song_len - 1);
-    int patt_num = g_song.song_order[g_cursor_chan][song_row].pattnum;
+    int song_row = clamp(g_cursor_song_row, 0, g_song.current().len - 1);
+    int patt_num = g_song.current().order[g_cursor_chan][song_row].pattnum;
     int patt_len = std::max(1, g_song.patterns[patt_num].len);
 
     g_cursor_pattern_row = clamp(g_cursor_pattern_row, 0, patt_len - 1);
@@ -120,14 +120,14 @@ void clamp_view_state() {
         g_mark_row = clamp(g_mark_row, 0, patt_len - 1);
     }
     else {
-        g_mark_row = clamp(g_mark_row, 0, g_song.song_len - 1);
+        g_mark_row = clamp(g_mark_row, 0, g_song.current().len - 1);
     }
 }
 
 
 void init_order_edit() {
     g_show_order_edit_window = true;
-    g_transpose = g_song.song_order[g_cursor_chan][g_cursor_song_row].trans;
+    g_transpose = g_song.current().order[g_cursor_chan][g_cursor_song_row].trans;
     check_empty_patterns();
 
     if (g_edit_mode != EditMode::SongMark) {
@@ -195,7 +195,7 @@ void draw_order_edit() {
                 int mark_chan_max = std::max(g_mark_chan, g_cursor_chan);
                 for (int c = mark_chan_min; c <= mark_chan_max; ++c) {
                     for (int r = mark_row_min; r <= mark_row_max ; ++r) {
-                        g_song.song_order[c][r].pattnum = i;
+                        g_song.current().order[c][r].pattnum = i;
                     }
                 }
                 g_show_order_edit_window = false;
@@ -220,7 +220,7 @@ void draw_order_edit() {
         int mark_chan_max = std::max(g_mark_chan, g_cursor_chan);
         for (int c = mark_chan_min; c <= mark_chan_max; ++c) {
             for (int r = mark_row_min; r <= mark_row_max ; ++r) {
-                g_song.song_order[c][r].trans = g_transpose;;
+                g_song.current().order[c][r].trans = g_transpose;;
             }
         }
     }
@@ -267,7 +267,7 @@ void update_mark(int& row, int page, int len, int& scroll) {
 int channel() { return g_cursor_chan; }
 
 int song_position() {
-    return std::min(g_cursor_song_row, g_song.song_len - 1);
+    return std::min(g_cursor_song_row, g_song.current().len - 1);
 }
 
 int cursor_instrument() {
@@ -316,7 +316,7 @@ void draw() {
     std::array<int, 3> player_patt_rows = player.m_current_patt_pos;
     std::array<int, 3> player_patt_nums;
     for (int c = 0; c < 3; ++c) {
-        player_patt_nums[c] = g_song.song_order[c][player_song_rows[c]].pattnum;
+        player_patt_nums[c] = g_song.current().order[c][player_song_rows[c]].pattnum;
     }
 
     ivec2 cursor = gui::cursor();
@@ -341,7 +341,7 @@ void draw() {
     }
     else {
         for (int k = 0; k < gt::MAX_CHN; ++k) {
-            patt_nums[k] = g_song.song_order[k][g_cursor_song_row].pattnum;
+            patt_nums[k] = g_song.current().order[k][g_cursor_song_row].pattnum;
         }
     }
 
@@ -349,7 +349,7 @@ void draw() {
     max_pattern_len = std::max(max_pattern_len, g_song.patterns[patt_nums[1]].len);
     max_pattern_len = std::max(max_pattern_len, g_song.patterns[patt_nums[2]].len);
 
-    g_song_scroll    = clamp(g_song_scroll, 0, g_song.song_len - g_song_page);
+    g_song_scroll    = clamp(g_song_scroll, 0, g_song.current().len - g_song_page);
     g_pattern_scroll = clamp(g_pattern_scroll, 0, max_pattern_len - pattern_page);
 
 
@@ -358,7 +358,7 @@ void draw() {
     char str[32];
 
     if (g_edit_mode == EditMode::SongMark) {
-        update_mark(g_cursor_song_row, g_song_page, g_song.song_len, g_song_scroll);
+        update_mark(g_cursor_song_row, g_song_page, g_song.current().len, g_song_scroll);
     }
 
     // song table
@@ -376,8 +376,8 @@ void draw() {
         for (int c = 0; c < 3; ++c) {
             gui::same_line();
             gui::Box box = gui::item_box();
-            if (r >= int(g_song.song_len)) continue;
-            gt::OrderRow& row = g_song.song_order[c][r];
+            if (r >= int(g_song.current().len)) continue;
+            gt::OrderRow& row = g_song.current().order[c][r];
 
             gui::ButtonState state = gui::button_state(box);
             if (state == gui::ButtonState::Released) {
@@ -385,7 +385,7 @@ void draw() {
                 g_cursor_chan     = c;
                 g_cursor_song_row = r;
                 for (int k = 0; k < gt::MAX_CHN; ++k) {
-                    patt_nums[k] = g_song.song_order[k][r].pattnum;
+                    patt_nums[k] = g_song.current().order[k][r].pattnum;
                 }
             }
             if (gui::hold()) {
@@ -439,7 +439,7 @@ void draw() {
             }
 
             sprintf(str, "   %c%X", "+-"[row.trans < 0], abs(row.trans));
-            int prev_trans = r == 0 ? 0 : g_song.song_order[c][r - 1].trans;
+            int prev_trans = r == 0 ? 0 : g_song.current().order[c][r - 1].trans;
             dc.rgb(row.trans == prev_trans ? color::DARK_GREY : color::WHITE);
             dc.text(box.pos + ivec2(5, text_offset), str);
 
@@ -449,7 +449,7 @@ void draw() {
         }
 
         // loop marker
-        if (r == g_song.song_loop) {
+        if (r == g_song.current().loop) {
             dc.rgb(color::WHITE);
             dc.text(box.pos + ivec2(CN + CC * 3 - 9, text_offset), "\x05");
         }
@@ -616,7 +616,7 @@ void draw() {
     gui::cursor({ app::CANVAS_WIDTH - 80, cursor.y });
     gui::drag_bar_style(gui::DragBarStyle::Scrollbar);
     {
-        int max_scroll = std::max(0, g_song.song_len - g_song_page);
+        int max_scroll = std::max(0, g_song.current().len - g_song_page);
         gui::item_size({ app::SCROLL_WIDTH, g_song_page * settings.row_height + 2 });
         if (gui::vertical_drag_bar(g_song_scroll, 0, max_scroll, g_song_page)) {
             if (g_edit_mode == EditMode::Follow) g_edit_mode = EditMode::Pattern;
@@ -651,51 +651,51 @@ void draw() {
     gui::item_size({ 55, app::BUTTON_HEIGHT });
     if (g_edit_mode == EditMode::Song) {
         int& pos = g_cursor_song_row;
-        int& len = g_song.song_len;
+        int& len = g_song.current().len;
 
         if (gui::button(gui::Icon::Paste)) {
             auto const& b = song_copy_buffer;
             for (int c = 0; c < b.num_chans; ++c) {
                 if (g_cursor_chan + c >= 3) break;
                 for (int i = 0; i < b.len; ++i) {
-                    if (g_cursor_song_row + i >= g_song.song_len) break;
-                    g_song.song_order[g_cursor_chan + c][g_cursor_song_row + i] = b.order[c][i];
+                    if (g_cursor_song_row + i >= g_song.current().len) break;
+                    g_song.current().order[g_cursor_chan + c][g_cursor_song_row + i] = b.order[c][i];
                 }
             }
         }
         gui::disabled(!(len > 1 && pos < len));
         if (gui::button(gui::Icon::DeleteRow)) {
-            for (auto& order : g_song.song_order) {
+            for (auto& order : g_song.current().order) {
                 order[pos] = {};
                 std::rotate(order.begin() + pos, order.begin() + pos + 1, order.end());
             }
             --len;
-            if (pos > 0 && g_song.song_loop > pos) --g_song.song_loop;
-            if (g_song.song_loop >= len) g_song.song_loop = len - 1;
+            if (pos > 0 && g_song.current().loop > pos) --g_song.current().loop;
+            if (g_song.current().loop >= len) g_song.current().loop = len - 1;
             if (pos >= len) pos = len - 1;
         }
         gui::disabled(!(len < gt::MAX_SONG_ROWS && pos <= len));
         if (gui::button(gui::Icon::AddRowAbove)) {
-            for (auto& order : g_song.song_order) {
+            for (auto& order : g_song.current().order) {
                 std::rotate(order.begin() + pos, order.end() - 1, order.end());
                 order[pos] = order[pos + 1]; // copy row
             }
-            if (g_song.song_loop >= pos) ++g_song.song_loop;
+            if (g_song.current().loop >= pos) ++g_song.current().loop;
             ++len;
         }
         if (gui::button(gui::Icon::AddRowBelow)) {
             ++pos;
-            for (auto& order : g_song.song_order) {
+            for (auto& order : g_song.current().order) {
                 std::rotate(order.begin() + pos, order.end() - 1, order.end());
                 order[pos] = order[pos - 1]; // copy row
             }
-            if (g_song.song_loop >= pos) ++g_song.song_loop;
+            if (g_song.current().loop >= pos) ++g_song.current().loop;
             ++len;
             if (pos >= len) pos = len - 1;
         }
-        gui::disabled(g_song.song_loop == g_cursor_song_row);
+        gui::disabled(g_song.current().loop == g_cursor_song_row);
         if (gui::button(gui::Icon::JumpBack)) {
-            g_song.song_loop = g_cursor_song_row;
+            g_song.current().loop = g_cursor_song_row;
         }
         gui::disabled(false);
 
@@ -716,7 +716,7 @@ void draw() {
             b.len       = mark_row_max - mark_row_min + 1;
             for (int c = 0; c < b.num_chans; ++c) {
                 for (int i = 0; i < b.len; ++i) {
-                    b.order[c][i] = g_song.song_order[mark_chan_min + c][mark_row_min + i];
+                    b.order[c][i] = g_song.current().order[mark_chan_min + c][mark_row_min + i];
                 }
             }
         }

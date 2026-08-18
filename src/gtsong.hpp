@@ -39,6 +39,7 @@ enum {
 
     MAX_INSTRNAMELEN = 16,
     MAX_PATTROWS     = 128,
+    MAX_SONGS        = 32,
     MAX_SONGLEN      = 254,
     MAX_SONG_ROWS    = MAX_SONGLEN / 2,
 
@@ -102,6 +103,12 @@ struct Pattern {
 };
 
 
+struct Orderlist {
+    Array2<OrderRow, MAX_CHN, MAX_SONG_ROWS> order = {};
+    int                                      len   = 0;
+    int                                      loop  = 0;
+};
+
 struct LoadError : public std::exception {
     explicit LoadError(std::string msg) : msg(std::move(msg)) {}
     const char* what() const noexcept override {
@@ -119,10 +126,9 @@ struct Song {
     std::array<Instrument, MAX_INSTR>         instruments;
     Array2<uint8_t, MAX_TABLES, MAX_TABLELEN> ltable;
     Array2<uint8_t, MAX_TABLES, MAX_TABLELEN> rtable;
-    Array2<OrderRow, MAX_CHN, MAX_SONG_ROWS>  song_order;
+    std::array<Orderlist, MAX_SONGS>          songs;
     std::array<Pattern, MAX_PATT>             patterns;
-    int                                       song_len  = 1;
-    int                                       song_loop = 0;
+    int                                       num_songs = 1;
 
     std::array<char, MAX_STR>                 song_name;
     std::array<char, MAX_STR>                 author_name;
@@ -136,6 +142,10 @@ struct Song {
 
     int get_table_length(int table) const;
     int get_table_part_length(int table, int start_row) const;
+    int song_count() const;
+
+    Orderlist&       current()       { return songs[0]; }
+    Orderlist const& current() const { return songs[0]; }
 
     // Remap SET*PTR data from instrument index to table row. No-op if already GoatTracker.
     void to_goattracker();

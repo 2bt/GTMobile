@@ -42,8 +42,10 @@ void load_error(std::string msg) {
 
 void Song::clear() {
     *this = {};
-    song_order[1][0].pattnum = 1;
-    song_order[2][0].pattnum = 2;
+    songs[0].len                 = 1;
+    songs[0].order[1][0].pattnum = 1;
+    songs[0].order[2][0].pattnum = 2;
+    num_songs                    = 1;
     // set up vibrato pointers
     for (int i = 1; i < MAX_INSTR; ++i) {
         Instrument& instr = instruments[i];
@@ -80,51 +82,55 @@ void Song::load(std::istream& stream) {
 
     // read songorderlists
     int amount = read8(stream);
-    if (amount != 1) load_error("Multiple songs not supported");
-    for (int c = 0; c < MAX_CHN; c++) {
-        int buffer_len = read8(stream) + 1;
-        assert(buffer_len >= 3);
-        std::array<uint8_t, 256> buffer;
-        stream.read((char*) buffer.data(), buffer_len);
+    if (amount < 1 || amount > MAX_SONGS) load_error("Invalid song count");
+    num_songs = amount;
+    for (int s = 0; s < amount; s++) {
+        Orderlist& sl = songs[s];
+        for (int c = 0; c < MAX_CHN; c++) {
+            int buffer_len = read8(stream) + 1;
+            if (buffer_len < 2) load_error("Orderlist too short");
+            std::array<uint8_t, 256> buffer;
+            stream.read((char*) buffer.data(), buffer_len);
 
-        assert(buffer[buffer_len - 2] == LOOPSONG);
-        int loop  = buffer[buffer_len - 1];
-        int pos   = 0;
-        int trans = 0;
-        auto& order = song_order[c];
-        for (int i = 0; i < buffer_len;) {
-            uint8_t x = buffer[i++];
-            if (x == LOOPSONG) break;
-            // transpose
-            if (x >= TRANSDOWN && x < LOOPSONG) {
-                if (i <= buffer[buffer_len - 1]) --loop;
-                trans = x - TRANSUP;
-                x = buffer[i++];
-            }
-            int repeat = 1;
-            if (x >= REPEAT && x < TRANSDOWN) {
-                repeat = x - REPEAT + 1;
-                x = buffer[i++];
-            }
-            if (x >= MAX_PATT) {
-                load_error("Invalid pattern number");
-            }
-            for (int j = 0; j < repeat; ++j) {
-                if (pos >= int(order.size())) {
-                    load_error("Max song length exceeded");
+            assert(buffer[buffer_len - 2] == LOOPSONG);
+            int loop  = buffer[buffer_len - 1];
+            int pos   = 0;
+            int trans = 0;
+            auto& order = sl.order[c];
+            for (int i = 0; i < buffer_len;) {
+                uint8_t x = buffer[i++];
+                if (x == LOOPSONG) break;
+                // transpose
+                if (x >= TRANSDOWN && x < LOOPSONG) {
+                    if (i <= buffer[buffer_len - 1]) --loop;
+                    trans = x - TRANSUP;
+                    x = buffer[i++];
                 }
-                order[pos].trans   = trans;
-                order[pos].pattnum = x;
-                ++pos;
+                int repeat = 1;
+                if (x >= REPEAT && x < TRANSDOWN) {
+                    repeat = x - REPEAT + 1;
+                    x = buffer[i++];
+                }
+                if (x >= MAX_PATT) {
+                    load_error("Invalid pattern number");
+                }
+                for (int j = 0; j < repeat; ++j) {
+                    if (pos >= int(order.size())) {
+                        load_error("Max song length exceeded");
+                    }
+                    order[pos].trans   = trans;
+                    order[pos].pattnum = x;
+                    ++pos;
+                }
             }
-        }
-        if (c == 0) {
-            song_len  = pos;
-            song_loop = loop;
-        }
-        else {
-            if (pos != song_len) load_error("Order length mismatch");
-            if (loop != song_loop) load_error("Order loop mismatch");
+            if (c == 0) {
+                sl.len  = pos;
+                sl.loop = loop;
+            }
+            else {
+                if (pos != sl.len) load_error("Order length mismatch");
+                if (loop != sl.loop) load_error("Order loop mismatch");
+            }
         }
     }
 
@@ -413,6 +419,15 @@ int Song::get_table_length(int table) const {
 }
 
 
+int Song::song_count() const {
+    int n = 1;
+    for (int s = 0; s < MAX_SONGS; ++s) {
+        if (songs[s].len > 0) n = s + 1;
+    }
+    return n;
+}
+
+
 int Song::get_table_part_length(int table, int start_row) const {
     if (start_row < 0) return 0;
     if (table == STBL) return 1;
@@ -442,7 +457,8 @@ bool Song::save(std::ostream& stream) const {
         }
     }
 
-    assert(song_len <= MAX_SONG_ROWS);
+    int const n_songs = song_count();
+    assert(n_songs <= MAX_SONGS);
 
     stream.write("GTS5", 4);
     write(stream, song_name);
@@ -450,24 +466,28 @@ bool Song::save(std::ostream& stream) const {
     write(stream, copyright_name);
 
     // songorderlists
-    write<uint8_t>(stream, 1);
-    for (auto const& order : song_order) {
-        int loop  = song_loop;
-        int trans = 0;
-        std::vector<uint8_t> buffer;
-        for (int r = 0; r < song_len; ++r) {
-            OrderRow const& row = order[r];
-            if (row.trans != trans) {
-                trans = row.trans;
-                buffer.push_back(trans + TRANSUP);
-                if (r < song_loop) ++loop;
+    write<uint8_t>(stream, uint8_t(n_songs));
+    for (int s = 0; s < n_songs; s++) {
+        Orderlist const& sl = songs[s];
+        assert(sl.len <= MAX_SONG_ROWS);
+        for (auto const& order : sl.order) {
+            int loop  = sl.loop;
+            int trans = 0;
+            std::vector<uint8_t> buffer;
+            for (int r = 0; r < sl.len; ++r) {
+                OrderRow const& row = order[r];
+                if (row.trans != trans) {
+                    trans = row.trans;
+                    buffer.push_back(trans + TRANSUP);
+                    if (r < sl.loop) ++loop;
+                }
+                buffer.push_back(row.pattnum);
             }
-            buffer.push_back(row.pattnum);
+            write<uint8_t>(stream, buffer.size() + 1);
+            stream.write((char const*) buffer.data(), buffer.size());
+            write<uint8_t>(stream, LOOPSONG);
+            write<uint8_t>(stream, loop);
         }
-        write<uint8_t>(stream, buffer.size() + 1);
-        stream.write((char const*) buffer.data(), buffer.size());
-        write<uint8_t>(stream, LOOPSONG);
-        write<uint8_t>(stream, loop);
     }
 
     // instruments

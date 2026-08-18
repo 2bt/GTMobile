@@ -4,6 +4,7 @@
 #include <algorithm>
 #include <cstdio>
 #include <cstring>
+#include <sstream>
 #include <vector>
 
 namespace gt {
@@ -106,10 +107,10 @@ int main() {
     try {
         gt::Song song;
         song.clear();
-        song.song_len = 1;
-        song.song_order[0][0] = { 0, 0 };
-        song.song_order[1][0] = { 0, 1 };
-        song.song_order[2][0] = { 0, 2 };
+        song.current().len = 1;
+        song.current().order[0][0] = { 0, 0 };
+        song.current().order[1][0] = { 0, 1 };
+        song.current().order[2][0] = { 0, 2 };
         song.patterns[0].len = 1;
         song.patterns[0].rows[0] = { gt::FIRSTNOTE, 1, 0, 0 };
         song.instruments[1].ad = 0x13;
@@ -120,6 +121,9 @@ int main() {
         auto sid = gt::export_song(song, {});
         if (sid.size() < 0x7c + 8 || memcmp(sid.data(), "PSID", 4) != 0) {
             fprintf(stderr, "FAIL export: not a PSID (%zu bytes)\n", sid.size());
+            g_fails++;
+        } else if (sid[0x0f] != 1) {
+            fprintf(stderr, "FAIL export: PSID songs=%u want 1\n", sid[0x0f]);
             g_fails++;
         } else if (sid[0x7c + 2] != 0x4c || sid[0x7c + 5] != 0x4c) {
             fprintf(stderr, "FAIL export: payload missing jmp init/play\n");
@@ -162,6 +166,51 @@ int main() {
         }
     } catch (std::exception const& e) {
         fprintf(stderr, "FAIL export_song: %s\n", e.what());
+        g_fails++;
+    }
+
+    try {
+        gt::Song song;
+        song.clear();
+        song.songs[1].len = 1;
+        song.songs[1].order[0][0] = { 0, 3 };
+        song.songs[1].order[1][0] = { 0, 4 };
+        song.songs[1].order[2][0] = { 0, 5 };
+        song.patterns[3].len = 1;
+        song.patterns[3].rows[0] = { gt::FIRSTNOTE + 5, 1, 0, 0 };
+        song.num_songs = 2;
+
+        std::stringstream buf(std::ios::in | std::ios::out | std::ios::binary);
+        if (!song.save(buf)) {
+            fprintf(stderr, "FAIL multi-song save\n");
+            g_fails++;
+        } else {
+            buf.seekg(0);
+            gt::Song loaded;
+            loaded.load(buf);
+            if (loaded.num_songs != 2 || loaded.songs[1].len != 1 ||
+                loaded.songs[1].order[0][0].pattnum != 3 ||
+                loaded.songs[1].order[2][0].pattnum != 5) {
+                fprintf(stderr, "FAIL multi-song load: num=%d len=%d p0=%u p2=%u\n",
+                        loaded.num_songs, loaded.songs[1].len,
+                        loaded.songs[1].order[0][0].pattnum,
+                        loaded.songs[1].order[2][0].pattnum);
+                g_fails++;
+            } else {
+                fprintf(stdout, "OK multi-song load/save\n");
+            }
+        }
+
+        auto sid = gt::export_song(song, {});
+        if (sid.size() < 0x10 || memcmp(sid.data(), "PSID", 4) != 0 || sid[0x0f] != 2) {
+            fprintf(stderr, "FAIL multi-song export: songs=%u size=%zu\n",
+                    sid.size() >= 0x10 ? sid[0x0f] : 0, sid.size());
+            g_fails++;
+        } else {
+            fprintf(stdout, "OK multi-song export PSID (%zu bytes)\n", sid.size());
+        }
+    } catch (std::exception const& e) {
+        fprintf(stderr, "FAIL multi-song: %s\n", e.what());
         g_fails++;
     }
 

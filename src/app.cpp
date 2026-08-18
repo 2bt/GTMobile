@@ -159,7 +159,7 @@ void draw_play_buttons() {
             g_player.m_current_patt_pos = {};
 
             for (int& x : g_player.m_current_song_pos) {
-                if (x < g_song.song_len - 1) ++x;
+                if (x < g_song.current().len - 1) ++x;
                 else x = 0;
             }
             g_player.m_start_song_pos = g_player.m_current_song_pos;

@@ -5,7 +5,6 @@
 #include <array>
 #include <cstdio>
 #include <string>
-#include <utility>
 #include <vector>
 
 extern "C" {
@@ -357,26 +356,31 @@ public:
         }
 
         // Orderlists: transpose bytes, remapped pattern indices, loop point.
+        int n_songs = m_song.song_count();
+        m_num_songs = n_songs;
         std::vector<uint8_t> song_work;
-        int                  song_offset[MAX_CHN]{};
-        int                  song_size[MAX_CHN]{};
-        for (int d = 0; d < MAX_CHN; d++) {
-            song_offset[d] = int(song_work.size());
-            int trans      = 0;
-            int loop       = m_song.song_loop;
-            for (int r = 0; r < m_song.song_len; r++) {
-                OrderRow const& row = m_song.song_order[d][r];
-                if (row.trans != trans) {
-                    trans = row.trans;
-                    song_work.push_back(uint8_t(trans + TRANSUP));
-                    if (r < m_song.song_loop) ++loop;
+        int                  song_offset[MAX_SONGS][MAX_CHN]{};
+        int                  song_size[MAX_SONGS][MAX_CHN]{};
+        for (int s = 0; s < n_songs; s++) {
+            Orderlist const& sl = m_song.songs[s];
+            for (int d = 0; d < MAX_CHN; d++) {
+                song_offset[s][d] = int(song_work.size());
+                int trans         = 0;
+                int loop          = sl.loop;
+                for (int r = 0; r < sl.len; r++) {
+                    OrderRow const& row = sl.order[d][r];
+                    if (row.trans != trans) {
+                        trans = row.trans;
+                        song_work.push_back(uint8_t(trans + TRANSUP));
+                        if (r < sl.loop) ++loop;
+                    }
+                    song_work.push_back(m_patt_map[row.pattnum]);
                 }
-                song_work.push_back(m_patt_map[row.pattnum]);
+                song_work.push_back(LOOPSONG);
+                song_work.push_back(uint8_t(loop));
+                song_size[s][d] = int(song_work.size()) - song_offset[s][d];
+                if (sl.len > 0 && loop >= song_size[s][d] - 2) throw ExportError("illegal song restart position");
             }
-            song_work.push_back(LOOPSONG);
-            song_work.push_back(uint8_t(loop));
-            song_size[d] = int(song_work.size()) - song_offset[d];
-            if (loop >= song_size[d] - 2) throw ExportError("illegal song restart position");
         }
 
         // Used patterns, packed for the playroutine.
@@ -535,7 +539,7 @@ public:
         data.def("NONORMALSPEED", m_flags.no_normal_speed);
         data.def("NOZEROSPEED", m_flags.no_zero_speed);
         data.def("NUMCHANNELS", m_channels);
-        data.def("NUMSONGS", 1);
+        data.def("NUMSONGS", n_songs);
         data.def("FIRSTNOTE", m_first_note);
         data.def("FIRSTNOHRINSTR", m_num_normal + 1);
         data.def("FIRSTLEGATOINSTR", m_num_normal + m_num_no_hr + 1);
@@ -565,9 +569,9 @@ public:
 
         // Orderlist and pattern address tables.
         data.label("mt_songtbllo");
-        for (int c = 0; c < 3; c++) data.addr_lo("mt_song" + std::to_string(c));
+        for (int c = 0; c < n_songs * 3; c++) data.addr_lo("mt_song" + std::to_string(c));
         data.label("mt_songtblhi");
-        for (int c = 0; c < 3; c++) data.addr_hi("mt_song" + std::to_string(c));
+        for (int c = 0; c < n_songs * 3; c++) data.addr_hi("mt_song" + std::to_string(c));
 
         data.label("mt_patttbllo");
         for (int c = 0; c < m_patterns; c++) data.addr_lo("mt_patt" + std::to_string(c));
@@ -685,10 +689,12 @@ public:
         }
 
         // Orderlist and pattern bodies.
-        for (int d = 0; d < MAX_CHN; d++) {
-            std::string n = "mt_song" + std::to_string(d);
-            data.label(n.c_str());
-            data.bytes(&song_work[size_t(song_offset[d])], song_size[d]);
+        for (int s = 0; s < n_songs; s++) {
+            for (int d = 0; d < MAX_CHN; d++) {
+                std::string n = "mt_song" + std::to_string(s * 3 + d);
+                data.label(n.c_str());
+                data.bytes(&song_work[size_t(song_offset[s][d])], song_size[s][d]);
+            }
         }
         for (int c = 0; c < m_patterns; c++) {
             std::string n = "mt_patt" + std::to_string(c);
@@ -718,33 +724,38 @@ private:
         auto const& rtable = m_song.rtable;
         m_flags.author_info      = m_opt.author_info;
 
-        if (m_song.song_len <= 0) throw ExportError("no songs, no data to save");
-
-        for (int d = 0; d < MAX_CHN; d++) {
-            int trans = 0;
-            for (int r = 0; r < m_song.song_len; r++) {
-                OrderRow const& row = m_song.song_order[d][r];
-                if (row.trans != trans) {
-                    m_flags.no_trans = false;
-                    trans      = row.trans;
-                    if (trans < 0) {
-                        int nd = -trans;
-                        if (nd > m_trans_down_range) m_trans_down_range = nd;
+        bool any_song = false;
+        for (int s = 0; s < MAX_SONGS; s++) {
+            Orderlist const& sl = m_song.songs[s];
+            if (sl.len <= 0) continue;
+            any_song = true;
+            for (int d = 0; d < MAX_CHN; d++) {
+                int trans = 0;
+                for (int r = 0; r < sl.len; r++) {
+                    OrderRow const& row = sl.order[d][r];
+                    if (row.trans != trans) {
+                        m_flags.no_trans = false;
+                        trans            = row.trans;
+                        if (trans < 0) {
+                            int nd = -trans;
+                            if (nd > m_trans_down_range) m_trans_down_range = nd;
+                        }
+                        else if (trans > m_trans_up_range) {
+                            m_trans_up_range = trans;
+                        }
                     }
-                    else if (trans > m_trans_up_range) {
-                        m_trans_up_range = trans;
+                    uint8_t num = row.pattnum;
+                    if (num >= MAX_PATT) throw ExportError("invalid pattern number in orderlist");
+                    m_patt_used[num]    = 1;
+                    Pattern const& patt = m_song.patterns[num];
+                    for (int k = 0; k < patt.len; k++) {
+                        PatternRow const& pr = patt.rows[k];
+                        if (pr.note != REST || pr.instr || pr.command) m_chn_used[d] = 1;
                     }
-                }
-                uint8_t num = row.pattnum;
-                if (num >= MAX_PATT) throw ExportError("invalid pattern number in orderlist");
-                m_patt_used[num]      = 1;
-                Pattern const& patt = m_song.patterns[num];
-                for (int k = 0; k < patt.len; k++) {
-                    PatternRow const& pr = patt.rows[k];
-                    if (pr.note != REST || pr.instr || pr.command) m_chn_used[d] = 1;
                 }
             }
         }
+        if (!any_song) throw ExportError("no songs, no data to save");
 
         if (!m_chn_used[2]) m_channels = 2;
         if (!m_chn_used[1] && !m_chn_used[2]) m_channels = 1;
@@ -1017,7 +1028,7 @@ private:
         out.push_back(uint8_t(play >> 8));
         out.push_back(uint8_t(play & 0xff));
         out.push_back(0);
-        out.push_back(1); // songs
+        out.push_back(uint8_t(m_num_songs)); // songs
         out.push_back(0);
         out.push_back(1); // startSong
         // speed: $FFFFFFFF = CIA for all 32 songs; $00000000 = VIC raster (PAL 1x)
@@ -1054,6 +1065,7 @@ private:
     uint8_t              m_table_map[MAX_TABLES][MAX_TABLELEN + 1]{};
     PackFlags            m_flags;
     int                  m_channels          = 3;
+    int                  m_num_songs         = 1;
     int                  m_fixed_params      = 1;
     int                  m_simple_pulse      = 1;
     int                  m_first_note        = MAX_NOTES - 1;

@@ -100,15 +100,16 @@ void Player::play_test_note(int note, int ins, int chnnum) {
 
 
 void Player::sequencer(int c, bool reset_current_patt_pos) {
-    Channel&    chan  = m_channels[c];
-    auto const& order = m_song->song_order[c];
+    Channel&         chan  = m_channels[c];
+    Orderlist const& sl    = m_song->current();
+    auto const&      order = sl.order[c];
 
     // song loop
-    if (chan.songptr >= m_song->song_len) {
-        chan.songptr = m_song->song_loop;
+    if (chan.songptr >= sl.len) {
+        chan.songptr = sl.loop;
         ++chan.loop_counter;
     }
-    assert(chan.songptr < m_song->song_len);
+    assert(chan.songptr < sl.len);
 
     // store current song position
     m_current_song_pos[c] = chan.songptr;
