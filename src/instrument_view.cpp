@@ -922,9 +922,11 @@ void draw() {
             // + F0-FE pattern command
             // + FF    jump
             int mode = (lval <= 0x0f) ? 1 : (lval <= 0xef) ? 0 : 2;
+            int prev_mode = mode;
             if (gui::choose(app::CANVAS_WIDTH, nullptr, mode, {"WAVE", "DELAY", "COMMAND"})) {
+                if (prev_mode == 2 && mode != 2) rval = 0x00; // reset command data
                 if (mode == 0) lval = 0x11;
-                if (mode == 1) lval = 0;
+                if (mode == 1) lval = 0x00;
                 if (mode == 2) {
                     lval = 0xf1;
                     rval = 0x00;
