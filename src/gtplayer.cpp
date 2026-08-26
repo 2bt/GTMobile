@@ -622,6 +622,7 @@ TICKNEFFECTS:
                     chan.vibdelay--;
                     break;
                 }
+                // fallthrough
             case CMD_VIBRATO: {
                 uint16_t speed    = 0;
                 uint8_t  cmpvalue = 0;

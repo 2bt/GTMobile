@@ -23,7 +23,7 @@ enum class Tab { Files, Presets };
 
 gt::Song&                g_song = app::song();
 std::string              g_instruments_dir;
-Tab                      g_tab = Tab::Presets;
+Tab                      g_tab = Tab::Files;
 std::array<char, 32>     g_file_name;
 std::vector<std::string> g_preset_names;
 std::vector<std::string> g_user_names;
@@ -186,7 +186,7 @@ void save_instrument() {
 
 void reset() {
     g_instruments_dir = {};
-    g_tab             = Tab::Presets;
+    g_tab             = Tab::Files;
     g_file_name       = {};
     g_preset_names    = {};
     g_user_names      = {};

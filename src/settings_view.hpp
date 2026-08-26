@@ -6,7 +6,7 @@
     X(keep_screen_on,       bool, false) \
     X(row_highlight,        int,  8) \
     X(row_height,           int,  15) \
-    X(sampling_method,      int,  3) \
+    X(sampling_method,      int,  2) \
     X(register_write_order, int,  1)
 
 
