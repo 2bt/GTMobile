@@ -278,6 +278,7 @@ enum class Icon {
     Share,
     Undo,
     Redo,
+    Clone,
 
     Noise = 224,
     Pulse,

@@ -5,6 +5,11 @@ permalink: /history/
 ---
 
 
+## 1.0.19 (?)
++ Renamed instrument presets.
++ Restored instrument preset ARP Dreamfade.
++ Added pattern clone button.
+
 ## 1.0.18 (2026-08-26)
 + Improved instrument preset library.
 + Added SID export.

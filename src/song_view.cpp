@@ -93,6 +93,20 @@ void check_empty_patterns() {
         }
     }
 }
+
+int find_clone_pattern() {
+    check_empty_patterns();
+    std::array<bool, gt::MAX_PATT> used{};
+    gt::Orderlist const& ol = g_song.current();
+    for (int c = 0; c < gt::MAX_CHN; ++c) {
+        for (int r = 0; r < ol.len; ++r) used[ol.order[c][r].pattnum] = true;
+    }
+    for (int i = 0; i < gt::MAX_PATT; ++i) {
+        if (g_pattern_empty[i] && !used[i]) return i;
+    }
+    return -1;
+}
+
 void check_marked_patterns() {
     g_pattern_marked = {};
     int mark_row_min  = std::min(g_mark_row, g_cursor_song_row);
@@ -699,9 +713,19 @@ void draw() {
         }
         gui::disabled(false);
 
+        if (gui::button(gui::Icon::Clone)) {
+            int clone_id = find_clone_pattern();
+            uint8_t& src = g_song.current().order[g_cursor_chan][g_cursor_song_row].pattnum;
+            if (clone_id >= 0 && !g_pattern_empty[src]) {
+                g_song.patterns[clone_id] = g_song.patterns[src];
+                src = uint8_t(clone_id);
+            }
+        }
+
         if (gui::button(gui::Icon::Edit)) {
             init_order_edit();
         }
+
         gui::separator();
     }
 
