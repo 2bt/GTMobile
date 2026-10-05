@@ -49,9 +49,13 @@ int                            g_mark_chan;
 int                            g_mark_row;
 bool                           g_show_order_edit_window;
 bool                           g_show_pattern_edit_window;
+bool                           g_show_auto_step_window;
 int                            g_drag_pattern;
 std::array<bool, gt::MAX_PATT> g_pattern_empty;
 std::array<bool, gt::MAX_PATT> g_pattern_marked;
+
+bool                           g_auto_step_enabled = false;
+int                            g_auto_step_size    = 1;
 
 
 struct SongCopyBuffer {
@@ -118,6 +122,17 @@ void check_marked_patterns() {
             auto row = g_song.current().order[c][r];
             g_pattern_marked[row.pattnum] = true;
         }
+    }
+}
+
+void auto_step_pattern_cursor(int patt_len, int page) {
+    if (!g_auto_step_enabled || patt_len <= 0) return;
+    g_cursor_pattern_row = (g_cursor_pattern_row + g_auto_step_size) % patt_len;
+    if (g_cursor_pattern_row < g_pattern_scroll) {
+        g_pattern_scroll = g_cursor_pattern_row;
+    }
+    else if (page > 0 && g_cursor_pattern_row >= g_pattern_scroll + page) {
+        g_pattern_scroll = g_cursor_pattern_row - page + 1;
     }
 }
 
@@ -301,7 +316,10 @@ void reset() {
     g_mark_edit                = false;
     g_show_order_edit_window   = false;
     g_show_pattern_edit_window = false;
+    g_show_auto_step_window    = false;
     g_drag_pattern             = -1;
+    g_auto_step_enabled        = false;
+    g_auto_step_size           = 1;
 }
 
 bool get_follow() {
@@ -853,14 +871,46 @@ void draw() {
         if (gui::button(gui::Icon::X)) {
             row.note  = gt::REST;
             row.instr = 0;
+            auto_step_pattern_cursor(patt.len, pattern_page);
         }
         gui::disabled(false);
         if (gui::button(row.note != gt::KEYOFF ? "\x0a\x0b\x0c" : "\x0d\x0e\x0f")) {
             row.note  = row.note != gt::KEYOFF ? gt::KEYOFF : gt::KEYON;
             row.instr = 0;
+            auto_step_pattern_cursor(patt.len, pattern_page);
         }
         if (gui::button(gui::Icon::Record, g_recording)) {
             g_recording = !g_recording;
+        }
+
+        // auto step button (label via button API, icon drawn over leading spaces)
+        {
+            char str[8];
+            sprintf(str, "%d  ", g_auto_step_size);
+            ivec2 pos = gui::cursor();
+            gui::align(gui::Align::Center);
+            if (gui::button(str, g_auto_step_enabled)) {
+                g_auto_step_enabled = !g_auto_step_enabled;
+            }
+            else if (gui::hold()) {
+                gui::set_active_item(&g_show_auto_step_window);
+                g_show_auto_step_window = true;
+            }
+            dc.rgb(color::WHITE);
+            dc.icon({ pos.x + 25, pos.y + app::BUTTON_HEIGHT / 2 - 8 }, gui::Icon::AutoStep);
+            gui::align(gui::Align::Left);
+        }
+        if (g_show_auto_step_window) {
+            gui::Box box = gui::begin_window({ app::CANVAS_WIDTH - 48, app::BUTTON_HEIGHT * 3 + gui::FRAME_WIDTH * 2 });
+            gui::item_size({ box.size.x, app::BUTTON_HEIGHT });
+            gui::text("AUTO STEP");
+            gui::separator();
+            gui::slider(box.size.x, "STEP %d", g_auto_step_size, 1, 8);
+            gui::item_size({ box.size.x, app::BUTTON_HEIGHT });
+            gui::separator();
+            if (gui::button("CLOSE")) g_show_auto_step_window = false;
+            gui::end_window();
+            gui::item_size({ 55, app::BUTTON_HEIGHT });
         }
         gui::separator();
 
@@ -1031,6 +1081,7 @@ void draw() {
         gt::PatternRow& row  = patt.rows[g_cursor_pattern_row];
         row.note  = piano::note() + gt::FIRSTNOTE;
         row.instr = piano::instrument();
+        auto_step_pattern_cursor(patt.len, pattern_page);
     }
 }
 

@@ -151,6 +151,55 @@ enum class BoxStyle {
 };
 
 
+enum class Icon {
+    Decrease = 144,
+    Increase,
+    MoveUp,
+    MoveDown,
+    VGrab,
+    HGrab,
+
+    AddRowAbove = 160,
+    AddRowBelow,
+    DeleteRow,
+    JumpBack,
+    Settings,
+    X = 176,
+    ChangeLength,
+    Edit,
+    Piano,
+
+    Loop = 192,
+    Stop,
+    PlayPause,
+    Play,
+    PlayRow,
+    FastBackward,
+    FastForward,
+    Follow,
+    Record,
+
+    Copy = 208,
+    Paste,
+    Share,
+    Undo,
+    Redo,
+    Clone,
+    AutoStep,
+
+    Noise = 224,
+    Pulse,
+    Saw,
+    Triangle,
+    Test,
+    Ring,
+    Sync,
+    Gate,
+    Lowpass,
+    Bandpass,
+    Highpass,
+};
+
 class DrawContext {
 public:
 
@@ -176,6 +225,11 @@ public:
         int o = g < 32 ? 0 : m_font_offset;
         ivec2 uv(g % 32 * m_char_size.x, g / 32 * m_char_size.x + o);
         rect(pos, m_char_size, uv);
+    }
+
+    void icon(ivec2 pos, Icon icon) {
+        int i = int(icon);
+        rect(pos, 16, { i % 16 * 16, i / 16 * 16 });
     }
 
     int text_width(char const* text) const {
@@ -243,54 +297,6 @@ private:
     ivec2      m_char_size   = { 8, 8 };
     gfx::Mesh* m_mesh{};
 
-};
-
-
-enum class Icon {
-    Decrease = 144,
-    Increase,
-    MoveUp,
-    MoveDown,
-    VGrab,
-    HGrab,
-
-    AddRowAbove = 160,
-    AddRowBelow,
-    DeleteRow,
-    JumpBack,
-    Settings,
-    X = 176,
-    ChangeLength,
-    Edit,
-    Piano,
-
-    Loop = 192,
-    Stop,
-    PlayPause,
-    Play,
-    FastBackward,
-    FastForward,
-    Follow,
-    Record,
-
-    Copy = 208,
-    Paste,
-    Share,
-    Undo,
-    Redo,
-    Clone,
-
-    Noise = 224,
-    Pulse,
-    Saw,
-    Triangle,
-    Test,
-    Ring,
-    Sync,
-    Gate,
-    Lowpass,
-    Bandpass,
-    Highpass,
 };
 
 enum class Align { Left, Center };

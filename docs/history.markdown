@@ -9,6 +9,7 @@ permalink: /history/
 + Renamed instrument presets.
 + Restored instrument preset ARP Dreamfade.
 + Added pattern clone button.
++ Added pattern auto-step when entering notes.
 
 ## 1.0.18 (2026-08-26)
 + Improved instrument preset library.

@@ -385,9 +385,8 @@ bool button(Icon icon, bool active) {
     button_color(state, active);
     g_dc.box(box, box_style(g_button_style));
 
-    int i = int(icon);
     g_dc.rgb(color::WHITE);
-    g_dc.rect(box.pos + box.size / 2 - 8, 16, { i % 16 * 16, i / 16 * 16 });
+    g_dc.icon(box.pos + box.size / 2 - 8, icon);
     return state == ButtonState::Released;
 }
 bool button(char const* label, bool active) {
@@ -481,9 +480,7 @@ bool horizontal_drag_bar(int& value, int min, int max, int page) {
             g_dc.rgb(is_active ? color::DRAG_HANDLE_ACTIVE : color::DRAG_HANDLE_NORMAL);
             g_dc.box({ box.pos + ivec2(handle_x, 0), { handle_w, box.size.y } }, BoxStyle::Normal);
             g_dc.rgb(color::DRAG_ICON);
-            int i = int(Icon::HGrab);
-            g_dc.rect(box.pos + ivec2(handle_x, 0) + ivec2(handle_w, box.size.y) / 2 - 8, 16,
-                    { i % 8 * 16, i / 8 * 16 });
+            g_dc.icon(box.pos + ivec2(handle_x, 0) + ivec2(handle_w, box.size.y) / 2 - 8, Icon::HGrab);
         }
         else {
             g_dc.rgb(is_active ? g_color_theme.button_pressed : g_color_theme.button_normal);
@@ -521,9 +518,7 @@ bool vertical_drag_bar(int& value, int min, int max, int page) {
             g_dc.rgb(is_active ? color::DRAG_HANDLE_ACTIVE : color::DRAG_HANDLE_NORMAL);
             g_dc.box({ box.pos + ivec2(0, handle_y), { box.size.x, handle_h } }, BoxStyle::Normal);
             g_dc.rgb(color::DRAG_ICON);
-            int i = int(Icon::VGrab);
-            g_dc.rect(box.pos + ivec2(0, handle_y) + ivec2(box.size.x, handle_h) / 2 - 8, 16,
-                      { i % 16 * 16, i / 16 * 16 });
+            g_dc.icon(box.pos + ivec2(0, handle_y) + ivec2(box.size.x, handle_h) / 2 - 8, Icon::VGrab);
         }
         else {
             g_dc.rgb(is_active ? g_color_theme.button_pressed : g_color_theme.button_normal);
@@ -544,8 +539,7 @@ bool vertical_drag_button(int& pos, int row_height) {
     g_dc.rgb(is_active ? color::DRAG_HANDLE_ACTIVE : color::DRAG_HANDLE_NORMAL);
     g_dc.box(box, BoxStyle::Normal);
     g_dc.rgb(color::DRAG_ICON);
-    int i = int(Icon::VGrab);
-    g_dc.rect(box.pos + box.size / 2 - 8, 16, { i % 16 * 16, i / 16 * 16 });
+    g_dc.icon(box.pos + box.size / 2 - 8, Icon::VGrab);
     return pos != old_pos;
 }
 
