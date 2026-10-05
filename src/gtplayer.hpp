@@ -17,6 +17,7 @@ public:
     enum class Action {
         None,
         Start,
+        PlayRow,
         RestartPattern,
         FastBackward,
         FastForward,
@@ -25,8 +26,15 @@ public:
         Reset,
     };
 
+    enum class PlayMode { Off, Song, Row };
+
     void set_action(Action action) { m_action = action; }
-    bool is_playing() const { return m_is_playing; }
+    PlayMode play_mode() const {
+        if (!m_is_playing) return PlayMode::Off;
+        if (m_play_row) return PlayMode::Row;
+        return PlayMode::Song;
+    }
+    bool is_playing() const { return play_mode() != PlayMode::Off; }
 
     bool get_pattern_looping() const { return m_loop_pattern; }
     void set_pattern_loopping(bool loop) { m_loop_pattern = loop; }
@@ -94,6 +102,7 @@ private:
     Action          m_action;
     bool            m_is_playing;
     bool            m_loop_pattern;
+    bool            m_play_row;
 
 public:
     std::array<int, MAX_CHN> m_start_song_pos;

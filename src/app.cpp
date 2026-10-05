@@ -101,11 +101,12 @@ void draw_play_buttons() {
     static float backward_time = 0.0f;
     backward_time += gui::frame_time();
     if (gui::button(gui::Icon::FastBackward)) {
-        if (g_player.is_playing()) {
+        if (g_player.play_mode() == gt::Player::PlayMode::Song) {
             g_player.set_action(backward_time > 0.5f ? gt::Player::Action::RestartPattern
                                                      : gt::Player::Action::FastBackward);
         }
         else {
+            if (g_player.is_playing()) g_player.set_action(gt::Player::Action::Pause);
             g_player.m_start_patt_pos = {};
             if (g_player.m_current_patt_pos == std::array<int, 3>{}) {
                 for (int& x : g_player.m_current_song_pos) {
@@ -151,10 +152,11 @@ void draw_play_buttons() {
 
     gui::same_line();
     if (gui::button(gui::Icon::FastForward)) {
-        if (g_player.is_playing()) {
+        if (g_player.play_mode() == gt::Player::PlayMode::Song) {
             g_player.set_action(gt::Player::Action::FastForward);
         }
         else {
+            if (g_player.is_playing()) g_player.set_action(gt::Player::Action::Pause);
             g_player.m_start_patt_pos   = {};
             g_player.m_current_patt_pos = {};
 

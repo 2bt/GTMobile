@@ -125,9 +125,32 @@ void check_marked_patterns() {
     }
 }
 
-void auto_step_pattern_cursor(int patt_len, int page) {
+void auto_step_pattern_cursor(int patt_len, int page, int step = g_auto_step_size) {
     if (!g_auto_step_enabled || patt_len <= 0) return;
-    g_cursor_pattern_row = (g_cursor_pattern_row + g_auto_step_size) % patt_len;
+
+    g_cursor_pattern_row += step;
+    if (g_cursor_pattern_row >= patt_len) {
+        g_cursor_pattern_row %= patt_len;
+        if (!app::player().get_pattern_looping()) {
+
+            gt::Orderlist const& ol = g_song.current();
+            if (g_cursor_song_row + 1 >= ol.len) g_cursor_song_row = ol.loop;
+            else ++g_cursor_song_row;
+
+            int patt_num = ol.order[g_cursor_chan][g_cursor_song_row].pattnum;
+            patt_len = std::max(1, g_song.patterns[patt_num].len);
+            g_cursor_pattern_row = std::min(g_cursor_pattern_row, patt_len - 1);
+
+            // auto scroll
+            if (g_cursor_song_row < g_song_scroll) {
+                g_song_scroll = g_cursor_song_row;
+            }
+            else if (g_song_page > 0 && g_cursor_song_row >= g_song_scroll + g_song_page) {
+                g_song_scroll = g_cursor_song_row - g_song_page + 1;
+            }
+        }
+    }
+
     if (g_cursor_pattern_row < g_pattern_scroll) {
         g_pattern_scroll = g_cursor_pattern_row;
     }
@@ -884,21 +907,12 @@ void draw() {
         }
 
         // auto step button (label via button API, icon drawn over leading spaces)
-        {
-            char str[8];
-            sprintf(str, "%d  ", g_auto_step_size);
-            ivec2 pos = gui::cursor();
-            gui::align(gui::Align::Center);
-            if (gui::button(str, g_auto_step_enabled)) {
-                g_auto_step_enabled = !g_auto_step_enabled;
-            }
-            else if (gui::hold()) {
-                gui::set_active_item(&g_show_auto_step_window);
-                g_show_auto_step_window = true;
-            }
-            dc.rgb(color::WHITE);
-            dc.icon({ pos.x + 25, pos.y + app::BUTTON_HEIGHT / 2 - 8 }, gui::Icon::AutoStep);
-            gui::align(gui::Align::Left);
+        if (gui::button(gui::Icon::AutoStep, g_auto_step_enabled)) {
+            g_auto_step_enabled = !g_auto_step_enabled;
+        }
+        else if (gui::hold()) {
+            gui::set_active_item(&g_show_auto_step_window);
+            g_show_auto_step_window = true;
         }
         if (g_show_auto_step_window) {
             gui::Box box = gui::begin_window({ app::CANVAS_WIDTH - 48, app::BUTTON_HEIGHT * 3 + gui::FRAME_WIDTH * 2 });
@@ -942,6 +956,12 @@ void draw() {
             app::player().m_start_song_pos.fill(g_cursor_song_row);
             app::player().m_start_patt_pos.fill(g_cursor_pattern_row);
             app::player().set_action(gt::Player::Action::Start);
+        }
+        if (gui::button(gui::Icon::PlayRow)) {
+            app::player().m_start_song_pos.fill(g_cursor_song_row);
+            app::player().m_start_patt_pos.fill(g_cursor_pattern_row);
+            app::player().set_action(gt::Player::Action::PlayRow);
+            auto_step_pattern_cursor(patt.len, pattern_page, 1);
         }
 
     }
