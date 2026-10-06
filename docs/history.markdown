@@ -11,6 +11,7 @@ permalink: /history/
 + Added pattern clone button.
 + Added pattern auto-step when entering notes.
 + Added play-row button to audition the current pattern row.
++ Fixed first-wave GATE ON / GATE OFF labels (were swapped).
 
 ## 1.0.18 (2026-08-26)
 + Improved instrument preset library.

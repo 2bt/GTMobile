@@ -850,12 +850,12 @@ void draw() {
         }
         gui::same_line();
         gui::button_style(gui::ButtonStyle::RadioCenter);
-        if (gui::button("GATE ON", instr.firstwave == 0xfe)) {
-            instr.firstwave = 0xfe;
+        if (gui::button("GATE ON", instr.firstwave == 0xff)) {
+            instr.firstwave = 0xff;
         }
         gui::same_line();
-        if (gui::button("GATE OFF", instr.firstwave == 0xff)) {
-            instr.firstwave = 0xff;
+        if (gui::button("GATE OFF", instr.firstwave == 0xfe)) {
+            instr.firstwave = 0xfe;
         }
         gui::same_line();
         gui::button_style(gui::ButtonStyle::RadioRight);
