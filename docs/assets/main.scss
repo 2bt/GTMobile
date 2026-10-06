@@ -7,7 +7,18 @@
 .gui-icon {
   width: 16px;
   height: 16px;
+  padding: 2px;
+  background: #000;
   image-rendering: pixelated;
   vertical-align: middle;
-  filter: invert(1);
+  box-sizing: content-box;
+}
+
+.home,
+.post-content {
+  text-align: left;
+}
+
+.post-content img:not(.gui-icon) {
+  image-rendering: pixelated;
 }
