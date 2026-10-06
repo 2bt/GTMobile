@@ -12,6 +12,7 @@ permalink: /history/
 + Added pattern auto-step when entering notes.
 + Added play-row button to audition the current pattern row.
 + Fixed first-wave GATE ON / GATE OFF labels (were swapped).
++ Undo now covers song load, demo load, import, and reset.
 
 ## 1.0.18 (2026-08-26)
 + Improved instrument preset library.

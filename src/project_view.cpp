@@ -4,7 +4,6 @@
 #include "platform.hpp"
 #include "piano.hpp"
 #include "sid_export.hpp"
-#include "song_undo.hpp"
 #include "song_view.hpp"
 #include <algorithm>
 #include <cstdio>
@@ -77,7 +76,6 @@ void load_demo() {
     }
     app::player().set_action(gt::Player::Action::Reset);
     song_view::reset();
-    song_undo::reset();
 }
 
 void load_user() {
@@ -90,7 +88,6 @@ void load_user() {
     }
     app::player().set_action(gt::Player::Action::Reset);
     song_view::reset();
-    song_undo::reset();
 }
 
 
@@ -185,7 +182,6 @@ void import_song(std::string const& path) {
     }
     app::player().set_action(gt::Player::Action::Reset);
     song_view::reset();
-    song_undo::reset();
 }
 
 void reset() {
@@ -396,7 +392,6 @@ void draw() {
                 g_song.clear();
                 app::player().set_action(gt::Player::Action::Reset);
                 song_view::reset();
-                song_undo::reset();
             });
         }
 
