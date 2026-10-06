@@ -3,3 +3,11 @@
 ---
 
 @import "minima";
+
+.gui-icon {
+  width: 16px;
+  height: 16px;
+  image-rendering: pixelated;
+  vertical-align: middle;
+  filter: invert(1);
+}
