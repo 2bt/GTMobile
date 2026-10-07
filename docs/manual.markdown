@@ -6,31 +6,38 @@ permalink: /manual/
 
 GTMobile is a C64 SID tracker for Android. It is based on and largely compatible with [GoatTracker 2](https://sourceforge.net/projects/goattracker2/).
 
-<!-- Most sections match a tab’s view: Project, Song, Instrument, and Settings. Always-On Controls covers the tabs, piano, and playback buttons that stay visible everywhere. The Command Editor is a window opened from patterns or the wave table. Instrument Manager is the second tap on **INSTR**. -->
+This page describes the controls, in the order they appear in the app. Always-on controls come first, then the project, song, instrument, and settings views. Each section shows the screen and lists what its buttons and gestures do. The last section covers where a GTMobile song differs from a GoatTracker 2 song.
 
-<!-- GoatTracker users should also read [Differences from GoatTracker 2](#differences-from-goattracker-2). -->
+- [Always-On Controls](#always-on-controls)
+- [Project View](#project-view)
+- [Song View](#song-view)
+- [Command Editor](#command-editor)
+- [Instrument View](#instrument-view)
+- [Instrument Manager View](#instrument-manager-view)
+- [Settings View](#settings-view)
+- [Differences from GoatTracker 2](#differences-from-goattracker-2)
 
 ## Always-On Controls
 
-These controls stay on screen in every view: tabs and undo/redo at the top, the selected tab’s view in the middle, then the piano and playback buttons at the bottom.
+These controls stay on screen in every view: tabs and undo/redo at the top, the piano and playback buttons at the bottom.
 
 <p><img src="{{ '/assets/shots/always-on.png' | relative_url }}" alt="Tabs, undo, and playback"></p>
 
 ### Tabs
 
-- **PROJECT** — Opens the project view.
-- **SONG** — Opens the song view.
-- **INSTR** — Opens the instrument editor. Tap again to open the instrument manager.
-- <img class="gui-icon" src="{{ '/assets/icons/settings.png' | relative_url }}" alt=""> **Settings** — Opens settings.
-- <img class="gui-icon" src="{{ '/assets/icons/undo.png' | relative_url }}" alt=""> **Undo** — Reverts the last song edit. Disabled when there is nothing to undo.
-- <img class="gui-icon" src="{{ '/assets/icons/redo.png' | relative_url }}" alt=""> **Redo** — Re-applies an undone edit. Disabled when there is nothing to redo.
+- **PROJECT** — Opens the [project view](#project-view).
+- **SONG** — Opens the [song view](#song-view).
+- **INSTR** — Opens the [instrument editor](#instrument-view). Tap again to open the [instrument manager](#instrument-manager-view).
+- <img class="gui-icon" src="{{ '/assets/icons/settings.png' | relative_url }}" alt=""> **Settings** — Opens the [settings view](#settings-view).
+- <img class="gui-icon" src="{{ '/assets/icons/undo.png' | relative_url }}" alt=""> **Undo** — Reverts the last song edit.
+- <img class="gui-icon" src="{{ '/assets/icons/redo.png' | relative_url }}" alt=""> **Redo** — Re-applies an undone edit.
 
 ### Piano
 
 The piano plays the current instrument on the voice selected in the song view.
 
 - **Instrument** (left, shows index and name) — Opens the instrument picker. In the song view, long-press this button to set the piano instrument from the selected pattern row (if that row has an instrument).
-- **Octave Bar** — Drag horizontally to scroll which keys are visible.
+- **Octave scrollbar** — Drag horizontally to scroll which keys are visible.
 
 #### Instrument Picker
 
@@ -38,8 +45,8 @@ The piano plays the current instrument on the voice selected in the song view.
 
 Instruments are numbered `01`–`3F`.
 
-- Tap an instrument to select it and close the picker. Empty instruments (no table pointers) are shaded. Long-press an instrument to drag-reorder instrument slots.
-- **CLOSE** — Closes the picker without changing the instrument.
+- Tap an instrument to select it and close the picker. Empty instruments (no table pointers) are shaded. Long-press an instrument and drag to reorder instrument slots.
+- **CLOSE** — Closes the window.
 
 ### Playback
 
@@ -50,38 +57,24 @@ Instruments are numbered `01`–`3F`.
 - <img class="gui-icon" src="{{ '/assets/icons/loop.png' | relative_url }}" alt=""> **Loop** — When on, playback loops the current pattern instead of advancing in the order list.
 - <img class="gui-icon" src="{{ '/assets/icons/fastforward.png' | relative_url }}" alt=""> **Fast Forward** — Skips to the next order-list row.
 
-## Project
+## Project View
 
-Song metadata and files. GTMobile edits one song at a time.
-
-### Fields
-
-- **TITLE** — Song title (written into the `.sng` / SID header).
-- **AUTHOR** — Author name.
-- **RELEASED** — Copyright / release note.
-- **FILE** (FILES tab only) — Name of the current song file. LOAD, SAVE, DELETE, and EXPORT use this name.
-
-### Tabs
-
-- **FILES** — User songs stored on the device.
-- **DEMOS** — Bundled demo songs (read-only load).
-
-### FILES Toolbar
+The project view is where you name the song and work with song files.
 
 <p><img src="{{ '/assets/shots/project-files.png' | relative_url }}" alt="Project files tab"></p>
 
-- **LOAD** — Loads the selected file.
-- **SAVE** — Saves under the FILE name.
+- **TITLE** — Song title, stored in the song file and in an exported SID.
+- **AUTHOR** — Author name.
+- **RELEASED** — Copyright / release note.
+- **FILES** — Songs saved on the device.
+- **DEMOS** — Bundled demo songs. They can only be loaded.
+- **File name** (FILES) — Name of the current song file. LOAD, SAVE, DELETE, and EXPORT use this name.
+- **LOAD** — Loads the selected file or demo.
+- **SAVE** — Saves under the file name.
 - **DELETE** — Deletes the selected file.
-- **IMPORT** — Imports a song from the system file picker (Android).
-- **EXPORT** — Opens the export window. Disabled until FILE has a name.
+- **IMPORT** — Imports a song from the system file picker.
+- **EXPORT** — Opens the export window. Disabled until the file name is set.
 - **RESET** — Clears the song.
-
-### DEMOS Toolbar
-
-<p><img src="{{ '/assets/shots/project-demos.png' | relative_url }}" alt="Project demos tab"></p>
-
-- **LOAD** — Loads the selected demo.
 
 ### Export Window
 
@@ -92,11 +85,11 @@ Song metadata and files. GTMobile edits one song at a time.
 - **CLOSE** — Closes the window.
 - **CANCEL** — Aborts an in-progress WAV/OGG render.
 
-## Song
+## Song View
 
-The song view has an **order list** and **patterns**. Each order-list row says which pattern plays on each of the three SID voices.
+The song view has an order list and patterns. Each order-list row says which pattern plays on each of the three SID voices.
 
-**Tap** an order-list cell to select it (that row’s three patterns appear below). **Long-Press and Drag** to select a region of cells.
+**Tap** an order-list cell to select it (that row’s three patterns appear below). **Long-press and drag** to select a region of cells.
 
 ### Order List — One Cell
 
@@ -115,7 +108,7 @@ The song view has an **order list** and **patterns**. Each order-list row says w
 <p><img src="{{ '/assets/shots/song-order-region.png' | relative_url }}" alt="Order list region buttons"></p>
 
 - <img class="gui-icon" src="{{ '/assets/icons/copy.png' | relative_url }}" alt=""> **Copy** — Copies the selected order cells.
-- <img class="gui-icon" src="{{ '/assets/icons/edit.png' | relative_url }}" alt=""> **Edit** — Opens the pattern index window for every cell in the selection (same as Edit above).
+- <img class="gui-icon" src="{{ '/assets/icons/edit.png' | relative_url }}" alt=""> **Edit** — Same as [Edit](#order-list--one-cell), for every cell in the selection.
 
 ### Pattern Index Window
 
@@ -123,7 +116,7 @@ The song view has an **order list** and **patterns**. Each order-list row says w
 
 Patterns are numbered `00`–`CF`.
 
-- Tap a pattern number to assign it to the selected cell(s). Empty patterns are shaded. Long-press a number to drag-reorder pattern slots.
+- Tap a pattern number to assign it to the selected cell(s). Empty patterns are shaded. Long-press a number and drag to reorder pattern slots.
 - **TRANSPOSE** slider — Sets order-list transpose for the selected cell(s).
 - **CLOSE** — Closes the window.
 
@@ -135,9 +128,9 @@ Above the pattern rows, three buttons show the current pattern index per voice. 
 
 <p><img src="{{ '/assets/shots/song-pattern-cell.png' | relative_url }}" alt="Pattern single row buttons"></p>
 
-**Tap** a pattern row to select it. **Long-Press and Drag** to select a region.
+**Tap** a pattern row to select it. **Long-press and drag** to select a region.
 
-- <img class="gui-icon" src="{{ '/assets/icons/paste.png' | relative_url }}" alt=""> **Paste** — Pastes copied notes and/or commands starting at this row (same as order-list Paste, for pattern data).
+- <img class="gui-icon" src="{{ '/assets/icons/paste.png' | relative_url }}" alt=""> **Paste** — Same as [Paste](#order-list--one-cell), for notes and commands.
 - <img class="gui-icon" src="{{ '/assets/icons/changelength.png' | relative_url }}" alt=""> **Pattern Length** — Opens the pattern length window.
 - <img class="gui-icon" src="{{ '/assets/icons/deleterow.png' | relative_url }}" alt=""> **Delete Row** — Shifts later rows up and clears the last row (does not change pattern length).
 - <img class="gui-icon" src="{{ '/assets/icons/addrowabove.png' | relative_url }}" alt=""> **Add Row Above** — Shifts this row and below down, leaving an empty row here.
@@ -145,14 +138,14 @@ Above the pattern rows, three buttons show the current pattern index per voice. 
 #### Note Tools
 
 - <img class="gui-icon" src="{{ '/assets/icons/x.png' | relative_url }}" alt=""> **Clear Note** — Clears the note and instrument on this row (auto-steps if auto-step is on).
-- **Gate Off / Gate On** — Writes a gate-off. Tap again on a gate-off row to write gate-on.
+- **Gate off/on** — Writes a gate-off. Tap again on a gate-off row to write gate-on.
 - <img class="gui-icon" src="{{ '/assets/icons/record.png' | relative_url }}" alt=""> **Record** — When on, piano keys write the current instrument’s note into this row (and auto-step).
 - <img class="gui-icon" src="{{ '/assets/icons/autostep.png' | relative_url }}" alt=""> **Auto-Step** — When on, note entry advances the cursor. Long-press opens the auto-step window.
 
 #### Command Tools
 
 - <img class="gui-icon" src="{{ '/assets/icons/x.png' | relative_url }}" alt=""> **Clear Command** — Clears the pattern command and data.
-- <img class="gui-icon" src="{{ '/assets/icons/edit.png' | relative_url }}" alt=""> **Edit Command** — Opens the [command editor](#command-editor). If the command is a table pointer (wave/pulse/filter table), **long-press** jumps to that instrument and table in the instrument view.
+- <img class="gui-icon" src="{{ '/assets/icons/edit.png' | relative_url }}" alt=""> **Edit Command** — Opens the [command editor](#command-editor). If the command is a table pointer (wave, pulse, or filter table), long-press jumps to that instrument and table in the instrument view.
 
 #### Playback From Cursor
 
@@ -167,7 +160,7 @@ Above the pattern rows, three buttons show the current pattern index per voice. 
 - **RESIZE EMPTY PATTERNS** — Sets every empty pattern to this length.
 - **SHRINK** — Drops every other row (halves length).
 - **EXPAND** — Inserts a blank row after each row (doubles length).
-- **CLOSE** — Closes and clears unused rows beyond the new length.
+- **CLOSE** — Closes the window.
 
 ### Auto-Step Window
 
@@ -180,11 +173,11 @@ Above the pattern rows, three buttons show the current pattern index per voice. 
 
 <p><img src="{{ '/assets/shots/song-pattern-region.png' | relative_url }}" alt="Pattern region buttons"></p>
 
-- <img class="gui-icon" src="{{ '/assets/icons/copy.png' | relative_url }}" alt=""> **Copy** — Copies notes and commands.
+- <img class="gui-icon" src="{{ '/assets/icons/copy.png' | relative_url }}" alt=""> **Copy** — Same as [Copy](#order-list--region), for notes and commands.
 - <img class="gui-icon" src="{{ '/assets/icons/x.png' | relative_url }}" alt=""> **Clear** — Clears notes and commands in the region.
 - <img class="gui-icon" src="{{ '/assets/icons/copy.png' | relative_url }}" alt=""> **Copy Notes** — Copies only notes and instruments.
 - <img class="gui-icon" src="{{ '/assets/icons/x.png' | relative_url }}" alt=""> **Clear Notes** — Clears notes and instruments.
-- **Transpose Up** / **Transpose Down** — Moves notes in the region by one semitone (clamped to the valid note range).
+- **Transpose up** / **Transpose down** — Moves notes in the region by one semitone (clamped to the valid note range).
 - <img class="gui-icon" src="{{ '/assets/icons/piano.png' | relative_url }}" alt=""> **Set Instrument** — Sets every existing instrument index in the region to the piano’s current instrument.
 - <img class="gui-icon" src="{{ '/assets/icons/copy.png' | relative_url }}" alt=""> **Copy Commands** — Copies only commands.
 - <img class="gui-icon" src="{{ '/assets/icons/x.png' | relative_url }}" alt=""> **Clear Commands** — Clears commands and data.
@@ -192,10 +185,10 @@ Above the pattern rows, three buttons show the current pattern index per voice. 
 
 ## Command Editor
 
-The command editor opens from a pattern row, a pattern region, or a wave-table command row. Commands are listed on the left. Parameters for the selected command appear on the right.
+The command editor opens from a pattern row, a pattern region, or a wave-table command row. Commands are listed on the left. Parameters for the selected command appear on the right. Parameter changes are written as you edit.
 
 - Tap a command name to select it.
-- **CLOSE** — Closes the editor and keeps the last values.
+- **CLOSE** — Closes the window.
 
 Some commands are hidden when editing from the wave table.
 
@@ -210,7 +203,7 @@ Some commands are hidden when editing from the wave table.
 
 ### Vibrato
 
-Same slot list as portamento. Slot `00` is **OFF**. Depth uses the same **PRECALCULATED** / **NOTE-INDEPENDENT** choice as portamento.
+Same window as [portamento](#portamento): a speed-table slot list, then **PRECALCULATED** or **NOTE-INDEPENDENT**. Slot `00` is **OFF**.
 
 - **VIBRATO STEPS** — How many steps the pitch travels before turning around. Higher is a wider wobble and a slower cycle.
 - **SPEED** — Size of each step in precalculated mode. Higher is a wider wobble at the same cycle time.
@@ -226,19 +219,19 @@ Same slot list as portamento. Slot `00` is **OFF**. Depth uses the same **PRECAL
 
 <p><img src="{{ '/assets/shots/song-command-wave.png' | relative_url }}" alt="Wave command"></p>
 
-Eight SID flags: noise, pulse, saw, triangle, test, ring, sync, gate.
+Same eight SID flags as the [wave table](#wave-table): **Noise**, **Pulse**, **Saw**, **Triangle**, **Test**, **Ring**, **Sync**, **Gate**.
 
 ### Table Pointer
 
 <p><img src="{{ '/assets/shots/song-command-table.png' | relative_url }}" alt="Table pointer command"></p>
 
-**WAVE TABLE**, **PULSE TABLE**, and **FILTER TABLE** pick an **instrument** whose table to use, or **OFF**. This is not a raw table address (see [Differences from GoatTracker 2](#differences-from-goattracker-2)).
+**WAVE TABLE**, **PULSE TABLE**, and **FILTER TABLE** pick an instrument whose table to use, or **OFF**. This is not a raw table address (see [Differences from GoatTracker 2](#differences-from-goattracker-2)).
 
 ### Filter Control
 
 <p><img src="{{ '/assets/shots/song-command-filter-control.png' | relative_url }}" alt="Filter control command"></p>
 
-- **VOICE 1** / **VOICE 2** / **VOICE 3** — Which voices go through the filter.
+- **VOICE 1** / **VOICE 2** / **VOICE 3** — Which voices go through the filter. These are the chip voices, as in the [filter table](#filter-table).
 - **RES** — Filter resonance.
 
 ### Filter Cutoff
@@ -270,12 +263,9 @@ Same unit as funk tempo: ticks per pattern row. Lower is faster.
 - **THIS VOICE ONLY** — Sets tempo only on the voice that runs the command.
 - **ALL VOICES** — Sets the same tempo on all three voices.
 
+## Instrument View
 
-
-
-## Instrument
-
-Instruments define how a notes sound: volume envelope (ADSR), vibrato, gate timing / hard restart, the first-frame wave, and wave, pulse, and filter tables. Pattern notes pick an instrument by number.
+Instruments define how a note sounds: volume envelope (ADSR), vibrato, gate timing / hard restart, the first-frame wave, and wave, pulse, and filter tables. Pattern notes pick an instrument by number.
 
 Tap a field above the table to edit it below. Tap a table row to edit that row.
 
@@ -283,11 +273,11 @@ Tap a field above the table to edit it below. Tap a table row to edit that row.
 
 <p><img src="{{ '/assets/shots/instr-adsr.png' | relative_url }}" alt="Instrument view with ADSR selected"></p>
 
-- **Index** — Current instrument number (`01`–`3F`). <!-- this actually can't be tapped -->
+- **Index** — Instrument number (`01`–`3F`). Display only.
 - **Name** — Instrument name.
-- <img class="gui-icon" src="{{ '/assets/icons/decrease.png' | relative_url }}" alt=""> / <img class="gui-icon" src="{{ '/assets/icons/increase.png' | relative_url }}" alt=""> **Previous / Next Instrument**
-- <img class="gui-icon" src="{{ '/assets/icons/copy.png' | relative_url }}" alt=""> **Copy** — Copies this instrument (including its table data) to an internal buffer.
-- <img class="gui-icon" src="{{ '/assets/icons/paste.png' | relative_url }}" alt=""> **Paste** — Pastes that buffer onto the current instrument.
+- <img class="gui-icon" src="{{ '/assets/icons/decrease.png' | relative_url }}" alt=""> / <img class="gui-icon" src="{{ '/assets/icons/increase.png' | relative_url }}" alt=""> **Previous / Next** — Selects the previous or next instrument.
+- <img class="gui-icon" src="{{ '/assets/icons/copy.png' | relative_url }}" alt=""> **Copy** — Copies this instrument, including its table data.
+- <img class="gui-icon" src="{{ '/assets/icons/paste.png' | relative_url }}" alt=""> **Paste** — Pastes that copy onto the current instrument.
 - **WAVE / PULSE / FILTER** — Selects which table is shown. A shaded tab means this instrument has no table of that type yet.
 - <img class="gui-icon" src="{{ '/assets/icons/share.png' | relative_url }}" alt=""> **Share** — Opens the table sharing window. Highlighted when at least two instruments use this table.
 
@@ -301,7 +291,7 @@ Tap the `ADSR` field. Four sliders: **ATTACK**, **DECAY**, **SUSTAIN**, **RELEAS
 
 Tap the vibrato field.
 
-- **VIBRATO DELAY** — Frames before vibrato starts.
+- **VIBRATO DELAY** — Frames before vibrato starts. `00` disables vibrato.
 - **STEPS**, **PRECALCULATED** / **NOTE-INDEPENDENT**, **SPEED**, and **SHIFT** — Same meaning as vibrato in the [command editor](#vibrato).
 
 #### Gate Timer
@@ -320,14 +310,14 @@ These control the ticks just before a new note starts (gate-off and hard restart
 
 Waveform written on the note’s init frame. Common choice is gate + test.
 
-- **WAVE** — Set that init waveform with the eight SID flag buttons.
+- **WAVE** — Sets that init waveform with the same eight flag buttons as the [wave table](#wave-table).
 - **GATE ON** — Leave the waveform unchanged, force gate on.
 - **GATE OFF** — Leave the waveform unchanged, force gate off.
 - **NO CHANGE** — Leave waveform and gate unchanged. With **DISABLE GATE** off, the usual legato setup (tables and ADSR still re-init).
 
 ### Instrument Tables
 
-Each instrument can have a **wave**, **pulse**, and **filter** table. Switch between them with the **WAVE / PULSE / FILTER** tabs. Unlike GoatTracker’s global table page, you edit each table on the instrument that uses it (see [Differences from GoatTracker 2](#differences-from-goattracker-2)). Instruments can still share the same table.
+Each instrument can have a wave, pulse, and filter table. Switch between them with the **WAVE / PULSE / FILTER** tabs. You edit each table on the instrument that uses it (see [Differences from GoatTracker 2](#differences-from-goattracker-2)). Instruments can still share the same table.
 
 Tables change the sound over time while a note plays. The table is processed row by row, updating wave, pulse, or filter from tick to tick.
 
@@ -346,8 +336,6 @@ Controls waveform and pitch over time.
 
 <p><img src="{{ '/assets/shots/instr-wave-wave.png' | relative_url }}" alt="Wave table row in WAVE mode"></p>
 
-**Row Type**
-
 - **WAVE** — Sets the SID waveform control register with these eight flags. Without **Noise**, **Pulse**, **Saw**, or **Triangle**, there is no sound.
   - <img class="gui-icon" src="{{ '/assets/icons/noise.png' | relative_url }}" alt=""> **Noise** — LFSR noise (pitched hiss).
   - <img class="gui-icon" src="{{ '/assets/icons/pulse.png' | relative_url }}" alt=""> **Pulse** — Pulse wave. Width comes from the pulse table.
@@ -358,17 +346,12 @@ Controls waveform and pitch over time.
   - <img class="gui-icon" src="{{ '/assets/icons/sync.png' | relative_url }}" alt=""> **Sync** — Hard-syncs this oscillator to the previous voice.
   - <img class="gui-icon" src="{{ '/assets/icons/gate.png' | relative_url }}" alt=""> **Gate** — Starts or holds the ADSR envelope. Off begins release.
 - **DELAY** — Hold this step for a number of ticks before moving on. Waveform stays as it was.
-- **COMMAND** — **EDIT COMMAND** opens the [command editor](#command-editor) and runs that command from the wave table (same idea as a pattern command). Some commands are hidden here.
-
-
-**Pitch** (on **WAVE** and **DELAY** rows)
-
-- **RELATIVE** — Offset from the current note (typical for arpeggios). Negative goes down.
+- **COMMAND** — **EDIT COMMAND** opens the [command editor](#command-editor) and runs that command from the wave table (same idea as a pattern command). Some commands are not available here.
+- **RELATIVE** — Offset from the current note. Negative goes down.
 - **ABSOLUTE** — Force a fixed pitch.
-- **NO CHANGE** — Leave frequency alone (waveform-only step).
+- **NO CHANGE** — Leave the pitch unchanged.
 
 <p><img src="{{ '/assets/shots/instr-wave-delay.png' | relative_url }}" alt="Wave table row in DELAY mode"></p>
-
 
 #### Pulse Table
 
@@ -384,11 +367,16 @@ Sets or sweeps the pulse width when the pulse waveform is used.
 
 #### Filter Table
 
-Sets filter routing and cutoff, or sweeps the cutoff.
+A filter table sets routing, cutoff, and cutoff sweeps. The SID has one filter for all three voices, so cutoff, resonance, and passband apply to every voice routed through it. Routing does not follow the voice this instrument plays on. **VOICE 1**, **VOICE 2**, and **VOICE 3** are the chip voices: an instrument on voice 3 is filtered only if **VOICE 3** is enabled. Bundled presets that use the filter enable **VOICE 1** only. Only one filter table runs at a time. A new note on an instrument that has one replaces the filter program already running.
 
 <p><img src="{{ '/assets/shots/instr-filter-params.png' | relative_url }}" alt="Filter table SET PARAMS"></p>
 
-- **SET PARAMS** — Which voices go through the filter (**VOICE 1/2/3**), passband (lowpass / bandpass / highpass, combinable), and **RES**onance.
+- **SET PARAMS** — Routes voices through the filter and sets the passband and resonance. The passband buttons can be combined.
+  - **VOICE 1** / **VOICE 2** / **VOICE 3** — Sends that voice through the filter.
+  - <img class="gui-icon" src="{{ '/assets/icons/lowpass.png' | relative_url }}" alt=""> **Lowpass** — Keeps frequencies below the cutoff.
+  - <img class="gui-icon" src="{{ '/assets/icons/bandpass.png' | relative_url }}" alt=""> **Bandpass** — Keeps frequencies around the cutoff.
+  - <img class="gui-icon" src="{{ '/assets/icons/highpass.png' | relative_url }}" alt=""> **Highpass** — Keeps frequencies above the cutoff.
+  - **RES** — Resonance (`0`–`F`). Higher gives a sharper peak at the cutoff.
 
 <p><img src="{{ '/assets/shots/instr-filter-cutoff.png' | relative_url }}" alt="Filter table SET CUTOFF"></p>
 
@@ -404,25 +392,25 @@ Wave, pulse, and filter tables can each be shared between instruments. Editing a
 
 <p><img src="{{ '/assets/shots/instr-share.png' | relative_url }}" alt="Table sharing window"></p>
 
-- Tap another instrument to point this instrument at that instrument’s table (and delete this table if nothing else used it).
+- Tap another instrument to point this instrument at that instrument’s table (and delete this table if nothing else used it). Instruments that have no table are disabled.
 - **CLONE** — Copies the table to a new unique block. Disabled unless the table is shared and there is room.
 - **DELETE** — Detaches this instrument from the table (and deletes the bytes if this was the last user).
 - **CLOSE** — Closes the window.
 
-## Instrument Manager
+## Instrument Manager View
 
-Save instruments so you can reuse them across songs, and try the bundled presets to get started quickly. Open with a second tap on **INSTR**.
-
-**FILES** holds your saved instruments. **PRESETS** has the bundled ones. Load and save always apply to the **current** instrument.
+Save instruments so you can reuse them across songs, and try the bundled presets to get started quickly. Open with a second tap on **INSTR**. Load and save always apply to the current instrument.
 
 <p><img src="{{ '/assets/shots/instr-manager-files.png' | relative_url }}" alt="Instrument manager files tab"></p>
 
-- **Name** (FILES) — File name for save.
-- **LOAD** — Loads the selected file or preset into the current instrument.
-- **SAVE** — Saves the current instrument. Confirms overwrite if the name exists.
-- **DELETE** — Deletes the selected user file after confirm.
+- **FILES** — Instruments you have saved.
+- **PRESETS** — Bundled instruments.
+- **File name** (FILES) — Name used when saving.
+- **LOAD** — Loads the selected instrument file or preset into the current instrument.
+- **SAVE** — Saves the current instrument.
+- **DELETE** — Deletes the selected instrument file.
 
-## Settings
+## Settings View
 
 ### Project Settings
 
@@ -455,15 +443,15 @@ ADSR written during hard restart (the brief gate-off before a note). It mainly s
 
 <p><img src="{{ '/assets/shots/settings-sampling.png' | relative_url }}" alt="Sampling method window"></p>
 
-- **FAST**, **INTERPOLATE**, **RESAMPLE INTERPOLATE**, **RESAMPLE FAST** — Picks reSID sampling.
-- **CLOSE** — Closes without changing more than the last tap.
+- **FAST**, **INTERPOLATE**, **RESAMPLE INTERPOLATE**, **RESAMPLE FAST** — Picks reSID sampling. The choice applies on tap.
+- **CLOSE** — Closes the window.
 
 ## Differences from GoatTracker 2
 
-GTMobile songs are still `.sng` and play fine in GoatTracker 2, but the editor is not a straight port of the desktop UI.
+GTMobile songs are still `.sng` files and play in GoatTracker 2. The file format matches. These are the places the song data is organized differently:
 
-- **No global table view** — Under the hood the song still has GoatTracker’s four global tables (wave, pulse, filter, speed). GTMobile manages packing and pointers for you. You edit wave, pulse, and filter on the instrument that uses them instead of a packed “all tables” page with raw row addresses.
-- **Speed table** — That global speed table is split in the UI into portamento, vibrato, and funk-tempo ranges. Instrument vibrato uses the vibrato range. Pattern commands pick a slot in the matching sub-list.
-- **Table pointer commands** — In GoatTracker commands `8`, `9`, and `A` store a table **address**. In GTMobile the data byte is an **instrument number** (or `00` for off). Playback uses that instrument’s wave, pulse, or filter pointer. Long-press **Edit Command** on such a row to jump to that instrument and table.
-- **Table sharing** — Several instruments can point at the same table. **Share** clones or deletes that link instead of compacting a global table by hand.
-- **Order list** — Less flexible than GoatTracker: all three voices share one order-list length, and patterns that play on the same row should have the same length. Loop start is a row mark (**Loop Here**).
+- **Tables are per instrument** — The song still stores GoatTracker’s packed wave, pulse, filter, and speed tables. GTMobile assigns the pointers. You edit wave, pulse, and filter on the instrument that uses them, not as raw row addresses.
+- **Speed table** — That packed speed table is split into portamento, vibrato, and funk-tempo ranges. Instrument vibrato uses the vibrato range. Pattern commands pick a slot in the matching range, not a raw speed-table address.
+- **Table pointer commands** — In GoatTracker, commands `8`, `9`, and `A` store a table address. In GTMobile the data byte is an instrument number (or `00` for off). Playback uses that instrument’s wave, pulse, or filter pointer.
+- **Shared tables** — Several instruments can point at the same table bytes. Sharing, cloning, or dropping that link is how a table is reused or removed. The packed bytes stay hidden.
+- **Order list** — All three voices share one order-list length, and patterns that play on the same row should have the same length. The loop start is a mark on an order row.
