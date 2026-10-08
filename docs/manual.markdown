@@ -37,7 +37,7 @@ These controls stay on screen in every view: tabs and undo/redo at the top, the 
 The piano plays the current instrument on the voice selected in the song view.
 
 - **Instrument** (left, shows index and name) — Opens the instrument picker. In the song view, long-press this button to set the piano instrument from the selected pattern row (if that row has an instrument).
-- **Octave scrollbar** — Drag horizontally to scroll which keys are visible.
+- **Scrollbar** — Drag horizontally to scroll which keys are visible.
 
 #### Instrument Picker
 
@@ -455,3 +455,4 @@ GTMobile songs are still `.sng` files and play in GoatTracker 2. The file format
 - **Table pointer commands** — In GoatTracker, commands `8`, `9`, and `A` store a table address. In GTMobile the data byte is an instrument number (or `00` for off). Playback uses that instrument’s wave, pulse, or filter pointer.
 - **Shared tables** — Several instruments can point at the same table bytes. Sharing, cloning, or dropping that link is how a table is reused or removed. The packed bytes stay hidden.
 - **Order list** — All three voices share one order-list length, and patterns that play on the same row should have the same length. The loop start is a mark on an order row.
+- **Project settings** — Chip model, speed, and hard restart are stored at the end of the song file. GoatTracker ignores that part.

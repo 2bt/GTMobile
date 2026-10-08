@@ -6,3 +6,4 @@ CMakeLists.txt.user
 /docs/_site
 /docs/shots-raw/
 /shot-*.ppm
+/todo.md

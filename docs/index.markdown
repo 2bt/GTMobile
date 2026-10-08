@@ -14,4 +14,4 @@ offering a familiar workflow for experienced users while making SID music creati
 - [Read the Manual](manual/) – Learn how to use GTMobile.
 
 GTMobile is released under the **GNU General Public License v2.0 (GPLv2)**.
-If you enjoy using it, consider [buying me a pizza](https://buymeacoffee.com/twobit) to support development! 🍕
+If you enjoy using it, consider [buying me a pizza](https://buymeacoffee.com/twobit) to support development!
