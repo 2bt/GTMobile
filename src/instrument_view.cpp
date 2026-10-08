@@ -382,7 +382,7 @@ void InstrumentCopyBuffer::paste() const {
                     }
                 }
                 if (borrow) {
-                    dst.ptr[t] = instr.ptr[t];
+                    dst.ptr[t] = orig_instr.ptr[t];
                     continue;
                 }
             }

@@ -4,8 +4,10 @@ title: History
 permalink: /history/
 ---
 
+## 1.0.20 (WIP)
++ Fixed instrument paste incorrectly borrowing table pointers from the copy buffer.
 
-## 1.0.19 (?)
+## 1.0.19 (2026-10-07)
 + Renamed instrument presets.
 + Restored instrument preset ARP Dreamfade.
 + Added pattern clone button.
